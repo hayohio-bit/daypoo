@@ -50,6 +50,31 @@ PoopMap/
 - **기능 브랜치**: 팀원은 자신의 Fork 저장소에서 `feature/[기능명]` 형태로 브랜치를 파서 작업합니다.
 - **Merge 원칙**: Fork 저장소의 `feature` 브랜치에서 원본(Upstream) 저장소의 `develop` 브랜치로 PR을 생성합니다. 최소 1명 이상의 리뷰어 승인(Approve) 후 원본 저장소에 "Squash and Merge" 합니다.
 
+### 2.1 일일 개발 사이클 실전 루틴
+
+```
+[최초 1회] Fork → Clone → upstream 등록 → npm install
+     ↓
+[매 작업마다] git pull upstream main   ← 항상 최신 코드베이스에서 시작!
+     ↓
+git checkout -b feature/기능명
+     ↓
+코딩 → git add . → git commit -m "feat: 기능 설명"
+(커밋 시 Husky가 자동으로 코드 포맷팅 및 메시지 규칙 검사)
+     ↓
+git push origin feature/기능명
+     ↓
+GitHub에서 PR 제출 (upstream의 main 또는 develop으로 목적지 설정)
+     ↓
+리뷰어 Approve → Squash and Merge 완료 🎉
+     ↓
+[모든 팀원] git checkout main → git pull upstream main   ← 필수!
+```
+
+> ⚠️ **주의**: `git pull origin main`이 아닌 **`git pull upstream main`** 을 사용해야 합니다.
+> - `origin` = 내 포크 저장소 (내 GitHub 계정)
+> - `upstream` = 원본 팀 저장소 (PR이 실제로 머지된 곳)
+
 ---
 
 ## 3. 커밋 메시지 규약 강제화 (Commitlint + Husky)

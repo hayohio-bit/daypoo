@@ -131,4 +131,34 @@ git push origin feature/map-marker
 3. 우리가 아까 만들어둔 **PR 템플릿(체크리스트)**이 자동으로 뜹니다. 내용을 정성스럽게 채우고 제출!
 4. 리뷰어(팀장 등)가 코드를 확인하고 승인(Approve)하면, 자랑스럽게 짠 내 코드가 원본 저장소에 "Squash and Merge"로 영원히 기록됩니다! 🎉
 
-> **요약**: "원본을 복사해서 내 자리로 가져오기 (`Fork+Clone`) ➔ 내 자리에서 예쁘게 수정하고 검열받기 (`commit+push`) ➔ 원본에 합쳐달라고 요청서 올리기 (`PR`)" 의 무한 반복입니다!
+### 8단계: PR 머지 후 — 팀원 모두 최신 코드 동기화하기
+
+내 PR이 원본 저장소(`Upstream`)의 `main`에 머지되었다면, **모든 팀원은 자신의 로컬을 최신 상태로 업데이트**해야 합니다. 그래야 다음 작업이 최신 코드 위에서 시작됩니다.
+
+```bash
+# 1. main 브랜치로 이동
+git checkout main
+
+# 2. 원본(upstream)의 최신 코드를 받아와서 내 로컬 main 동기화
+#    ⚠️ 'git pull origin main'이 아닌 'upstream'임을 주의!
+#       origin = 내 포크 저장소 / upstream = 원본(팀) 저장소
+git pull upstream main
+
+# 3. (선택) 내 포크(origin)에도 반영해두기
+git push origin main
+
+# 4. 다음 작업을 위한 새 브랜치 생성
+git checkout -b feature/다음-기능
+```
+
+> **💡 왜 `origin`이 아닌 `upstream`인가요?**
+> - `origin` = **내 포크 저장소** (내 GitHub 계정의 복사본)
+> - `upstream` = **원본 팀 저장소** (PR이 머지된 실제 목적지)
+>
+> PR이 머지되는 곳은 `upstream`이므로, 최신 코드도 `upstream`에서 받아와야 합니다!
+
+---
+
+> **전체 흐름 요약**:
+>
+> `Fork + Clone` ➔ `upstream 등록` ➔ `최신화(pull upstream)` ➔ `브랜치 생성` ➔ `코딩 + 커밋` ➔ `내 포크에 push` ➔ `PR 제출` ➔ `머지 완료` ➔ **`다시 pull upstream`** ➔ ♻️ 무한 반복!
