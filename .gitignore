@@ -1,24 +1,130 @@
-node_modules/
-.env
+# ================================================
+# 🌍 공통 (OS / 시스템 파일)
+# ================================================
 .DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
 
-# Frontend
+# ================================================
+# 🔐 환경 변수 및 시크릿 (절대 커밋 금지!)
+# ================================================
+.env
+.env.*
+!.env.example
+!.env.sample
+*.pem
+*.key
+*.p12
+*.jks
+*.keystore
+secrets/
+credentials/
+
+# ================================================
+# 📦 의존성 패키지
+# ================================================
+node_modules/
+.pnp
+.pnp.js
+
+# ================================================
+# 🖥️ Frontend (Vite / React)
+# ================================================
 frontend/dist/
+frontend/dist-ssr/
 frontend/node_modules/
+frontend/*.local
 
-# Backend
+# ================================================
+# ☕ Backend (Spring Boot / Gradle)
+# ================================================
 backend/build/
 backend/.gradle/
 backend/out/
 backend/bin/
+backend/HELP.md
 
-# AI Service
+# ================================================
+# 🐍 AI Service (Python)
+# ================================================
 ai-service/__pycache__/
 ai-service/.venv/
 ai-service/venv/
 ai-service/.pytest_cache/
+ai-service/*.pyc
+ai-service/*.pyo
+ai-service/.python-version
+ai-service/dist/
+ai-service/build/
+ai-service/*.egg-info/
 
-# IDE Files
+# ================================================
+# 🐳 Docker
+# ================================================
+.docker/
+docker-compose.override.yml
+
+# ================================================
+# 💻 IDE / 에디터
+# ================================================
 .idea/
 .vscode/
+!.vscode/extensions.json
 *.iml
+*.iws
+*.ipr
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+.project
+.classpath
+.settings/
+.springBeans
+.sts4-cache/
+.factorypath
+
+# ================================================
+# 📝 로그 파일
+# ================================================
+*.log
+logs/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# ================================================
+# 🧪 테스트 / 커버리지 리포트
+# ================================================
+coverage/
+.nyc_output/
+htmlcov/
+.coverage
+*.cover
+
+# ================================================
+# 🔧 빌드 / 캐시
+# ================================================
+.cache/
+.parcel-cache/
+.eslintcache
+.stylelintcache
+*.tsbuildinfo
+
+# ================================================
+# 👤 개인 파일 / 로컬 메모 (팀원과 공유 불필요)
+# ================================================
+docs/antigravity/
+TODO.local.md
+NOTES.md
+scratch/
+temp/
+personal/

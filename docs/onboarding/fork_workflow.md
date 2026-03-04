@@ -40,7 +40,50 @@ git remote -v
 npm install
 ```
 
-_(기본적인 프론트, 백엔드 의존성은 각 폴더 `frontend`, `backend`에 들어가서 따로 인스톨해야 합니다.)_
+---
+
+### 4단계: 각 파트별 의존성 설치
+
+루트 `npm install`은 Git Hook만 활성화합니다. 실제 개발에 필요한 라이브러리는 각 폴더에서 따로 설치해야 합니다.
+
+#### ⚛️ 프론트엔드 (React + Vite)
+
+```bash
+cd frontend
+npm install
+```
+
+#### ☕ 백엔드 (Spring Boot + Gradle)
+
+Gradle은 빌드 시 의존성을 자동으로 다운로드합니다. 아래 명령어를 실행하면 의존성을 미리 받아올 수 있습니다.
+
+```bash
+cd backend
+
+# Windows
+gradlew.bat dependencies
+
+# Mac / Linux
+./gradlew dependencies
+```
+
+#### 🐍 AI 서비스 (Python)
+
+```bash
+cd ai-service
+
+# 가상환경 생성 (최초 1회)
+python -m venv .venv
+
+# 가상환경 활성화
+.venv\Scripts\activate         # Windows
+# source .venv/bin/activate    # Mac / Linux
+
+# 의존성 설치
+pip install -r requirements.txt
+```
+
+> 💡 **Tip:** 이후 AI 서비스 작업 시에는 매번 가상환경을 활성화(`activate`)한 후 작업해주세요!
 
 ---
 
@@ -48,7 +91,7 @@ _(기본적인 프론트, 백엔드 의존성은 각 폴더 `frontend`, `backend
 
 자, 이제 **'새로운 기능(예: 지도 마커 추가)'**을 개발하라는 임무를 받았다고 가정해 봅시다. 매일 개발을 시작할 때와 끝낼 때는 아래 사이클을 반복합니다.
 
-### 4단계: 최신화 및 브랜치 생성
+### 5단계: 최신화 및 브랜치 생성
 
 항상 가장 최신 코드를 바탕으로 작업해야 나중에 병합(Merge)할 때 붉은 에러(Conflict)를 막을 수 있습니다.
 
@@ -60,7 +103,7 @@ git pull upstream main
 git checkout -b feature/map-marker
 ```
 
-### 5단계: 열심히 코딩하고 커밋하기
+### 6단계: 열심히 코딩하고 커밋하기
 
 이제 코드를 열심히 작성합니다! 에러가 나든 지저분하게 짜든 괜찮습니다.
 작업을 마치고 저장을 한 뒤, 커밋을 시도합니다.
@@ -81,7 +124,7 @@ git commit -m "feat: 카카오맵 마커 렌더링 추가"
 git push origin feature/map-marker
 ```
 
-### 6단계: 원본에 합쳐달라고 요청하기 (Pull Request 날리기)
+### 7단계: 원본에 합쳐달라고 요청하기 (Pull Request 날리기)
 
 1. 팀원의 깃허브(내 포크된 저장소)에 들어가면 위에 **"Compare & pull request"**라는 초록색 버튼이 뜹니다. 클릭!
 2. 목적지(base)를 **원본 저장소(Upstream)의 `main`**으로 잘 맞춥니다.
