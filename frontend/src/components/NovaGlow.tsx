@@ -69,10 +69,10 @@ const FRAGMENT_SHADER = `
     vec2 uv = gl_FragCoord.xy / u_resolution.xy;
     vec2 p = (gl_FragCoord.xy * 2.0 - u_resolution.xy) / min(u_resolution.y, u_resolution.x);
     
-    // Nova Glow Colors
-    vec3 color1 = vec3(0.06, 0.08, 0.6); // Deep Blue #101499
-    vec3 color2 = vec3(0.61, 0.26, 0.99); // Purple #9C43FE
-    vec3 color3 = vec3(0.3, 0.76, 0.91); // Cyan #4CC2E9
+    // Nova Glow Colors (Updated to project palette: Green & Amber)
+    vec3 color1 = vec3(0.106, 0.263, 0.196); // Green-Deep #1B4332
+    vec3 color2 = vec3(0.176, 0.416, 0.310); // Green-Mid #2D6A4F
+    vec3 color3 = vec3(0.910, 0.659, 0.220); // Amber #E8A838
     
     float noise1 = snoise(vec3(p * 0.8, u_time * 0.3));
     float noise2 = snoise(vec3(p * 1.2 + 10.0, u_time * 0.2));
