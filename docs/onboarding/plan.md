@@ -1,13 +1,13 @@
-# 💩 DayPoo (대똥여지도) 프로젝트 상세 설계 및 구현 계획서 (v4.1)
+# 💩 DayPoo (대똥여지도) 프로젝트 상세 설계 및 구현 계획서 (v4.2)
 
-> **상태**: 최종 기획 통합 완료
-> **핵심 원칙**: Hexagonal Architecture, Privacy-First AI (No-Save & No-Sound), PostgreSQL/PostGIS/Redis, MCP 연동
+> **상태**: 최종 기획 통합 완료 (v4.2 - MVC 전환 적용)
+> **핵심 원칙**: Layered MVC Architecture, Privacy-First AI (No-Save & No-Sound), PostgreSQL/PostGIS/Redis, MCP 연동
 
 ---
 
 ## 1. 아키텍처 및 기술 스택 블루프린트 (Architecture & Tech Stack Blueprint)
 
-본 프로젝트는 대규모 트래픽 처리와 위치 기반 데이터의 실시간 렌더링, 그리고 AI 서비스의 효율적 연동을 위해 **헥사고날 아키텍처(Hexagonal Architecture)** 및 **MSA(Microservices Architecture) 지향**으로 설계되었습니다.
+본 프로젝트는 대규모 트래픽 처리와 위치 기반 데이터의 실시간 렌더링, 그리고 AI 서비스의 효율적 연동을 위해 **계층형 MVC (Layered MVC) 아키텍처** 및 **MSA(Microservices Architecture) 지향**으로 설계되었습니다.
 
 ### 1.1 시스템 전체 아키텍처 다이어그램 (C4 Model - Container Level)
 
@@ -19,9 +19,9 @@ graph TB
     end
 
     subgraph Backend["⚙️ Spring Boot 핵심 백엔드"]
-        API[REST API /api/v1]
+        API[REST Controller /api/v1]
         Auth[Security/JWT]
-        Domain[Business Logic / Hexagonal Ports]
+        Domain[Service / Repository / Entity]
         Admin[Admin Service]
     end
 
@@ -74,7 +74,7 @@ graph TB
 #### ⚙️ 백엔드 (Backend) - 헥사고날 아키텍처 & 고가용성
 
 - **Core Framework**: Spring Boot 3.x (Java 21).
-- **Architecture Pattern**: 헥사고날 아키텍처(Ports and Adapters). 도메인 비즈니스 로직을 외부 인프라(DB, Web)로부터 철저히 격리하여 테스트 용이성 극대화.
+- **Architecture Pattern**: 계층형 MVC 아키텍처 (Controller - Service - Repository). JPA 엔티티 안에 핵심 비즈니스 로직을 포함하는 풍부한 도메인 모델 중심으로 빠르고 직관적인 생산성 지향. 데이터 전송 객체(DTO)와 Entity 분리 및 `MapStruct`를 통한 자동화된 객체 매핑(Mapper) 구현.
 - **Security**: Spring Security + JWT. Access/Refresh Token을 활용한 Stateless 인증.
 - **API Design**: RESTful API 구현 및 Swagger/Spring REST Docs를 통한 명세 자동화.
 - **Dependency Injection**: Spring IoC Container를 활용한 약결합 구조.
@@ -96,12 +96,15 @@ graph TB
 #### 🚀 인프라 및 데브옵스 (Infrastructure & DevOps)
 
 - **Containerization**: Docker & Docker Compose (개발-런타임-프로덕션 환경 완벽 통일).
+  - `dpage/pgadmin4`를 포함하여 데이터베이스 및 PostGIS 공간 데이터 시각화 GUI 관리 환경 동시 구성.
 - **CI/CD**: GitHub Actions (자동화된 빌드, 단위/통합 테스트, 무중단 배포 파이프라인).
 - **Observability**: Prometheus (시스템 메트릭 수집) + Grafana (실시간 대시보드 직관적 시각화).
 
 ### 1.3 시스템 아키텍처 주요 결정 사항 (ADR: Architecture Decision Records)
 
 - **AI 마이크로서비스 영구 분리**: AI 서비스 로직을 Spring Boot 하위 모듈이 아닌 Python(FastAPI) 독립 서버로 완전 분리. LangChain 등 최신 AI 생태계의 풍부한 오픈소스를 직접 활용하고 리소스 스케일아웃을 분리하기 위함.
+- **계층형 MVC 아키텍처 및 DTO/MapStruct 적용**: 헥사고날 아키텍처의 보일러플레이트 코드로 인한 복잡성을 제거하고 스타트업의 빠른 프로토타이핑을 위해 스프링 부트의 표준이자 실무형 패턴인 '계층형 MVC + JPA'를 선택. Entity와 DTO 간의 데이터 유출 방지 및 API 스펙 강제화를 위해 `MapStruct` 자동 매핑을 도입.
+- **공공데이터 API 연동 및 공간 데이터 GUI**: 약 7만 건 이상의 전국 화장실 공공데이터(`전국공중화장실표준데이터` API 연동)를 PostGIS `Point` 타입으로 인덱싱. 이를 시각적으로 교차 검증하고 데이터베이스를 손쉽게 관리할 수 있도록 `pgAdmin4` GUI 도구를 Docker Compose 구성에 포함.
 - **디자인 시스템 독립성 (CSS)**: Tailwind 등에 종속되지 않고 Vanilla CSS 기반으로 구축. 사용자에게 WOU(Wow) 모먼트를 주어야 하는 프리미엄 급의 마이크로 애니메이션과 독자적인 다이내믹 UI(Aesthetics)를 타협 없이 완성.
 - **소프트웨어 기반 GPS 검증**: 하드웨어적(NFC/QR) 한계를 인지하고 100% 소프트웨어 검증(가변 반경 체크 + 체류 시간)으로 선회하되, Redis의 Rate Limiter 알고리즘을 추가하여 어뷰징(매크로 및 GPS 스푸핑 기기)을 방어하는 다중 보안 채택.
 
@@ -438,9 +441,10 @@ erDiagram
 
 ### Phase 1: 기반 구축 (Must Have)
 
-1. **DB/Infra**: PostgreSQL PostGIS 설정, Redis Cluster 구축.
-2. **Auth**: Spring Security + OAuth2 + JWT (3초 가입).
-3. **Common**: 공공데이터(화장실 7만건) 벌크 인서트 및 공간 인덱싱.
+1. **DB/Infra**: PostgreSQL PostGIS 및 `pgAdmin4` GUI 연동 설정, Redis Cluster Docker 구축.
+2. **Architecture**: 계층형 MVC 구조 디렉터리 세팅 및 `MapStruct`, `QueryDSL` 등 핵심 라이브러리 초기화.
+3. **Auth**: Spring Security + OAuth2 + JWT (3초 가입) 초기 프레임워크 구현.
+4. **Common**: 외부 API(`전국공중화장실표준데이터`) 연동을 통한 공공데이터(화장실 7만건) 벌크 인서트 모듈 및 PostGIS 공간 인덱싱 적용.
 
 ### Phase 2: 핵심 비즈니스 로직 (Must Have)
 
