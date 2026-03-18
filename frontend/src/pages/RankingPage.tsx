@@ -21,6 +21,23 @@ interface RankUser {
   items: { icon: string; name: string; type: string }[];
 }
 
+// ── 애니메이션 보더 ───────────────────────────────────────────────────
+function ConicGlow({ color, thickness = 1.5, borderRadius = '16px' }: { color: string; thickness?: number; borderRadius?: string }) {
+  return (
+    <div className="absolute inset-0 pointer-events-none overflow-hidden" style={{ borderRadius }}>
+      <motion.div
+        style={{
+          position: 'absolute',
+          inset: '-200%',
+          background: `conic-gradient(from 0deg, transparent 0%, ${color} 15%, transparent 30%, transparent 50%, ${color} 65%, transparent 80%, transparent 100%)`,
+        }}
+        animate={{ rotate: 360 }}
+        transition={{ duration: 4, repeat: Infinity, ease: "linear" }}
+      />
+    </div>
+  );
+}
+
 // ── 데이터 ────────────────────────────────────────────────────────────
 const RANK_DATA: Record<TabKey, RankUser[]> = {
   total: [
@@ -213,106 +230,85 @@ function ItemPopup({ user, onClose }: { user: RankUser; onClose: () => void }) {
   );
 }
 
-// ── 시상대 섹션 ───────────────────────────────────────────────────────
+// ── 시상대 섹션 (Spotlight Glassmorphism) ──────────────────────────────
 function Podium({ users, onSelect }: { users: RankUser[]; onSelect: (u: RankUser) => void }) {
   const [top1, top2, top3] = users;
 
-  const PodiumCard = ({ user, height, isFirst }: { user: RankUser; height: number; isFirst?: boolean }) => (
+  const GlassCard = ({ user, scale = 1, delay = 0, isFirst = false }: { user: RankUser; scale?: number; delay?: number; isFirst?: boolean }) => (
     <motion.div
-      whileHover={{ y: -6 }}
-      transition={{ type: 'spring', stiffness: 300, damping: 22 }}
+      initial={{ opacity: 0, y: 32, scale: scale * 0.9 }}
+      animate={{ opacity: 1, y: 0, scale }}
+      transition={{ duration: 0.8, delay, ease: [0.16, 1, 0.3, 1] }}
+      whileHover={{ y: -8, scale: scale * 1.02 }}
       onClick={() => onSelect(user)}
-      className="flex flex-col items-center cursor-pointer"
-      style={{ flex: isFirst ? '0 0 200px' : '0 0 160px' }}
+      className="relative cursor-pointer group"
+      style={{ width: isFirst ? '240px' : '200px', zIndex: isFirst ? 20 : 10 }}
     >
-      {/* 아바타 영역 */}
-      <div className="relative mb-3" style={{ marginBottom: '12px' }}>
-        {isFirst && (
-          <motion.div
-            animate={{ scale: [1, 1.15, 1], opacity: [0.4, 0.7, 0.4] }}
-            transition={{ duration: 2.4, repeat: Infinity, ease: 'easeInOut' }}
-            className="absolute inset-0 rounded-full pointer-events-none"
-            style={{
-              background: 'radial-gradient(circle, rgba(232,168,56,0.5) 0%, transparent 70%)',
-              transform: 'scale(2)',
-            }}
-          />
-        )}
-        {isFirst && (
-          <motion.div
-            animate={{ y: [0, -5, 0] }}
-            transition={{ duration: 1.8, repeat: Infinity, ease: 'easeInOut' }}
-            className="absolute -top-7 left-1/2 -translate-x-1/2 text-2xl"
-          >
-            👑
-          </motion.div>
-        )}
-        <motion.div
-          className="rounded-full flex items-center justify-center relative z-10"
-          style={{
-            width: isFirst ? '80px' : '64px',
-            height: isFirst ? '80px' : '64px',
-            fontSize: isFirst ? '36px' : '28px',
-            background: isFirst
-              ? 'linear-gradient(135deg, #FFFFFF 0%, #f4faf6 100%)'
-              : 'linear-gradient(135deg, #FFFFFF 0%, #f9fbf9 100%)',
-            border: `3px solid ${user.titleColor}`,
-            boxShadow: isFirst ? `0 8px 24px ${user.titleColor}25` : '0 4px 12px rgba(0,0,0,0.05)',
-          }}
-          animate={{
-            boxShadow: [
-              `0 0 0px ${user.titleColor}00`,
-              `0 0 15px ${user.titleColor}40`,
-              `0 0 0px ${user.titleColor}00`
-            ]
-          }}
-          transition={{
-            duration: 2.5,
-            repeat: Infinity,
-            ease: "easeInOut"
-          }}
-        >
-          {user.emoji}
-        </motion.div>
+      {/* 카드 배경 (Glassmorphism) */}
+      <div className="absolute inset-0 rounded-[32px] overflow-hidden" style={{ zIndex: -1 }}>
+        <div className="absolute inset-0 backdrop-blur-xl transition-colors duration-500 group-hover:bg-white/40" 
+          style={{ background: 'rgba(255,255,255,0.25)', border: '1.5px solid rgba(255,255,255,0.4)' }} />
+        <div className="absolute inset-0 bg-gradient-to-br from-white/20 to-transparent" />
       </div>
 
-      {/* 칭호 + 닉네임 */}
-      <span
-        className="text-[10px] font-bold px-2 py-0.5 rounded-full mb-1 text-center"
-        style={{ background: user.titleBg, color: user.titleColor, maxWidth: '90%' }}
-      >
-        {user.title}
-      </span>
-      <p className="font-black text-[#1A2B27] text-sm text-center leading-tight">{user.nick}</p>
-      <p className="text-xs mt-1" style={{ color: 'rgba(0,0,0,0.4)' }}>
-        {user.score.toLocaleString()}{user.scoreLabel}
-      </p>
+      {/* 내부 콘텐츠 */}
+      <div className="flex flex-col items-center p-6 pb-8">
+        {/* 순위 배지 */}
+        <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-4 py-1 rounded-full font-black text-xs shadow-lg"
+          style={{ background: user.rank === 1 ? '#E8A838' : user.rank === 2 ? '#B0B8B4' : '#CD7C4A', color: '#fff' }}>
+          {user.rank}ST
+        </div>
 
-      {/* 시상대 블록 */}
-      <div
-        className="w-full mt-3 rounded-t-2xl flex items-end justify-center pb-3 shadow-sm"
-        style={{
-          height: `${height}px`,
-          background: isFirst
-            ? 'linear-gradient(180deg, #FFFFFF 0%, #f0f7f3 100%)'
-            : 'linear-gradient(180deg, #FFFFFF 0%, #f4f9f6 100%)',
-          border: `1px solid ${user.titleColor}20`,
-          fontSize: '28px',
-          fontWeight: 900,
-          color: `${user.titleColor}15`,
-          letterSpacing: '-0.04em',
-        }}
-      >
-        {user.rank}
+        {/* 아바타 영역 */}
+        <div className="relative mb-5 mt-2">
+          {isFirst && (
+            <motion.div
+              animate={{ scale: [1, 1.3, 1], opacity: [0.3, 0.6, 0.3] }}
+              transition={{ duration: 3, repeat: Infinity }}
+              className="absolute inset-0 rounded-full bg-amber-400/20 blur-xl"
+            />
+          )}
+          <div className="w-20 h-20 rounded-full flex items-center justify-center relative overflow-hidden text-4xl"
+            style={{ background: '#fff', boxShadow: '0 8px 24px rgba(0,0,0,0.08)' }}>
+            <ConicGlow color={user.titleColor} thickness={4} borderRadius="50%" />
+            <div className="absolute inset-[3px] rounded-full bg-white flex items-center justify-center z-10">
+              {user.emoji}
+            </div>
+          </div>
+          {isFirst && <div className="absolute -top-5 -right-2 text-2xl rotate-12 drop-shadow-md">👑</div>}
+        </div>
+
+        {/* 텍스트 */}
+        <span className="text-[10px] font-black px-2.5 py-1 rounded-full mb-2 uppercase tracking-tight"
+          style={{ background: user.titleBg, color: user.titleColor }}>
+          {user.title}
+        </span>
+        <h3 className="font-black text-[#1A2B27] text-lg mb-1">{user.nick}</h3>
+        <p className="font-black text-2xl flex items-baseline gap-0.5" style={{ color: '#52b788' }}>
+          {user.score.toLocaleString()}<span className="text-[10px] uppercase font-bold text-gray-400">{user.scoreLabel}</span>
+        </p>
       </div>
+
+      {/* 바닥 그림자 */}
+      <div className="absolute -bottom-10 left-1/2 -translate-x-1/2 w-3/4 h-4 bg-black/5 blur-xl rounded-full" />
     </motion.div>
   );
 
   return (
-    <div className="flex items-end justify-center gap-4">
-      <PodiumCard user={top2} height={72} />
-      <PodiumCard user={top1} height={104} isFirst />
-      <PodiumCard user={top3} height={56} />
+    <div className="relative flex items-center justify-center gap-6 lg:gap-10 mt-4 py-12 px-4">
+      {/* 1등 뒤 스포트라이트 배경 */}
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] pointer-events-none" style={{ zIndex: 0 }}>
+        <motion.div
+          animate={{ scale: [1, 1.1, 1], opacity: [0.15, 0.25, 0.15] }}
+          transition={{ duration: 5, repeat: Infinity }}
+          className="absolute inset-0 rounded-full"
+          style={{ background: 'radial-gradient(circle, #E8A838 0%, transparent 70%)', filter: 'blur(60px)' }}
+        />
+      </div>
+
+      <GlassCard user={top2} scale={1.0} delay={0.15} />
+      <GlassCard user={top1} scale={1.2} delay={0} isFirst />
+      <GlassCard user={top3} scale={0.95} delay={0.3} />
     </div>
   );
 }
@@ -321,42 +317,38 @@ function Podium({ users, onSelect }: { users: RankUser[]; onSelect: (u: RankUser
 function RankItem({
   user, index, onSelect,
 }: { user: RankUser; index: number; onSelect: (u: RankUser) => void }) {
-  const rankColor = user.rank === 1 ? '#E8A838' : user.rank === 2 ? '#b0b8b4' : user.rank === 3 ? '#cd7c4a' : 'rgba(255,255,255,0.25)';
+  const rankColor = user.rank === 1 ? '#E8A838' : user.rank === 2 ? '#b0b8b4' : user.rank === 3 ? '#cd7c4a' : 'rgba(27,67,50,0.08)';
   const isTop3 = user.rank <= 3;
-  const glowColor = user.rank === 1 ? 'rgba(232, 168, 56, 0.4)' : user.rank === 2 ? 'rgba(148, 163, 184, 0.3)' : 'rgba(205, 124, 74, 0.3)';
 
   return (
     <motion.div
       initial={{ opacity: 0, y: 16 }}
-      animate={{ 
-        opacity: 1, 
-        y: 0,
-        boxShadow: isTop3 
-          ? [`0 4px 12px rgba(0,0,0,0.02), 0 0 0px ${glowColor}`, `0 4px 12px rgba(0,0,0,0.02), 0 0 12px ${glowColor}`, `0 4px 12px rgba(0,0,0,0.02), 0 0 0px ${glowColor}`]
-          : '0 4px 12px rgba(0,0,0,0.02)',
-        borderColor: isTop3 
-          ? [rankColor + '40', rankColor + '80', rankColor + '40'] 
-          : 'rgba(27,67,50,0.08)'
-      }}
-      transition={{ 
-        opacity: { duration: 0.4, delay: index * 0.04 },
-        y: { duration: 0.4, delay: index * 0.04 },
-        boxShadow: isTop3 
-          ? { duration: 2, repeat: Infinity, ease: 'easeInOut' } 
-          : { duration: 0.4, delay: index * 0.04 },
-        borderColor: isTop3 
-          ? { duration: 2, repeat: Infinity, ease: 'easeInOut' } 
-          : { duration: 0.4, delay: index * 0.04 }
-      }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.4, delay: index * 0.04 }}
       onClick={() => onSelect(user)}
       whileHover={{ x: 4, scale: isTop3 ? 1.01 : 1 }}
-      className="flex items-center gap-4 px-5 py-4.5 rounded-2xl cursor-pointer transition-all"
+      className="relative flex items-center gap-4 px-5 py-4.5 rounded-2xl cursor-pointer transition-all"
       style={{
         background: '#FFFFFF',
-        border: '1.5px solid',
+        border: isTop3 ? 'none' : '1.5px solid rgba(27,67,50,0.08)',
         marginBottom: '8px',
       }}
     >
+      {isTop3 && (
+        <>
+          <ConicGlow color={rankColor} thickness={1.5} borderRadius="16px" />
+          <div 
+            className="absolute z-0 bg-white" 
+            style={{ 
+              inset: '1.5px', 
+              borderRadius: '14.5px' 
+            }} 
+          />
+        </>
+      )}
+      
+      <div className="relative z-10 flex items-center gap-4 w-full">
+        {/* 기존 내부 콘텐츠 유지 (순위, 아바타, 정보, 점수 등) */}
       {/* 순위 */}
       <span
         className="w-8 text-center font-black text-base flex-shrink-0"
@@ -387,12 +379,13 @@ function RankItem({
         <p className="font-black text-[#1A2B27] text-lg leading-tight truncate">{user.nick}</p>
       </div>
 
-      {/* 점수 + 변화 */}
-      <div className="flex flex-col items-end gap-1 flex-shrink-0">
-        <span className="font-black text-xl" style={{ color: '#52b788', letterSpacing: '-0.03em' }}>
-          {user.score.toLocaleString()}{user.scoreLabel}
-        </span>
-        <ChangeIcon change={user.change} />
+        {/* 점수 + 변화 */}
+        <div className="flex flex-col items-end gap-1 flex-shrink-0">
+          <span className="font-black text-xl" style={{ color: '#52b788', letterSpacing: '-0.03em' }}>
+            {user.score.toLocaleString()}{user.scoreLabel}
+          </span>
+          <ChangeIcon change={user.change} />
+        </div>
       </div>
     </motion.div>
   );
@@ -466,8 +459,8 @@ export function RankingPage({ openAuth }: { openAuth: (mode: 'login' | 'signup')
           }}
         />
 
-        <section className="relative z-10 pt-48 pb-32 px-6">
-          <div className="max-w-2xl mx-auto">
+        <section className="relative z-10 pt-32 pb-64 px-6">
+          <div className="max-w-4xl mx-auto">
             {/* 헤더 */}
             <motion.div
               initial={{ opacity: 0, y: 24 }}
@@ -532,7 +525,7 @@ export function RankingPage({ openAuth }: { openAuth: (mode: 'login' | 'signup')
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -8 }}
                 transition={{ duration: 0.25 }}
-                className="text-center text-sm mb-12"
+                className="text-center text-sm mb-6"
                 style={{ color: 'rgba(0,0,0,0.4)' }}
               >
                 {currentTab.desc}

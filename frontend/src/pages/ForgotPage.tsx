@@ -7,6 +7,105 @@ import { ArrowLeft, ArrowRight, Mail, KeyRound, CheckCircle2, AlertCircle, Rotat
 type ForgotMode = 'password' | 'email';
 type Step = 'input' | 'verify' | 'done';
 
+// ── 상단 헤더 (Navbar Style) ──────────────────────────────────────────
+function PageHeader() {
+  const navigate = useNavigate();
+  return (
+    <div className="flex justify-center mb-10">
+      <motion.nav
+        initial={{ opacity: 0, y: -10 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="flex items-center bg-[#1A2B27] rounded-full px-8 py-3 shadow-2xl gap-5"
+        style={{ border: '1px solid rgba(255,255,255,0.1)' }}
+      >
+        <Link
+          to="/main"
+          className="font-black text-white no-underline text-xl tracking-tighter"
+          style={{ fontFamily: 'SchoolSafetyNotification, sans-serif' }}
+        >
+          Day<span style={{ color: '#E8A838' }}>.</span>Poo
+        </Link>
+        <div style={{ width: '1px', height: '16px', background: 'rgba(255,255,255,0.15)' }} />
+        <button
+          onClick={() => navigate(-1)}
+          className="flex items-center gap-1.5 text-sm font-bold text-white/60 transition-all hover:text-white cursor-pointer"
+          style={{ background: 'none', border: 'none' }}
+        >
+          <ArrowLeft size={14} />
+          뒤로
+        </button>
+      </motion.nav>
+    </div>
+  );
+}
+
+// ── 애니메이션 빔 배경 ──────────────────────────────────────────────────
+function AnimatedBeamBackground() {
+  const paths = [
+    "M-100,200 C150,150 350,450 500,300 C650,150 850,450 1100,200",
+    "M1100,800 C850,750 650,950 500,800 C350,650 150,850 -100,800",
+    "M200,-100 C150,150 450,350 300,500 C150,650 450,850 200,1100",
+    "M800,1100 C750,850 950,650 800,500 C650,350 850,150 800,-100",
+  ];
+
+  return (
+    <div className="absolute inset-0 pointer-events-none overflow-hidden opacity-40">
+      <svg className="w-full h-full" viewBox="0 0 1000 1000" preserveAspectRatio="none">
+        <defs>
+          <linearGradient id="beam-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stopColor="#1B4332" stopOpacity="0" />
+            <stop offset="30%" stopColor="#52B788" stopOpacity="0.5" />
+            <stop offset="70%" stopColor="#E8A838" stopOpacity="0.5" />
+            <stop offset="100%" stopColor="#1B4332" stopOpacity="0" />
+          </linearGradient>
+          <filter id="glow">
+            <feGaussianBlur stdDeviation="3" result="blur" />
+            <feComposite in="SourceGraphic" in2="blur" operator="over" />
+          </filter>
+        </defs>
+        
+        {paths.map((d, i) => (
+          <g key={i}>
+            <path d={d} fill="none" stroke="rgba(27,67,50,0.04)" strokeWidth="1.5" />
+            <motion.path
+              d={d}
+              fill="none"
+              stroke="url(#beam-grad)"
+              strokeWidth="3"
+              strokeLinecap="round"
+              filter="url(#glow)"
+              initial={{ pathLength: 0, pathOffset: 0, opacity: 0 }}
+              animate={{ 
+                pathLength: [0.15, 0.25, 0.15],
+                pathOffset: [0, 1],
+                opacity: [0, 0.8, 0]
+              }}
+              transition={{
+                duration: 7 + i * 2,
+                repeat: Infinity,
+                delay: i * 2.5,
+                ease: "linear"
+              }}
+            />
+          </g>
+        ))}
+      </svg>
+      
+      {/* 기존 글로우 효과 (색감 보강) */}
+      <div style={{
+        position: 'absolute', top: '15%', left: '10%',
+        width: '45vw', height: '45vw', borderRadius: '50%',
+        background: 'radial-gradient(circle, rgba(82,183,136,0.06) 0%, transparent 70%)',
+      }} />
+      <div style={{
+        position: 'absolute', bottom: '15%', right: '10%',
+        width: '40vw', height: '40vw', borderRadius: '50%',
+        background: 'radial-gradient(circle, rgba(232,168,56,0.06) 0%, transparent 70%)',
+      }} />
+    </div>
+  );
+}
+
 // ── 공통 Input ────────────────────────────────────────────────────────
 function InputField({
   label, type = 'text', value, onChange, placeholder,
@@ -524,22 +623,11 @@ export function ForgotPage() {
 
   return (
     <div
-      className="min-h-screen flex items-center justify-center px-4 py-8 relative overflow-hidden"
-      style={{ background: '#F2F7F4' }}
+      className="min-h-screen flex items-center justify-center px-4 py-12 relative overflow-hidden"
+      style={{ background: '#F8FAF9' }}
     >
       {/* 배경 장식 */}
-      <div className="absolute inset-0 pointer-events-none overflow-hidden">
-        <div style={{
-          position: 'absolute', top: '-10%', right: '-5%',
-          width: '40vw', height: '40vw', borderRadius: '50%',
-          background: 'radial-gradient(circle, rgba(45,106,79,0.08) 0%, transparent 70%)',
-        }} />
-        <div style={{
-          position: 'absolute', bottom: '-10%', left: '-5%',
-          width: '35vw', height: '35vw', borderRadius: '50%',
-          background: 'radial-gradient(circle, rgba(232,168,56,0.07) 0%, transparent 70%)',
-        }} />
-      </div>
+      <AnimatedBeamBackground />
 
       <motion.div
         initial={{ opacity: 0, y: 28 }}
@@ -548,23 +636,7 @@ export function ForgotPage() {
         className="relative z-10 w-full"
         style={{ maxWidth: '540px' }}
       >
-        {/* 로고 + 뒤로가기 (위치 교체) */}
-        <div className="flex items-center justify-between mb-6">
-          <Link to="/main"
-            className="font-black"
-            style={{ fontSize: '24px', letterSpacing: '-0.04em', color: '#1a2b22', textDecoration: 'none' }}>
-            Day<span style={{ color: '#E8A838' }}>.</span>Poo
-          </Link>
-          <button
-            onClick={() => navigate(-1)}
-            className="flex items-center gap-1.5 text-sm font-semibold transition-all hover:gap-2.5"
-            style={{ color: '#5a7a6a', background: 'none', border: 'none', cursor: 'pointer' }}
-          >
-            <ArrowLeft size={16} />
-            뒤로
-          </button>
-        </div>
-
+        <PageHeader />
         {/* 카드 */}
         <div
           className="rounded-[28px] p-8"

@@ -44,15 +44,33 @@ export function ReportCard() {
   const navigate = useNavigate();
 
   return (
-    <section className="pt-16 pb-24 px-6" style={{ backgroundColor: '#eef5f0' }}>
-      <div className="max-w-5xl mx-auto">
+    <section className="pt-40 pb-64 px-6" style={{ backgroundColor: '#eef5f0' }}>
+      <motion.div 
+        initial={{ opacity: 0, scale: 0.9, filter: 'brightness(3) saturate(0) blur(10px)' }}
+        whileInView={{ opacity: 1, scale: 1, filter: 'brightness(1) saturate(1) blur(0px)' }}
+        viewport={{ once: true, margin: "-100px" }}
+        transition={{ duration: 1.8, ease: [0.16, 1, 0.3, 1] }}
+        className="max-w-5xl mx-auto relative"
+      >
+        {/* Burn Effect Glow Overlay */}
+        <motion.div
+          initial={{ opacity: 0.8, scale: 0.8 }}
+          whileInView={{ opacity: 0, scale: 1.2 }}
+          viewport={{ once: true }}
+          transition={{ duration: 1.2, ease: "easeOut" }}
+          className="absolute inset-0 z-0 pointer-events-none rounded-[40px]"
+          style={{
+            background: 'radial-gradient(circle, #E8A838 0%, transparent 70%)',
+            filter: 'blur(40px)',
+          }}
+        />
 
         {/* ── 섹션 헤더 ─────────────────────────────────── */}
         <motion.div
           initial={{ opacity: 0, y: 24 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
-          className="text-center mb-14"
+          className="relative z-10 text-center mb-14"
         >
           <p
             className="text-xs font-bold uppercase tracking-widest mb-3"
@@ -269,7 +287,7 @@ export function ReportCard() {
             </motion.button>
           </motion.div>
         </div>
-      </div>
+      </motion.div>
     </section>
   );
 }
