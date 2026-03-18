@@ -36,14 +36,16 @@ public class SecurityConfig {
         .httpBasic(AbstractHttpConfigurer::disable)
         .authorizeHttpRequests(
             auth ->
-                auth.requestMatchers("/api/v1/auth/**")
+                auth.requestMatchers("/api/v1/auth/**", "/api/v1/auth/password/**")
                     .permitAll()
                     // Swagger UI 및 명세 파일 관련 경로 모두 허용
                     .requestMatchers(
                         "/v3/api-docs/**",
-                        "/swagger-ui/**",
                         "/swagger-ui.html",
+                        "/swagger-ui/**",
                         "/openapi.yaml",
+                        "/docs",
+                        "/docs/**",
                         "/webjars/**",
                         "/favicon.ico")
                     .permitAll()
@@ -53,13 +55,13 @@ public class SecurityConfig {
                     .hasRole("ADMIN") // 관리자 API 경로 수정 (v2 -> v1)
                     .anyRequest()
                     .authenticated())
-        .oauth2Login(
-            oauth2 ->
-                oauth2
-                    .userInfoEndpoint(
-                        userInfoEndpointConfig ->
-                            userInfoEndpointConfig.userService(customOAuth2UserService))
-                    .successHandler(oAuth2SuccessHandler))
+        /* .oauth2Login(
+        oauth2 ->
+            oauth2
+                .userInfoEndpoint(
+                    userInfoEndpointConfig ->
+                        userInfoEndpointConfig.userService(customOAuth2UserService))
+                .successHandler(oAuth2SuccessHandler)) */
         .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 
     return http.build();

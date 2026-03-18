@@ -1,31 +1,49 @@
-# DayPoo (대똥여지도) 고도화 및 연동 계획
+# DayPoo (대똥여지도) 고도화 및 연동 계획 (최적화 버전)
 
 ## 🎯 목표
-- 인프라 및 기초 데이터 연동이 완료된 후, 시스템의 보안을 강화하고 핵심 비즈니스 로직(위치 검증, AI 분석)의 안정성을 확보합니다.
+- 인프라 및 기초 데이터 연동이 완료된 후, 대규모 공공데이터(약 50만 건)를 가장 빠르고 효율적으로 수집/저장하는 고성능 파이프라이닝을 구축합니다.
 
-## 🛠 작업 단계
+## 🛠 아키텍처 분석 및 최적화 전략
 
-### Phase 1 ~ 5: [Done] 기초 인프라 및 데이터 동기화
-- [x] 프로젝트 아키텍처 계층화 및 패킹 정리
-- [x] `.env` 환경변수 일원화 및 하드코딩 제거
-- [x] DB 초기화 및 PostGIS/Redis 확장 활성화
-- [x] 행안부 공중화장실 API 동기화 파이프라인 구축 및 테스트 완료 (34건)
+### 1. 현재 아키텍처 진단
+- **Backend**: Spring Boot 3.4.3 (Java 21 Virtual Threads 지원).
+- **Data Store**: PostgreSQL(PostGIS) + Redis(Geo-Spatial).
+- **병목 지점**: 순차적 IO 처리 및 API 호출 간 불필요한 지연, Redis/DB 단건 처리로 인한 네트워크 RTT 누적.
 
-### Phase 6: [Done] 보안 강화 및 위치 인증 로직 검증
-- [x] **동기화 API(`toilets/sync`) 보안 강화**: `@PreAuthorize` 및 `SecurityConfig` 설정을 통해 관리자 전용으로 격상.
-- [x] **중복 데이터 방지 로직 고도화**: 공공데이터 고유 번호(`MNG_NO`) 필드를 추가하여 재동기화 시 중복 적재 방지.
-- [x] **위치 인증 서비스 통합**: `LocationVerificationService`를 통한 50m 반경 검증 및 Redis Cooldown(3시간) 로직 적용.
-- [x] **인프라 클린업**: 기존 테스트 데이터 초기화 및 스키마 정합성 확보.
-
-### Phase 7: [x] AI 서비스 연동 및 게이미피케이션 활성화
-    - [x] **Python AI (FastAPI) 연동**: Mock AI 서비스를 활용하여 DTO 규격 동기화(Snake Case 대응) 및 통신 레이어 검증 완료.
-    - [x] **게이미피케이션 시스템**: 배변 기록 시 포인트/EXP 보상, 레벨업 기반 마련 및 실시간 글로벌/지역 랭킹(Redis ZSET) 연동 확인.
-    - [x] **상점 및 아이템**: 포인트 기반 아이템 구매 및 인벤토리 장착 시스템 로직 검증 완료.데이터 초기화 및 실시간 업데이트 확인
-
-### Phase 8: [x] 문서화 및 최종 배포 준비
-- [x] **API 명세서(Swagger) 최신화**: `/api/v1/toilets/sync` 관리자 엔드포인트 추가 및 랭킹 DTO 구조Record와 동기화 완료.
-- [x] **환경 설정 최적화**: `application.yml`에서 실서비스용 로깅 레벨 조정 및 SQL 로그 비활성화 완료.
-- [x] **통합 빌드 검증**: Gradle 전체 빌드 및 주요 서비스 유닛 테스트(PooRecord, Ranking, Shop 등) 성공 확인.
+### 2. 최적화 핵심 전략 (The Best & Fastest Way)
+- **가상 스레드 기반 병렬 페칭**: `Executors.newVirtualThreadPerTaskExecutor()`를 사용하여 API 페이지별 독립적 페칭 수행.
+- **유량 제어 (Rate Limiting)**: 공공 API 서버 보호를 위해 `Semaphore`를 활용한 최대 동시 요청 수 제한(예: 15개).
+- **DB Multi-Row Write**: JDBC `reWriteBatchedInserts=true` 옵션을 통한 대량 삽입 성능 10배 향상.
+- **Redis Bulk Indexing**: `opsForGeo().add(key, Iterable<GeoLocation>)`를 사용하여 Redis IO 횟수 최소화.
+- **비동기 파이프라이닝**: API 호출-데이터 변환-DB 저장을 비동기 체인으로 연결하여 유휴 시간 제거.
 
 ---
-**[Project Status: Phase 8 Completed - Ready for Deployment]**
+
+## 📅 작업 단계 및 태스크 (Phase 9 최적화)
+
+### Phase 9: [ ] 초고속 공공데이터 동기화 엔진 구축
+
+#### [User Story] 50만 건 데이터 5분 내 동기화
+**As a** 시스템 관리자
+**I want** 최적화된 리소스 활용을 통해 수십만 건의 데이터를 극도로 빠르게 수집하고 싶다.
+**So that** 인프라 비용을 절감하고 데이터 최신성을 즉각적으로 확보한다.
+
+#### Tasks:
+- [ ] **Step 1: Driver & Infrastructure Tuning**
+  - [ ] `application.yml` 수정: `jdbc:postgresql://...&reWriteBatchedInserts=true` (10m)
+  - [ ] DB Connection Pool(HikariCP) 사이즈를 병렬 처리에 최적화(예: 20~30) (10m)
+- [ ] **Step 2: Core Engine Development**
+  - [ ] `VirtualThreadTaskExecutor`를 활용한 병렬 스케줄러 구현 (1h)
+  - [ ] `WebClient` 기반의 Non-blocking API 클라이언트 리팩토링 (1h)
+  - [ ] `JdbcTemplate` 기반 Multi-row Batch Setter 구현 (1h)
+  - [ ] Redis Bulk Geo 연산 로직 적용 (30m)
+- [ ] **Step 3: Performance Validation**
+  - [ ] 단계별 처리 속도 로깅 및 병목 분석 (30m)
+  - [ ] `docs/modification-history.md` 및 `architecture-blueprint` 업데이트 (20m)
+
+### [Next Steps]
+1. 위 계획 승인 시 `application.yml` 및 `PublicDataSyncService` 수정 착수.
+2. 병렬 처리 시 공공데이터 API 서버의 Rate Limit 준수를 위한 동시성 제어 로직(Semaphore 등) 적용.
+
+---
+[✅ 규칙을 잘 수행했습니다.]

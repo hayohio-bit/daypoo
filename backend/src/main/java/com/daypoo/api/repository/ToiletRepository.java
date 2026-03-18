@@ -36,5 +36,8 @@ public interface ToiletRepository extends JpaRepository<Toilet, Long> {
   @Query("SELECT t.mngNo FROM Toilet t WHERE t.mngNo IN :mngNos")
   List<String> findAllMngNoIn(@Param("mngNos") List<String> mngNos);
 
+  @Query("SELECT t.mngNo FROM Toilet t")
+  List<String> findAllMngNos();
+
   boolean existsByMngNo(String mngNo);
 }

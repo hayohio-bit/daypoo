@@ -79,4 +79,8 @@ public class User extends BaseTimeEntity {
   public void equipTitle(Long titleId) {
     this.equippedTitleId = titleId;
   }
+
+  public void updatePassword(String password) {
+    this.password = password;
+  }
 }

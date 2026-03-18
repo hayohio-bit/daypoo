@@ -17,19 +17,34 @@ public class Title extends BaseTimeEntity {
   @GeneratedValue(strategy = GenerationType.IDENTITY)
   private Long id;
 
-  @Column(nullable = false, unique = true)
+  @Column(nullable = false, unique = true, length = 100)
   private String name;
 
   @Column(nullable = false)
   private String description;
 
-  @Column(name = "requirement_description")
-  private String requirementDescription; // 획득 조건 설명 (예: "인증 50회 이상")
+  @Column(name = "image_url")
+  private String imageUrl;
+
+  /** 부여 조건 타입 (예: CONTINUOUS_RECORDS, TOTAL_RECORDS, UNIQUE_TOILETS) */
+  @Column(name = "achievement_type", nullable = false)
+  private String achievementType;
+
+  /** 조건 임계값 (예: 7회, 10곳 등) */
+  @Column(name = "achievement_threshold", nullable = false)
+  private Integer achievementThreshold;
 
   @Builder
-  public Title(String name, String description, String requirementDescription) {
+  public Title(
+      String name,
+      String description,
+      String imageUrl,
+      String achievementType,
+      Integer achievementThreshold) {
     this.name = name;
     this.description = description;
-    this.requirementDescription = requirementDescription;
+    this.imageUrl = imageUrl;
+    this.achievementType = achievementType;
+    this.achievementThreshold = achievementThreshold;
   }
 }

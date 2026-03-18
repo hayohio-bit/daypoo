@@ -3,6 +3,7 @@ package com.daypoo.api.service;
 import com.daypoo.api.dto.RankingResponse;
 import com.daypoo.api.dto.UserRankResponse;
 import com.daypoo.api.entity.User;
+import com.daypoo.api.repository.TitleRepository;
 import com.daypoo.api.repository.UserRepository;
 import java.util.List;
 import java.util.Objects;
@@ -21,6 +22,7 @@ public class RankingService {
 
   private final StringRedisTemplate redisTemplate;
   private final UserRepository userRepository;
+  private final TitleRepository titleRepository;
 
   private static final String GLOBAL_RANK_KEY = "daypoo:rankings:global";
   private static final String REGION_RANK_KEY_PREFIX = "daypoo:rankings:region:";
@@ -62,9 +64,12 @@ public class RankingService {
                   if (user == null) return null;
 
                   Long rank = redisTemplate.opsForZSet().reverseRank(key, userId.toString());
+                  String titleName = getEquippedTitleName(user);
+
                   return UserRankResponse.builder()
                       .userId(userId)
                       .nickname(user.getNickname())
+                      .titleName(titleName)
                       .level(user.getLevel())
                       .score(tuple.getScore().longValue())
                       .rank((rank != null ? rank : 0) + 1)
@@ -81,11 +86,20 @@ public class RankingService {
         UserRankResponse.builder()
             .userId(myUser.getId())
             .nickname(myUser.getNickname())
+            .titleName(getEquippedTitleName(myUser))
             .level(myUser.getLevel())
             .score(myScoreRaw != null ? myScoreRaw.longValue() : 0)
             .rank((myRankRaw != null ? myRankRaw : 0) + 1)
             .build();
 
     return RankingResponse.builder().topRankers(topRankers).myRank(myRank).build();
+  }
+
+  private String getEquippedTitleName(User user) {
+    if (user.getEquippedTitleId() == null) return null;
+    return titleRepository
+        .findById(user.getEquippedTitleId())
+        .map(com.daypoo.api.entity.Title::getName)
+        .orElse(null);
   }
 }

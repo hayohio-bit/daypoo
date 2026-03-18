@@ -24,6 +24,8 @@ public class PooRecordService {
   private final ToiletRepository toiletRepository;
   private final UserRepository userRepository;
   private final LocationVerificationService locationVerificationService;
+  private final GeocodingService geocodingService;
+  private final TitleAchievementService titleAchievementService;
   private final PooRecordMapper recordMapper;
   private final AiClient aiClient;
 
@@ -99,7 +101,10 @@ public class PooRecordService {
       log.info("AI Analysis result applied: Bristol {}, Color {}", finalBristolScale, finalColor);
     }
 
-    // 5. 기록 생성
+    // 5. 정확한 행정동 명칭 추출 (Reverse Geocoding)
+    String regionName = geocodingService.reverseGeocode(request.latitude(), request.longitude());
+
+    // 6. 기록 생성
     PooRecord record =
         PooRecord.builder()
             .user(user)
@@ -108,26 +113,21 @@ public class PooRecordService {
             .color(finalColor)
             .conditionTags(String.join(",", request.conditionTags()))
             .dietTags(String.join(",", request.dietTags()))
+            .regionName(regionName)
             .build();
 
     PooRecord savedRecord = recordRepository.save(record);
 
-    // 6. 유저 보상 체계(TX)
+    // 7. 유저 보상 체계(TX)
     user.addExpAndPoints(REWARD_EXP, REWARD_POINTS);
     userRepository.save(user); // 포인트 변경 사항 명시적 저장
 
-    // 7. 실시간 랭킹 업데이트
+    // 8. 실시간 랭킹 업데이트
     rankingService.updateGlobalRank(user);
-
-    // 지역 이름 추출 (주소의 3번째 단어를 동네 이름으로 가정 - 예: "서울시 강남구 역삼동" -> "역삼동")
-    String regionName = "기타";
-    if (toilet.getAddress() != null && !toilet.getAddress().isEmpty()) {
-      String[] addressParts = toilet.getAddress().split(" ");
-      if (addressParts.length >= 3) {
-        regionName = addressParts[2];
-      }
-    }
     rankingService.updateRegionRank(user, regionName);
+
+    // 9. 업적/칭호 달성 검사 (Epic 2)
+    titleAchievementService.checkAndGrantTitles(user);
 
     log.info(
         "User {} earned {} EXP and {} Points for recording toilet {}. Global/Region rank updated.",

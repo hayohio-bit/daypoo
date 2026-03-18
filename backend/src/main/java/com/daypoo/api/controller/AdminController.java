@@ -44,9 +44,11 @@ public class AdminController {
       summary = "전국 화장실 데이터 전체 동기화",
       description = "공공데이터 API의 모든 데이터를 1,000건씩 순차적으로 가져와 DB에 전체 동기화합니다.")
   @PostMapping("/toilets/sync/all")
-  public ResponseEntity<String> syncAllToilets(@RequestParam(defaultValue = "1") int startPage)
+  public ResponseEntity<String> syncAllToilets(
+      @RequestParam(defaultValue = "1") int startPage,
+      @RequestParam(defaultValue = "1000") int endPage)
       throws Exception {
-    int count = publicDataSyncService.syncAllToilets(startPage);
+    int count = publicDataSyncService.syncAllToilets(startPage, endPage);
     return ResponseEntity.ok("Successfully synced total " + count + " new toilets.");
   }
 

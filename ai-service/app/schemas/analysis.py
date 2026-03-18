@@ -12,14 +12,22 @@ class PoopAnalysisResult(BaseModel):
     ai_comment: str = Field(..., description="Brief AI feedback for the user")
     warning_tags: List[str] = Field(default_factory=list, description="Health warning tags if any (e.g., 'Blood detected', 'Dehydration')")
 
+class PooRecordData(BaseModel):
+    bristolScale: int
+    color: str
+    conditionTags: Optional[str] = None
+    dietTags: Optional[str] = None
+    createdAt: str
+
 class HealthReportRequest(BaseModel):
-    user_id: int
-    nickname: str
-    days_back: int = Field(default=7, ge=1, le=30)
-    samples: List[PoopAnalysisResult] = Field(..., description="List of previous analysis results to summarize")
+    userId: str
+    reportType: str
+    records: List[PooRecordData]
 
 class HealthReportResponse(BaseModel):
+    reportType: str
+    healthScore: int
     summary: str
-    recommendations: List[str]
-    trend_analysis: str
-    risk_level: str # 'Low', 'Medium', 'High'
+    solution: str
+    insights: List[str]
+    analyzedAt: str

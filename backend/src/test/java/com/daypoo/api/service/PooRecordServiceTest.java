@@ -40,6 +40,8 @@ class PooRecordServiceTest {
   @Mock private ToiletRepository toiletRepository;
   @Mock private UserRepository userRepository;
   @Mock private LocationVerificationService locationVerificationService;
+  @Mock private GeocodingService geocodingService;
+  @Mock private TitleAchievementService titleAchievementService;
   @Mock private RankingService rankingService;
   @Mock private AiClient aiClient;
   @Mock private PooRecordMapper recordMapper;
@@ -77,7 +79,9 @@ class PooRecordServiceTest {
     given(toiletRepository.findById(100L)).willReturn(Optional.of(testToilet));
     given(locationVerificationService.isWithinAllowedDistance(eq(100L), anyDouble(), anyDouble()))
         .willReturn(true);
+    given(locationVerificationService.hasStayedLongEnough(eq(1L), eq(100L))).willReturn(true);
     given(locationVerificationService.checkAndSetCooldown(eq(1L), eq(100L))).willReturn(true);
+    given(geocodingService.reverseGeocode(anyDouble(), anyDouble())).willReturn("역삼1동");
 
     PooRecord savedRecord =
         PooRecord.builder()
@@ -102,6 +106,8 @@ class PooRecordServiceTest {
     verify(recordRepository).save(any(PooRecord.class));
     verify(userRepository).save(testUser);
     verify(rankingService).updateGlobalRank(testUser);
+    verify(rankingService).updateRegionRank(eq(testUser), eq("역삼1동"));
+    verify(titleAchievementService).checkAndGrantTitles(testUser);
   }
 
   @Test
@@ -123,7 +129,9 @@ class PooRecordServiceTest {
     given(toiletRepository.findById(100L)).willReturn(Optional.of(testToilet));
     given(locationVerificationService.isWithinAllowedDistance(eq(100L), anyDouble(), anyDouble()))
         .willReturn(true);
+    given(locationVerificationService.hasStayedLongEnough(eq(1L), eq(100L))).willReturn(true);
     given(locationVerificationService.checkAndSetCooldown(eq(1L), eq(100L))).willReturn(true);
+    given(geocodingService.reverseGeocode(anyDouble(), anyDouble())).willReturn("역삼1동");
 
     AiAnalysisResponse aiResponse = new AiAnalysisResponse(5, "Golden", "Perfect", 95, "Good job!");
     given(aiClient.analyzePoopImage(anyString())).willReturn(aiResponse);
@@ -159,7 +167,7 @@ class PooRecordServiceTest {
     // when & then
     assertThatThrownBy(() -> pooRecordService.createRecord("testUser", request))
         .isInstanceOf(RuntimeException.class)
-        .hasMessageContaining("화장실 반경(50m) 밖");
+        .hasMessageContaining("화장실 반경(150m) 밖");
   }
 
   @Test
@@ -170,11 +178,28 @@ class PooRecordServiceTest {
     given(toiletRepository.findById(100L)).willReturn(Optional.of(testToilet));
     given(locationVerificationService.isWithinAllowedDistance(eq(100L), anyDouble(), anyDouble()))
         .willReturn(true);
+    given(locationVerificationService.hasStayedLongEnough(eq(1L), eq(100L))).willReturn(true);
     given(locationVerificationService.checkAndSetCooldown(eq(1L), eq(100L))).willReturn(false);
 
     // when & then
     assertThatThrownBy(() -> pooRecordService.createRecord("testUser", request))
         .isInstanceOf(RuntimeException.class)
         .hasMessageContaining("이미 최근 코인/경험치를 획득한 화장실");
+  }
+
+  @Test
+  @DisplayName("실패: 최소 체류 시간(1분) 미달")
+  void createRecord_fail_stay_time() {
+    // given
+    given(userRepository.findByUsername("testUser")).willReturn(Optional.of(testUser));
+    given(toiletRepository.findById(100L)).willReturn(Optional.of(testToilet));
+    given(locationVerificationService.isWithinAllowedDistance(eq(100L), anyDouble(), anyDouble()))
+        .willReturn(true);
+    given(locationVerificationService.hasStayedLongEnough(eq(1L), eq(100L))).willReturn(false);
+
+    // when & then
+    assertThatThrownBy(() -> pooRecordService.createRecord("testUser", request))
+        .isInstanceOf(RuntimeException.class)
+        .hasMessageContaining("최소 1분 이상 화장실에 머물러야 합니다");
   }
 }

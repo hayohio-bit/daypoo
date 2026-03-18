@@ -1,0 +1,33 @@
+package com.daypoo.api.controller;
+
+import com.daypoo.api.dto.HealthReportResponse;
+import com.daypoo.api.entity.User;
+import com.daypoo.api.repository.UserRepository;
+import com.daypoo.api.service.HealthReportService;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+@RestController
+@RequestMapping("/api/v1/health/reports")
+@RequiredArgsConstructor
+public class HealthReportController {
+
+  private final HealthReportService reportService;
+  private final UserRepository userRepository;
+
+  @GetMapping("/weekly")
+  public ResponseEntity<HealthReportResponse> getWeeklyReport(
+      @AuthenticationPrincipal UserDetails userDetails) {
+    User user =
+        userRepository
+            .findByUsername(userDetails.getUsername())
+            .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
+
+    return ResponseEntity.ok(reportService.getWeeklyReport(user));
+  }
+}

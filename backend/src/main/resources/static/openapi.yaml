@@ -173,20 +173,14 @@ paths:
         "403":
           description: 권한 없음 (ADMIN 전용)
 
-  /api/v1/reports/{type}:
+  /api/v1/health/reports/weekly:
     get:
       tags:
-        - Reports
-      summary: AI 건강 리포트 조회
+        - Health Reports
+      summary: 주간 AI 건강 리포트 조회
+      description: "최근 7일간의 기록을 바탕으로 생성된 주간 분석 리포트를 반환합니다. 결과는 Redis에 24시간 동안 캐싱됩니다."
       security:
         - BearerAuth: []
-      parameters:
-        - name: type
-          in: path
-          required: true
-          schema:
-            type: string
-            enum: [DAILY, WEEKLY, MONTHLY]
       responses:
         "200":
           description: OK
@@ -302,6 +296,21 @@ paths:
         "200":
           description: OK
 
+  /api/v1/rankings/global:
+    get:
+      tags:
+        - Rankings
+      summary: 글로벌 랭킹 조회
+      security:
+        - BearerAuth: []
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RankingResponse"
+
   /api/v1/rankings/region:
     get:
       tags:
@@ -315,6 +324,7 @@ paths:
           required: true
           schema:
             type: string
+            description: "조회할 행정동 명칭 (예: 역삼1동)"
       responses:
         "200":
           description: OK
@@ -594,20 +604,21 @@ components:
     HealthReportResponse:
       type: object
       properties:
-        userId:
-          type: integer
-          format: int64
-        nickname:
-          type: string
         reportType:
           type: string
-        analysisSummary:
-          type: string
-        score:
+          example: "WEEKLY"
+        healthScore:
           type: integer
-        aiRecommendation:
+          example: 85
+        summary:
           type: string
-        generatedAt:
+        solution:
+          type: string
+        insights:
+          type: array
+          items:
+            type: string
+        analyzedAt:
           type: string
           format: date-time
     ItemResponse:
@@ -745,9 +756,31 @@ components:
           format: int64
         name:
           type: string
-        requirement:
+        description:
+          type: string
+        requirementDescription:
+          type: string
+        imageUrl:
           type: string
         isOwned:
           type: boolean
-        isEquipped:
-          type: boolean
+
+    UserRankResponse:
+      type: object
+      properties:
+        userId:
+          type: integer
+          format: int64
+        nickname:
+          type: string
+        titleName:
+          type: string
+          nullable: true
+        level:
+          type: integer
+        score:
+          type: integer
+          format: int64
+        rank:
+          type: integer
+          format: int64

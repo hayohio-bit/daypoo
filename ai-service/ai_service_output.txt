@@ -1,0 +1,33 @@
+INFO:     Will watch for changes in these directories: ['/Users/changjun/Desktop/project/daypoo/ai-service']
+INFO:     Uvicorn running on http://0.0.0.0:8000 (Press CTRL+C to quit)
+INFO:     Started reloader process [30183] using StatReload
+INFO:     Started server process [30243]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     127.0.0.1:60718 - "GET / HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60718 - "GET /favicon.ico HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:60718 - "GET /docs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60718 - "GET /openapi.json HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60770 - "GET /docs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60770 - "GET /openapi.json HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60810 - "GET /docs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60810 - "GET /openapi.json HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60949 - "GET /docs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60949 - "GET /openapi.json HTTP/1.1" 200 OK
+WARNING:  StatReload detected changes in 'app/schemas/analysis.py'. Reloading...
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [30243]
+INFO:     Started server process [39689]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+WARNING:  StatReload detected changes in 'app/services/report_service.py'. Reloading...
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [39689]
+INFO:     Started server process [39699]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     127.0.0.1:61288 - "GET /health HTTP/1.1" 200 OK

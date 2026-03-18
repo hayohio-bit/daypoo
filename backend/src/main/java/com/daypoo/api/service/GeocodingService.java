@@ -30,6 +30,8 @@ public class GeocodingService {
 
   private static final String KAKAO_GEOCODE_URL =
       "https://dapi.kakao.com/v2/local/search/address.json";
+  private static final String KAKAO_REVERSE_GEOCODE_URL =
+      "https://dapi.kakao.com/v2/local/geo/coord2regioncode.json";
 
   /** 주소를 받아 위경도 좌표(Point)를 반환합니다. */
   public Point geocodeAddress(String address) {
@@ -71,6 +73,46 @@ public class GeocodingService {
     } catch (Exception e) {
       log.error("Failed to geocode address: {}. Error: {}", address, e.getMessage());
       return null;
+    }
+  }
+
+  /** 위경도 좌표를 받아 행정동 명칭(H)을 반환합니다. */
+  public String reverseGeocode(double lat, double lon) {
+    try {
+      URI uri =
+          UriComponentsBuilder.fromUriString(KAKAO_REVERSE_GEOCODE_URL)
+              .queryParam("x", lon)
+              .queryParam("y", lat)
+              .build()
+              .toUri();
+
+      HttpHeaders headers = new HttpHeaders();
+      headers.set("Authorization", "KakaoAK " + kakaoApiKey);
+      HttpEntity<String> entity = new HttpEntity<>(headers);
+
+      log.info("Requesting Kakao Reverse Geocoding for coord: {}, {}", lat, lon);
+      ResponseEntity<String> response =
+          restTemplate.exchange(uri, HttpMethod.GET, entity, String.class);
+
+      JsonNode rootNode = objectMapper.readTree(response.getBody());
+      JsonNode documents = rootNode.path("documents");
+
+      if (documents.isArray() && !documents.isEmpty()) {
+        for (JsonNode doc : documents) {
+          // 'H' (행정동) 타입을 우선적으로 반환합니다.
+          if ("H".equals(doc.path("region_type").asText())) {
+            return doc.path("region_3depth_name").asText("기타");
+          }
+        }
+        // 행정동이 없으면 법정동(B) 등 첫 번째 결과를 반환
+        return documents.get(0).path("region_3depth_name").asText("기타");
+      }
+
+      return "기타";
+
+    } catch (Exception e) {
+      log.error("Failed to reverse geocode: {}, {}. Error: {}", lat, lon, e.getMessage());
+      return "기타";
     }
   }
 }

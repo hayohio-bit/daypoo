@@ -120,7 +120,8 @@ public class ShopService {
                     .id(title.getId())
                     .name(title.getName())
                     .description(title.getDescription())
-                    .requirementDescription(title.getRequirementDescription())
+                    .requirementDescription(
+                        title.getAchievementType() + ": " + title.getAchievementThreshold())
                     .isOwned(ownedTitleIds.contains(title.getId()))
                     .build())
         .collect(Collectors.toList());
@@ -128,7 +129,11 @@ public class ShopService {
 
   /** 칭호 장착 */
   public void equipTitle(User user, Long titleId) {
-    if (!userTitleRepository.existsByUserAndTitleId(user, titleId)) {
+    Title title =
+        titleRepository
+            .findById(titleId)
+            .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 칭호입니다."));
+    if (!userTitleRepository.existsByUserAndTitle(user, title)) {
       throw new IllegalStateException("보유하지 않은 칭호입니다.");
     }
     user.equipTitle(titleId);

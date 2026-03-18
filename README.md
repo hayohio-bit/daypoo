@@ -135,8 +135,8 @@ docker-compose up -d
 ### 3단계: 로컬 개발 환경
 
 - **Frontend**: `cd frontend && npm install && npm run dev` (http://localhost:5173)
-- **Backend**: `cd backend && ./gradlew bootRun` (http://localhost:8080)
-- **AI Service**: `cd ai-service && pip install -r requirements.txt && python main.py`
+- **Backend**: `cd backend && ./gradlew bootRun` (http://localhost:8080/docs)
+- **AI Service**: `cd ai-service && pip install -r requirements.txt && python main.py` (http://localhost:8000/docs)
 
 ---
 
