@@ -1,19 +1,22 @@
 package com.daypoo.api.service;
 
-import com.daypoo.api.dto.AiAnalysisRequest;
 import com.daypoo.api.dto.AiAnalysisResponse;
 import com.daypoo.api.dto.AiReportRequest;
 import com.daypoo.api.dto.HealthReportResponse;
 import com.daypoo.api.global.exception.BusinessException;
 import com.daypoo.api.global.exception.ErrorCode;
+import java.util.Base64;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.slf4j.MDC;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.io.ByteArrayResource;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
+import org.springframework.util.LinkedMultiValueMap;
+import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.RestTemplate;
 
 @Slf4j
@@ -29,18 +32,38 @@ public class AiClient {
   private static final String CORRELATION_ID_LOG_VAR_NAME = "correlationId";
   private static final String CORRELATION_ID_HEADER = "X-Correlation-Id";
 
-  /** Python AI 서비스에 이미지를 보내 배변 상태 분석 요청 */
+  /** Python AI 서비스에 이미지를 보내 배변 상태 분석 요청 (Multipart 전송 방식) */
   public AiAnalysisResponse analyzePoopImage(String base64Image) {
     String url = aiServiceUrl + "/api/v1/analysis/analyze";
 
-    AiAnalysisRequest request = new AiAnalysisRequest(base64Image);
-    HttpEntity<AiAnalysisRequest> entity = new HttpEntity<>(request, createHeaders());
-
     try {
-      log.info("Requesting AI analysis to {}", url);
+      // 1. Base64 -> Byte Array 변환
+      byte[] imageBytes =
+          Base64.getDecoder()
+              .decode(base64Image.contains(",") ? base64Image.split(",")[1] : base64Image);
+
+      // 2. Multipart Body 생성
+      MultiValueMap<String, Object> body = new LinkedMultiValueMap<>();
+      ByteArrayResource resource =
+          new ByteArrayResource(imageBytes) {
+            @Override
+            public String getFilename() {
+              return "poop_image.jpg"; // 파일명 지정 필수
+            }
+          };
+      body.add("image_file", resource);
+
+      // 3. Headers 설정 (Multipart)
+      HttpHeaders headers = createHeaders();
+      headers.setContentType(MediaType.MULTIPART_FORM_DATA);
+
+      HttpEntity<MultiValueMap<String, Object>> entity = new HttpEntity<>(body, headers);
+
+      log.info("Requesting Multipart AI analysis to {}", url);
       return restTemplate.postForObject(url, entity, AiAnalysisResponse.class);
+
     } catch (Exception e) {
-      log.error("Failed to call AI Service: {}", e.getMessage());
+      log.error("Failed to call AI Service (Multipart): {}", e.getMessage());
       throw new BusinessException(ErrorCode.AI_SERVICE_ERROR);
     }
   }

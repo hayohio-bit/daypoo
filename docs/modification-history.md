@@ -1,5 +1,15 @@
 # Modification History
 
+## [2026-03-18 14:45] 백엔드 스펙 동기화 및 안건 A안 반영
+- **작업 내용**: 기획서(v4.3)와 상세 설계서(v1.2) 간의 불일치를 해소하기 위해 논의 안건 중 권장 사항(A안)을 전면 반영.
+- **상세 변경 내역**:
+    - **위치 인증**: `LocationVerificationService` 내 GPS 허용 반경을 50m에서 **150m**로 확대.
+    - **체류 시간 검증**: Redis를 활용한 `check-in` 로직 추가. `/api/v1/records/check-in` 호출 후 1분이 경과해야 기록 생성이 가능하도록 구현.
+    - **AI 통신 방식**: `AiClient`(Java)와 `analysis.py`(Python) 간 통신 방식을 JSON(Base64)에서 **Multipart(Byte Array)** 방식으로 변경하여 전송 효율 최적화.
+    - **문서 동기화**: `plan.md`, `work_me.md`, `openapi.yaml` 내 용어(VISIT_LOGS -> POO_RECORDS), 관리 도구(pgAdmin 제거, DBeaver 권장), 소셜 로그인 위주 정책 반영.
+    - **코드 품질**: 변경된 모든 코드에 대해 `Google Java Format`(`Spotless`)을 적용하여 스타일 통일.
+- **결과/영향**: GPS 음영 지역 대응력 강화, 어뷰징 방지 보안 수준 향상, 이미지 전송 성능 개선 및 코드 베이스 유지보수성 확보.
+
 ## [2026-03-18 15:10] 온보딩 규칙 가이드 준수 및 백엔드 Spotless 설정 추가
 - **작업 내용**: `docs/onboarding/rules_guide.md`의 규칙에 따라 커밋 메시지 형식을 준수하고, 백엔드 코드 포맷팅 자동화를 위한 `Spotless` 설정을 추가함.
 - **상세 변경 내역**:

@@ -33,6 +33,25 @@ public class PooRecordService {
   private static final int REWARD_EXP = 10;
   private static final int REWARD_POINTS = 5;
 
+  /** 화장실 도착 체크인 담당 */
+  @Transactional
+  public void checkIn(String username, Long toiletId, double lat, double lon) {
+    User user =
+        userRepository
+            .findByUsername(username)
+            .orElseThrow(() -> new RuntimeException("User not found: " + username));
+
+    // 위치 검증 (확대된 150m 반경 사용)
+    boolean isNear = locationVerificationService.isWithinAllowedDistance(toiletId, lat, lon);
+    if (!isNear) {
+      throw new RuntimeException("화장실 반경 내에 있지 않습니다.");
+    }
+
+    // 도착 시간 기록
+    locationVerificationService.recordArrivalTime(user.getId(), toiletId);
+    log.info("User {} checked-in at toilet {}.", username, toiletId);
+  }
+
   @Transactional
   public PooRecordResponse createRecord(String username, PooRecordCreateRequest request) {
 
@@ -53,7 +72,14 @@ public class PooRecordService {
             request.toiletId(), request.latitude(), request.longitude());
 
     if (!isNear) {
-      throw new RuntimeException("화장실 반경(50m) 밖에서는 인증할 수 없습니다.");
+      throw new RuntimeException("화장실 반경(150m) 밖에서는 인증할 수 없습니다.");
+    }
+
+    // 2.2 체류 시간 검증 (A안: 최소 1분)
+    boolean stayedEnough =
+        locationVerificationService.hasStayedLongEnough(user.getId(), toilet.getId());
+    if (!stayedEnough) {
+      throw new RuntimeException("정확한 분석을 위해 최소 1분 이상 화장실에 머물러야 합니다.");
     }
 
     // 3. 레디스 Rate Limiter(어뷰징 체크)
