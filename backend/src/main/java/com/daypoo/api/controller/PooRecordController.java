@@ -1,5 +1,6 @@
 package com.daypoo.api.controller;
 
+import com.daypoo.api.dto.PooCheckInRequest;
 import com.daypoo.api.dto.PooRecordCreateRequest;
 import com.daypoo.api.dto.PooRecordResponse;
 import com.daypoo.api.service.PooRecordService;
@@ -22,6 +23,19 @@ import org.springframework.web.bind.annotation.RestController;
 public class PooRecordController {
 
   private final PooRecordService recordService;
+
+  @Operation(
+      summary = "화장실 도착 체크인",
+      description = "화장실 반경 내에 도착했음을 기록합니다. 이 시점부터 1분이 지나야 배변 기록 생성이 가능합니다.")
+  @ApiResponse(responseCode = "200", description = "체크인 성공")
+  @PostMapping("/check-in")
+  public ResponseEntity<Void> checkIn(
+      Authentication authentication, @Valid @RequestBody PooCheckInRequest request) {
+
+    String username = authentication.getName();
+    recordService.checkIn(username, request.toiletId(), request.latitude(), request.longitude());
+    return ResponseEntity.ok().build();
+  }
 
   @Operation(
       summary = "배변 기록 생성",

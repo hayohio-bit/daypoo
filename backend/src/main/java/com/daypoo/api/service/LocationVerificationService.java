@@ -15,8 +15,8 @@ public class LocationVerificationService {
   private final ToiletRepository toiletRepository;
   private final StringRedisTemplate redisTemplate;
 
-  // 허용 제한 거리: 50미터
-  private static final double ALLOWED_RADIUS_METERS = 50.0;
+  // 허용 제한 거리: 150미터 (GPS 음영 지역 및 오차 고려 - A안 반영)
+  private static final double ALLOWED_RADIUS_METERS = 150.0;
 
   // 어뷰징(도배) 방지 제한 시간: 3시간 (3시간 내 중복 화장실 인증 금지 등)
   // 여기서는 간단히 한 번 인증하면 3시간 동안 동일 화장실 인증 불가
@@ -43,5 +43,38 @@ public class LocationVerificationService {
 
     // setIfAbsent는 키가 없어서 세팅이 성공하면 true 반환
     return Boolean.TRUE.equals(isFirstOrExpired);
+  }
+
+  /** 화장실 도착 시간 기록 (체류 시간 검증용) */
+  public void recordArrivalTime(Long userId, Long toiletId) {
+    String key = "daypoo:record:arrival:user:" + userId + ":toilet:" + toiletId;
+    // 도착 시간은 1시간 동안만 유지 (그 안에 기록을 완료해야 함)
+    redisTemplate
+        .opsForValue()
+        .setIfAbsent(key, String.valueOf(System.currentTimeMillis()), Duration.ofHours(1));
+  }
+
+  /** 최소 체류 시간(1분)이 지났는지 확인 */
+  public boolean hasStayedLongEnough(Long userId, Long toiletId) {
+    String key = "daypoo:record:arrival:user:" + userId + ":toilet:" + toiletId;
+    String arrivalTimeStr = redisTemplate.opsForValue().get(key);
+
+    if (arrivalTimeStr == null) {
+      log.warn(
+          "Arrival time not found for user {} at toilet {}. Assuming check-in skipped.",
+          userId,
+          toiletId);
+      return false;
+    }
+
+    long arrivalTime = Long.parseLong(arrivalTimeStr);
+    long currentTime = System.currentTimeMillis();
+    long stayDurationSeconds = (currentTime - arrivalTime) / 1000;
+
+    log.info(
+        "User {} has stayed at toilet {} for {} seconds.", userId, toiletId, stayDurationSeconds);
+
+    // 최소 1분(60초) 체류 여부 확인
+    return stayDurationSeconds >= 60;
   }
 }

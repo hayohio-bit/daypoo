@@ -124,6 +124,26 @@ paths:
               schema:
                 $ref: "#/components/schemas/PooRecordResponse"
 
+  /api/v1/records/check-in:
+    post:
+      tags:
+        - Poo Records
+      summary: 화장실 도착 체크인 (최소 체류 시간 검증 시작)
+      description: "화장실 반경(150m) 내에 있을 때 호출하며, 이 때부터 1분이 지나야 배변 기록 저장이 가능합니다."
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PooCheckInRequest"
+      responses:
+        "200":
+          description: 체크인 성공
+        "400":
+          description: 위치 검증 실패 (반경 150m 밖)
+
   /api/v1/admin/toilets/sync:
     post:
       tags:
@@ -522,6 +542,22 @@ components:
           format: double
         imageBase64:
           type: string
+    PooCheckInRequest:
+      type: object
+      required:
+        - toiletId
+        - latitude
+        - longitude
+      properties:
+        toiletId:
+          type: integer
+          format: int64
+        latitude:
+          type: number
+          format: double
+        longitude:
+          type: number
+          format: double
     PooRecordResponse:
       type: object
       properties:
