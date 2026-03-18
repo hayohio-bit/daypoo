@@ -1,8 +1,9 @@
 import { motion, useInView, useMotionValue, useSpring, AnimatePresence } from 'framer-motion';
 import { useEffect, useRef, useState, useCallback } from 'react';
-import { MapPin, Zap, Brain, ChevronLeft, ChevronRight } from 'lucide-react';
+import { MapPin, Zap, Brain, ChevronLeft, ChevronRight, Sparkles, ArrowRight } from 'lucide-react';
 import { NovaGlow } from './NovaGlow';
 import { BlobStatsSection } from './BlobStatsSection';
+import { TimelineSteps } from './TimelineSteps';
 
 interface HeroSectionProps {
   onCtaClick: () => void;
@@ -69,29 +70,6 @@ const SLIDES = [
   },
 ];
 
-const STEPS = [
-  {
-    icon: <MapPin size={28} />,
-    step: '01',
-    title: '가까운 화장실 찾기',
-    desc: '전국 7만 개 공용 화장실 데이터를 언제 어디서나 실시간으로 확인하세요.',
-    color: '#2D6A4F',
-  },
-  {
-    icon: <Zap size={28} />,
-    step: '02',
-    title: '다녀와서 인증하기',
-    desc: '브리스톨 척도로 30초 만에 기록하고 나만의 건강 데이터를 쌓아보세요.',
-    color: '#E8A838',
-  },
-  {
-    icon: <Brain size={28} />,
-    step: '03',
-    title: 'AI 건강 분석 받기',
-    desc: '축적된 데이터를 기반으로 장 건강을 과학적으로 분석해 드립니다.',
-    color: '#E85D5D',
-  },
-];
 
 export function HeroSection({ onCtaClick }: HeroSectionProps) {
   const fadeUp = {
@@ -136,7 +114,7 @@ export function HeroSection({ onCtaClick }: HeroSectionProps) {
 
             <motion.h1
               variants={fadeUp}
-              className="text-[42px] md:text-[84px] font-black leading-[1.05] tracking-tight"
+              className="text-[34px] sm:text-[42px] md:text-[84px] font-black leading-[1.1] md:leading-[1.05] tracking-tight"
               style={{ color: 'var(--text-main)' }}
             >
               당신의 흔적이 <br />
@@ -223,7 +201,7 @@ export function HeroSection({ onCtaClick }: HeroSectionProps) {
           </motion.div>
         </section>
 
-        <div className="relative z-10 pb-40">
+        <div className="relative z-10">
           <BlobStatsSection />
         </div>
 
@@ -237,13 +215,13 @@ export function HeroSection({ onCtaClick }: HeroSectionProps) {
       </div>
 
       {/* 2. HOW IT WORKS (Unified context style, no glow) */}
-      <section id="steps-section" className="py-24 px-6" style={{ backgroundColor: 'var(--bg-light)' }}>
+      <section id="steps-section" className="pt-4 pb-16 md:pt-8 md:pb-24 px-6 overflow-hidden" style={{ backgroundColor: 'var(--bg-light)' }}>
         <div className="max-w-5xl mx-auto">
           <motion.div
             initial={{ opacity: 0, y: 24 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
-            className="text-center mb-16"
+            className="text-center mb-4"
           >
             <p
               className="text-xs font-bold uppercase tracking-widest mb-3"
@@ -261,84 +239,10 @@ export function HeroSection({ onCtaClick }: HeroSectionProps) {
             </h2>
           </motion.div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 relative">
-            <div
-              className="hidden md:block absolute top-12 left-[calc(16.67%+32px)] right-[calc(16.67%+32px)] h-px"
-              style={{
-                background:
-                  'linear-gradient(90deg, rgba(45,106,79,0.2), rgba(232,168,56,0.3), rgba(232,93,93,0.2))',
-              }}
-            />
-            {STEPS.map((s, i) => (
-              <motion.div
-                key={i}
-                initial={{ opacity: 0, y: 36 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: i * 0.18, duration: 0.65 }}
-                whileHover={{ y: -8, transition: { duration: 0.25 } }}
-                className="relative p-8 rounded-[32px] flex flex-col gap-5"
-                style={{
-                  backgroundColor: 'var(--surface)',
-                  border: '1px solid var(--border-light)',
-                  boxShadow: '0 8px 32px rgba(0,0,0,0.04)',
-                }}
-              >
-                <div
-                  className="absolute -top-3 -right-3 w-8 h-8 rounded-full flex items-center justify-center text-xs font-black text-white"
-                  style={{ backgroundColor: s.color }}
-                >
-                  {s.step}
-                </div>
-                <div
-                  className="w-14 h-14 rounded-2xl flex items-center justify-center"
-                  style={{ backgroundColor: s.color + '18', color: s.color }}
-                >
-                  {s.icon}
-                </div>
-                <h3 className="text-xl font-bold" style={{ color: 'var(--text-main)' }}>
-                  {s.title}
-                </h3>
-                <p className="text-sm leading-relaxed" style={{ color: 'var(--text-sec)' }}>
-                  {s.desc}
-                </p>
-              </motion.div>
-            ))}
-          </div>
+          <TimelineSteps />
         </div>
       </section>
 
-      {/* 3. FINAL CTA (Unified Background, no glow) */}
-      <section className="pt-24 pb-24 px-6" style={{ backgroundColor: 'var(--bg-light)' }}>
-        <motion.div
-          initial={{ opacity: 0, y: 32 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.7 }}
-          className="max-w-2xl mx-auto text-center p-12 rounded-[40px]"
-          style={{
-            background: 'linear-gradient(135deg, #1B4332 0%, #2D6A4F 100%)',
-            boxShadow: '0 20px 60px rgba(27,67,50,0.3)',
-          }}
-        >
-          <p className="text-5xl mb-4">💩</p>
-          <h2 className="text-2xl md:text-3xl font-black text-white mb-3">
-            오늘 첫 기록, 3초면 충분해요
-          </h2>
-          <p className="text-white/60 mb-8 text-lg">지금 가입하면 첫 주 AI 리포트 무료</p>
-          <button
-            className="inline-flex items-center gap-2 px-10 py-4 text-lg font-bold rounded-full transition-all hover:scale-105 active:scale-95"
-            style={{
-              backgroundColor: 'var(--amber)',
-              color: '#1B4332',
-              boxShadow: '0 8px 24px rgba(232,168,56,0.4)',
-            }}
-          >
-            3초 만에 시작하기 →
-          </button>
-          <p className="mt-4 text-white/40 text-sm">소셜 로그인 지원 · 카드 불필요</p>
-        </motion.div>
-      </section>
     </>
   );
 }

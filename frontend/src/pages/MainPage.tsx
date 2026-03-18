@@ -7,6 +7,7 @@ import { Footer } from '../components/Footer';
 import { EmergencyButton } from '../components/EmergencyButton';
 import { EmergencySheet } from '../components/EmergencySheet';
 import { WaveDivider } from '../components/WaveDivider';
+import { NovaGlow } from '../components/NovaGlow';
 
 export function MainPage({ openAuth }: { openAuth: (mode: 'login' | 'signup') => void }) {
   const [sheetOpen, setSheetOpen] = useState(false);
