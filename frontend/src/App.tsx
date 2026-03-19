@@ -11,6 +11,10 @@ import { ForgotPage } from './pages/ForgotPage';
 import { TermsPage } from './pages/TermsPage';
 import { PrivacyPage } from './pages/PrivacyPage';
 import { MyPage } from './pages/MyPage';
+import { SupportPage } from './pages/SupportPage';
+import { PaymentSuccessPage } from './pages/PaymentSuccessPage';
+import { AuthCallback } from './pages/AuthCallback';
+import { AdminPage } from './pages/AdminPage';
 
 function LoginPage() {
   return (
@@ -42,13 +46,17 @@ function App() {
           <Route path="/terms" element={<TermsPage />} />
           <Route path="/privacy" element={<PrivacyPage />} />
           <Route path="/mypage" element={<MyPage openAuth={openAuth} />} />
+          <Route path="/support" element={<SupportPage openAuth={openAuth} />} />
+          <Route path="/auth/callback" element={<AuthCallback />} />
+          <Route path="/payment/success" element={<PaymentSuccessPage />} />
+          <Route path="/admin" element={<AdminPage />} />
           <Route path="*" element={<NotFoundPage />} />
         </Routes>
         <AuthModal 
           isOpen={authOpen} 
           onClose={() => setAuthOpen(false)} 
           defaultMode={authMode}
-          onSuccess={() => console.log('Auth Success!')}
+          onSuccess={() => {}}
         />
       </TransitionProvider>
     </BrowserRouter>

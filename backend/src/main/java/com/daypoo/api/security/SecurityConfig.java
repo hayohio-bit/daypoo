@@ -5,6 +5,7 @@ import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
@@ -30,38 +31,23 @@ public class SecurityConfig {
   public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
     http.csrf(AbstractHttpConfigurer::disable)
         .cors(cors -> cors.configurationSource(corsConfigurationSource()))
-        .sessionManagement(
-            session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+        .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
         .formLogin(AbstractHttpConfigurer::disable)
         .httpBasic(AbstractHttpConfigurer::disable)
-        .authorizeHttpRequests(
-            auth ->
-                auth.requestMatchers("/api/v1/auth/**", "/api/v1/auth/password/**")
-                    .permitAll()
-                    // Swagger UI 및 명세 파일 관련 경로 모두 허용
-                    .requestMatchers(
-                        "/v3/api-docs/**",
-                        "/swagger-ui.html",
-                        "/swagger-ui/**",
-                        "/openapi.yaml",
-                        "/docs",
-                        "/docs/**",
-                        "/webjars/**",
-                        "/favicon.ico")
-                    .permitAll()
-                    .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/v1/toilets/**")
-                    .permitAll() // 화장실 조회는 모두 허용
-                    .requestMatchers("/api/v1/admin/**")
-                    .hasRole("ADMIN") // 관리자 API 경로 수정 (v2 -> v1)
-                    .anyRequest()
-                    .authenticated())
-        /* .oauth2Login(
-        oauth2 ->
-            oauth2
-                .userInfoEndpoint(
-                    userInfoEndpointConfig ->
-                        userInfoEndpointConfig.userService(customOAuth2UserService))
-                .successHandler(oAuth2SuccessHandler)) */
+        .authorizeHttpRequests(auth -> auth
+            .requestMatchers("/api/v1/auth/**", "/api/v1/auth/password/**").permitAll()
+            .requestMatchers("/api/v1/rankings/**").permitAll()
+            .requestMatchers(
+                "/v3/api-docs/**",
+                "/swagger-ui.html",
+                "/swagger-ui/**",
+                "/openapi.yaml"
+            ).permitAll()
+            .requestMatchers(HttpMethod.GET, "/api/v1/toilets/**", "/api/v1/support/faqs").permitAll()
+            .requestMatchers("/api/v1/support/inquiries", "/api/v1/support/inquiries/**").authenticated()
+            .requestMatchers("/api/v1/admin/**").hasRole("ADMIN")
+            .anyRequest().authenticated()
+        )
         .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 
     return http.build();

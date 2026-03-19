@@ -1,25 +1,33 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Search, Star, User, LocateFixed, X, SlidersHorizontal } from 'lucide-react';
+import { Search as SearchIcon, LocateFixed } from 'lucide-react';
 import { Navbar } from '../components/Navbar';
 import { ToiletPopup } from '../components/map/ToiletPopup';
 import { useToilets } from '../hooks/useToilets';
 import { ToiletData } from '../types/toilet';
+import { VisitModal } from '../components/map/VisitModal';
+import { api } from '../services/apiClient';
 
 declare global {
-  interface Window { kakao: any; }
+  interface Window { 
+    kakao: any; 
+    setSelectedToiletGlobal?: (toilet: ToiletData) => void;
+  }
 }
 
 // ── 현재 위치 훅 ──────────────────────────────────────────────────────
 function useCurrentPosition() {
-  const [pos, setPos] = useState({ lat: 37.5172, lng: 127.0473 }); // fallback: 강남구청
+  const [pos, setPos] = useState<{ lat: number; lng: number } | null>(null);
   const [granted, setGranted] = useState(false);
 
   useEffect(() => {
     navigator.geolocation.getCurrentPosition(
       (p) => { setPos({ lat: p.coords.latitude, lng: p.coords.longitude }); setGranted(true); },
-      () => setGranted(false),
-      { timeout: 6000 }
+      () => {
+        setPos({ lat: 37.5172, lng: 127.0473 }); // fallback: 강남구청
+        setGranted(false);
+      },
+      { timeout: 6000, enableHighAccuracy: true }
     );
   }, []);
 
@@ -27,16 +35,19 @@ function useCurrentPosition() {
 }
 
 // ── 카카오맵 마커 생성 헬퍼 ─────────────────────────────────────────
-function createToiletMarker(kakao: any, map: any, toilet: ToiletData) {
-  // 방문 인증 여부에 따라 컬러 / 회색 똥 마커
+function createToiletMarker(kakao: any, toilet: ToiletData) {
   const emoji = toilet.isVisited ? '💩' : '🚻';
   const markerBg = toilet.isVisited ? '#1B4332' : '#8a9a8a';
 
   const content = `
-    <div style="
+    <div onclick="window.setSelectedToiletGlobal(${JSON.stringify(toilet).replace(/"/g, '&quot;')})" style="
       position:relative;
       display:flex;flex-direction:column;align-items:center;
       cursor:pointer;
+      will-change:transform;
+      transform:translateZ(0);
+      contain:strict;
+      width:36px; height:44px;
     ">
       <div style="
         width:36px;height:36px;border-radius:50%;
@@ -46,7 +57,6 @@ function createToiletMarker(kakao: any, map: any, toilet: ToiletData) {
         box-shadow:0 3px 12px rgba(0,0,0,0.25);
         border:2.5px solid #fff;
         ${toilet.isOpen24h ? 'outline:2px solid #E8A838;outline-offset:2px;' : ''}
-        transition:transform 0.2s;
       ">${emoji}</div>
       <div style="
         width:0;height:0;
@@ -57,60 +67,200 @@ function createToiletMarker(kakao: any, map: any, toilet: ToiletData) {
       "></div>
     </div>`;
 
-  const marker = new kakao.maps.CustomOverlay({
+  const marker = new kakao.maps.Marker({
     position: new kakao.maps.LatLng(toilet.lat, toilet.lng),
+    zIndex: toilet.isVisited ? 5 : 3,
+    image: new kakao.maps.MarkerImage(
+      'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=',
+      new kakao.maps.Size(1, 1)
+    )
+  });
+
+  const overlay = new kakao.maps.CustomOverlay({
     content,
+    position: marker.getPosition(),
     yAnchor: 1.15,
     zIndex: toilet.isVisited ? 5 : 3,
+    clickable: true
   });
-  marker.setMap(map);
-  return marker;
+
+  return { marker, overlay };
 }
 
-// ── MapPage ────────────────────────────────────────────────────────────
 type FilterMode = 'all' | 'favorite' | 'visited';
 
 export function MapPage({ openAuth }: { openAuth: (mode: 'login' | 'signup') => void }) {
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<any>(null);
-  const markersRef = useRef<Map<string, any>>(new Map());
-
-  const { pos } = useCurrentPosition();
-  const { toilets, toggleFavorite, markVisited } = useToilets({ lat: pos.lat, lng: pos.lng });
+  const clustererRef = useRef<any>(null);
+  const markersRef = useRef<Map<string, { marker: any; overlay: any }>>(new Map());
+  const myOverlayRef = useRef<any>(null);
 
   const [selectedToilet, setSelectedToilet] = useState<ToiletData | null>(null);
+  const [targetForVisit, setTargetForVisit] = useState<ToiletData | null>(null);
   const [filter, setFilter] = useState<FilterMode>('all');
   const [searchQuery, setSearchQuery] = useState('');
-  const [searchFocused, setSearchFocused] = useState(false);
   const [mapLoaded, setMapLoaded] = useState(false);
 
-  // 필터 적용된 화장실 목록
+  const { pos } = useCurrentPosition();
+  const [bounds, setBounds] = useState<any>(null);
+  const { toilets, loading, toggleFavorite, markVisited } = useToilets({ 
+    lat: pos?.lat ?? 37.5172, 
+    lng: pos?.lng ?? 127.0473, 
+    bounds 
+  });
+
+  // ── 로그인 후 화장실 정보 복원 ──────────────────────────────────
+  useEffect(() => {
+    const saved = sessionStorage.getItem('lastSelectedToilet');
+    if (saved) {
+      try {
+        setSelectedToilet(JSON.parse(saved));
+      } catch { /* ignore */ }
+      sessionStorage.removeItem('lastSelectedToilet');
+    }
+  }, []);
+
+  const handleSelectToilet = useCallback((toilet: ToiletData | null) => {
+    setSelectedToilet(toilet);
+    if (toilet) sessionStorage.setItem('lastSelectedToilet', JSON.stringify(toilet));
+    else sessionStorage.removeItem('lastSelectedToilet');
+  }, []);
+
+  useEffect(() => {
+    window.setSelectedToiletGlobal = (toilet: ToiletData) => handleSelectToilet(toilet);
+    return () => { delete window.setSelectedToiletGlobal; };
+  }, [handleSelectToilet]);
+
+  const handleFavoriteToggle = useCallback((id: string) => {
+    toggleFavorite(id);
+    setSelectedToilet(prev => {
+      const updated = prev && prev.id === id ? { ...prev, isFavorite: !prev.isFavorite } : prev;
+      if (updated) sessionStorage.setItem('lastSelectedToilet', JSON.stringify(updated));
+      return updated;
+    });
+  }, [toggleFavorite]);
+
+  // ── 방문 인증 (로그인 확인 + 체크인) ────────────────────────────
+  const handleVisitRequest = useCallback(async () => {
+    const isLogged = !!localStorage.getItem('accessToken');
+    if (!isLogged) {
+      // ★ 현재 화장실 정보를 세션에 저장 후 팝업 닫기 → 로그인 모달 띄우기
+      if (selectedToilet) {
+        sessionStorage.setItem('lastSelectedToilet', JSON.stringify(selectedToilet));
+      }
+      handleSelectToilet(null);
+      openAuth('login');
+      return;
+    }
+
+    if (!selectedToilet || !pos) return;
+
+    try {
+      // 백엔드 체크인 호출 (1분 타이머 시작)
+      await api.post('/records/check-in', {
+        toiletId: Number(selectedToilet.id),
+        latitude: pos.lat,
+        longitude: pos.lng
+      });
+    } catch (e: any) {
+      // 체크인 실패 시에도 모달은 일단 띄워줌 (위치 검증은 기록 저장 시 다시 수행)
+      console.warn('체크인 사전 호출 실패 (무시):', e.message);
+    }
+
+    setTargetForVisit(selectedToilet);
+    handleSelectToilet(null);
+  }, [selectedToilet, openAuth, pos, handleSelectToilet]);
+
+  // ── 방문 인증 완료 (DB 저장) ────────────────────────────────────
+  const handleVisitComplete = useCallback(async (recordData: any) => {
+    if (!pos) return;
+    
+    try {
+      const payload = {
+        toiletId: Number(recordData.toiletId),
+        bristolScale: recordData.bristolType,
+        color: recordData.color,
+        conditionTags: recordData.conditionTags || [],
+        dietTags: recordData.foodTags || [],
+        latitude: pos.lat,
+        longitude: pos.lng
+      };
+
+      await api.post('/records', payload);
+      markVisited(String(recordData.toiletId));
+      setTargetForVisit(null);
+      alert('방문 인증이 완료되었습니다! 💩✨');
+    } catch (e: any) {
+      console.error('방문 인증 저장 실패:', e);
+      // 구체적인 에러 메시지를 유저에게 보여줌
+      const msg = e.message || '서버 내부 오류입니다.';
+      if (msg.includes('1분') || msg.includes('체류')) {
+        alert('⏳ 아직 1분이 지나지 않았습니다. 잠시 후 다시 시도해주세요!');
+      } else if (msg.includes('반경') || msg.includes('거리')) {
+        alert('📍 화장실 근처(150m 이내)에서만 인증이 가능합니다.');
+      } else if (msg.includes('어뷰징') || msg.includes('이미')) {
+        alert('⚠️ 같은 화장실은 3시간 이후에 다시 인증할 수 있습니다.');
+      } else {
+        alert(`인증 오류: ${msg}`);
+      }
+    }
+  }, [markVisited, pos]);
+
+  const updateBounds = useCallback(() => {
+    if (!mapRef.current) return;
+    const b = mapRef.current.getBounds();
+    const sw = b.getSouthWest();
+    const ne = b.getNorthEast();
+    setBounds({ swLat: sw.getLat(), swLng: sw.getLng(), neLat: ne.getLat(), neLng: ne.getLng() });
+  }, []);
+
+  const updateMarkersVisibility = useCallback(() => {
+    if (!mapRef.current) return;
+    const level = mapRef.current.getLevel();
+    markersRef.current.forEach((item) => {
+      if (level >= 6) item.overlay.setMap(null);
+      else item.overlay.setMap(mapRef.current);
+    });
+  }, []);
+
   const filteredToilets = toilets.filter((t) => {
-    const matchesFilter =
-      filter === 'all' ? true :
-      filter === 'favorite' ? t.isFavorite :
-      filter === 'visited' ? t.isVisited : true;
-
-    const matchesSearch = searchQuery.trim() === '' ||
-      t.name.includes(searchQuery) ||
-      t.roadAddress.includes(searchQuery);
-
+    const matchesFilter = filter === 'all' ? true : filter === 'favorite' ? t.isFavorite : filter === 'visited' ? t.isVisited : true;
+    const matchesSearch = searchQuery.trim() === '' || t.name.includes(searchQuery) || (t.roadAddress && t.roadAddress.includes(searchQuery));
     return matchesFilter && matchesSearch;
   });
 
-  // ── 카카오맵 초기화 ────────────────────────────────────────────────
+  // ── 카카오맵 초기화 (pos가 준비된 후에만 실행) ─────────────────
   useEffect(() => {
-    if (!window.kakao || !mapContainerRef.current) return;
+    if (!pos || !window.kakao || !mapContainerRef.current || mapRef.current) return;
 
     window.kakao.maps.load(() => {
       const center = new window.kakao.maps.LatLng(pos.lat, pos.lng);
-      const map = new window.kakao.maps.Map(mapContainerRef.current, {
-        center,
-        level: 4,
-      });
+      const map = new window.kakao.maps.Map(mapContainerRef.current, { center, level: 4 });
       mapRef.current = map;
 
-      // 현재 위치 마커 (귀여운 캐릭터)
+      const clusterer = new window.kakao.maps.MarkerClusterer({
+        map,
+        averageCenter: true,
+        minLevel: 6,
+        styles: [{
+          width: '50px', height: '50px',
+          background: 'rgba(27, 67, 50, 0.85)',
+          borderRadius: '50%', color: '#fff',
+          textAlign: 'center', fontWeight: 'bold', lineHeight: '50px',
+          border: '2px solid #fff', boxShadow: '0 4px 12px rgba(0,0,0,0.2)'
+        }]
+      });
+      clustererRef.current = clusterer;
+
+      window.kakao.maps.event.addListener(map, 'idle', updateBounds);
+      window.kakao.maps.event.addListener(map, 'zoom_changed', updateMarkersVisibility);
+
+      // ★ 즉시 bounds를 갱신하여 첫 데이터 fetch를 트리거
+      updateBounds();
+      setMapLoaded(true);
+
+      // ★ 내 위치 마커
       const myOverlay = new window.kakao.maps.CustomOverlay({
         position: center,
         content: `
@@ -124,216 +274,135 @@ export function MapPage({ openAuth }: { openAuth: (mode: 'login' | 'signup') => 
               border:2.5px solid #fff;
               animation:mypulse 2s infinite;
             ">🧑</div>
-          </div>
-          <style>
-            @keyframes mypulse {
-              0%,100%{box-shadow:0 0 0 4px rgba(59,130,246,0.25),0 4px 14px rgba(59,130,246,0.4)}
-              50%{box-shadow:0 0 0 8px rgba(59,130,246,0.12),0 4px 14px rgba(59,130,246,0.3)}
-            }
-          </style>`,
+          </div>`,
         zIndex: 10,
       });
       myOverlay.setMap(map);
-
-      setMapLoaded(true);
+      myOverlayRef.current = myOverlay;
     });
-  }, [pos.lat, pos.lng]);
+  }, [pos]); // ★ pos가 준비된 후에 실행
 
-  // ── 마커 렌더링 (필터 변경 시 재렌더) ────────────────────────────
+  // ── pos 변경 시 내 위치 오버레이도 이동 ──────────────────────────
   useEffect(() => {
-    if (!mapRef.current || !mapLoaded) return;
+    if (!mapRef.current || !pos || !myOverlayRef.current) return;
+    const center = new window.kakao.maps.LatLng(pos.lat, pos.lng);
+    myOverlayRef.current.setPosition(center);
+    mapRef.current.setCenter(center);
+    updateBounds();
+  }, [pos]);
 
-    // 기존 마커 제거
-    markersRef.current.forEach((m) => m.setMap(null));
-    markersRef.current.clear();
-
-    filteredToilets.forEach((toilet) => {
-      const marker = createToiletMarker(window.kakao, mapRef.current, toilet);
-
-      // 클릭 이벤트
-      window.kakao.maps.event.addListener(marker, 'click', () => {
-        setSelectedToilet(toilet);
-      });
-
-      markersRef.current.set(toilet.id, marker);
+  // ── 마커 업데이트 (안정적 병합) ──────────────────────────────────
+  useEffect(() => {
+    if (!mapRef.current || !mapLoaded || !clustererRef.current) return;
+    
+    const currentToiletsIds = new Set(filteredToilets.map(t => t.id));
+    
+    // 화면에 없는 마커만 제거
+    markersRef.current.forEach((item, id) => {
+      if (!currentToiletsIds.has(id)) {
+        item.overlay.setMap(null);
+        clustererRef.current.removeMarker(item.marker);
+        markersRef.current.delete(id);
+      }
     });
+
+    // 없는 마커만 추가
+    const newMarkers: any[] = [];
+    const level = mapRef.current.getLevel();
+    filteredToilets.forEach((toilet) => {
+      if (!markersRef.current.has(toilet.id)) {
+        const { marker, overlay } = createToiletMarker(window.kakao, toilet);
+        if (level < 6) overlay.setMap(mapRef.current);
+        markersRef.current.set(toilet.id, { marker, overlay });
+        newMarkers.push(marker);
+      }
+    });
+    if (newMarkers.length > 0) {
+      clustererRef.current.addMarkers(newMarkers);
+      clustererRef.current.redraw();
+    }
   }, [filteredToilets, mapLoaded]);
 
-  // ── 현재 위치로 이동 ──────────────────────────────────────────────
   const moveToMyLocation = useCallback(() => {
-    if (!mapRef.current) return;
+    if (!mapRef.current || !pos) return;
     mapRef.current.panTo(new window.kakao.maps.LatLng(pos.lat, pos.lng));
   }, [pos]);
 
-  // ── 검색 결과 → 지도 이동 ────────────────────────────────────────
-  const handleSearch = useCallback(() => {
-    if (!searchQuery.trim() || !mapRef.current) return;
-    const found = filteredToilets[0];
-    if (found) {
-      mapRef.current.panTo(new window.kakao.maps.LatLng(found.lat, found.lng));
-      setSelectedToilet(found);
-    }
-  }, [searchQuery, filteredToilets]);
+  // pos가 아직 null이면 로딩 표시
+  if (!pos) {
+    return (
+      <div className="relative h-screen flex flex-col overflow-hidden" style={{ background: '#F2F7F4' }}>
+        <Navbar openAuth={openAuth} />
+        <div className="flex-1 flex items-center justify-center">
+          <div className="text-center">
+            <div className="text-4xl mb-4 animate-bounce">📍</div>
+            <p className="text-[#7a9e8a] font-bold">위치를 찾고 있습니다...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="relative h-screen flex flex-col overflow-hidden" style={{ background: '#F2F7F4' }}>
       <Navbar openAuth={openAuth} />
-
-      {/* ── 지도 컨테이너 ── */}
       <div className="flex-1 relative">
-        <div ref={mapContainerRef} className="w-full h-full" style={{ borderRadius: '0' }} />
+        <div ref={mapContainerRef} className="w-full h-full" style={{ borderRadius: '0', willChange: 'transform', transform: 'translateZ(0)', backfaceVisibility: 'hidden' }} />
 
-        {/* 상단 그라데이션 오버레이 — 밝기와 범위를 줄여 자연스럽게 수정 */}
-        <div 
-          className="absolute top-0 left-0 right-0 h-[200px] pointer-events-none z-10"
-          style={{
-            background: 'linear-gradient(to bottom, rgba(242,247,244,0.9) 0%, rgba(242,247,244,0.6) 40%, transparent 100%)',
-            backdropFilter: 'blur(6px)',
-            WebkitBackdropFilter: 'blur(6px)',
-            maskImage: 'linear-gradient(to bottom, black 0%, black 30%, transparent 100%)',
-            WebkitMaskImage: 'linear-gradient(to bottom, black 0%, black 30%, transparent 100%)',
-          }}
-        />
-
-        {/* 로딩 오버레이 */}
-        {!mapLoaded && (
-          <div className="absolute inset-0 flex items-center justify-center" style={{ background: '#eef5f0' }}>
-            <motion.div
-              animate={{ rotate: 360 }}
-              transition={{ duration: 1.4, repeat: Infinity, ease: 'linear' }}
-              style={{ fontSize: '40px' }}
-            >
-              💩
-            </motion.div>
+        {/* 검색 및 필터 */}
+        <div className="absolute top-[120px] left-1/2 -translate-x-1/2 z-20 w-full px-4" style={{ maxWidth: '600px' }}>
+          <div className="flex items-center gap-2 px-4 py-2.5 rounded-2xl" style={{ border: '1.5px solid transparent', background: '#fff', boxShadow: '0 4px 24px rgba(27,67,50,0.15)' }}>
+            <SearchIcon size={16} style={{ color: '#7a9e8a' }} />
+            <input value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} placeholder="화장실 검색" className="flex-1 outline-none text-sm" style={{ background: 'transparent' }} />
           </div>
-        )}
-
-        {/* ── 상단 검색 + 필터 바 ── */}
-        <div
-          className="absolute top-[160px] left-1/2 -translate-x-1/2 z-20 w-full px-4"
-          style={{ maxWidth: '600px' }}
-        >
-          {/* 검색창 */}
-          <div
-            className="flex items-center gap-2 px-4 py-2.5 rounded-2xl"
-            style={{
-              background: '#fff',
-              boxShadow: '0 4px 24px rgba(27,67,50,0.15)',
-              border: searchFocused ? '1.5px solid #1B4332' : '1.5px solid transparent',
-              transition: 'border 0.2s',
-            }}
-          >
-            <Search size={16} style={{ color: '#7a9e8a', flexShrink: 0 }} />
-            <input
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              onFocus={() => setSearchFocused(true)}
-              onBlur={() => setSearchFocused(false)}
-              onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-              placeholder="화장실 이름 또는 주소 검색"
-              className="flex-1 outline-none text-sm"
-              style={{ background: 'transparent', color: '#1a2b22' }}
-            />
-            {searchQuery && (
-              <button onClick={() => setSearchQuery('')} style={{ color: '#7a9e8a', flexShrink: 0 }}>
-                <X size={14} />
-              </button>
-            )}
-          </div>
-
-          {/* 필터 칩 */}
           <div className="flex gap-2 mt-2 justify-center">
-            {([
-              { key: 'all',      label: '전체',    icon: <SlidersHorizontal size={12} /> },
-              { key: 'favorite', label: '즐겨찾기', icon: <Star size={12} /> },
-              { key: 'visited',  label: '내 기록',  icon: <User size={12} /> },
-            ] as const).map((f) => (
-              <button
-                key={f.key}
-                onClick={() => setFilter(f.key)}
-                className="flex items-center gap-1.5 px-4 py-1.5 rounded-full text-xs font-bold transition-all hover:scale-105"
-                style={{
-                  background: filter === f.key ? '#1B4332' : 'rgba(255,255,255,0.9)',
-                  color: filter === f.key ? '#fff' : '#2D6A4F',
-                  boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
-                  backdropFilter: 'blur(4px)',
-                }}
-              >
-                {f.icon} {f.label}
-                {f.key === 'favorite' && (
-                  <span className="ml-0.5 opacity-70">{toilets.filter(t=>t.isFavorite).length}</span>
-                )}
-                {f.key === 'visited' && (
-                  <span className="ml-0.5 opacity-70">{toilets.filter(t=>t.isVisited).length}</span>
-                )}
+            {(['all', 'favorite', 'visited'] as FilterMode[]).map((f) => (
+              <button key={f} onClick={() => setFilter(f)} className="px-4 py-1.5 rounded-full text-xs font-bold transition-all" style={{ background: filter === f ? '#1B4332' : 'rgba(255,255,255,0.9)', color: filter === f ? '#fff' : '#2D6A4F', boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
+                {f === 'all' ? '전체' : f === 'favorite' ? '즐겨찾기' : '내 기록'}
               </button>
             ))}
           </div>
         </div>
 
-        {/* ── 우측 플로팅 버튼 ── */}
-        <div className="absolute right-4 bottom-8 z-20 flex flex-col gap-2">
-          {/* 현재 위치 버튼 */}
-          <motion.button
-            whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.92 }}
-            onClick={moveToMyLocation}
-            className="w-12 h-12 rounded-full flex items-center justify-center"
-            style={{
-              background: '#fff',
-              boxShadow: '0 4px 16px rgba(27,67,50,0.2)',
-              border: '1px solid #d4e8db',
-            }}
-          >
+        {/* 내 위치 버튼 */}
+        <div className="absolute right-4 bottom-8 z-20">
+          <button onClick={moveToMyLocation} className="w-12 h-12 rounded-full flex items-center justify-center bg-white shadow-lg">
             <LocateFixed size={20} style={{ color: '#1B4332' }} />
-          </motion.button>
+          </button>
         </div>
 
-        {/* ── 범례 ── */}
-        <div
-          className="absolute left-4 bottom-8 z-20 px-3 py-2 rounded-2xl flex flex-col gap-1"
-          style={{ background: 'rgba(255,255,255,0.92)', boxShadow: '0 2px 12px rgba(0,0,0,0.1)', backdropFilter: 'blur(6px)' }}
-        >
-          <div className="flex items-center gap-2 text-xs" style={{ color: '#1a2b22' }}>
-            <span>💩</span> <span className="font-semibold">방문 인증 완료</span>
-          </div>
-          <div className="flex items-center gap-2 text-xs" style={{ color: '#7a9e8a' }}>
-            <span style={{ filter: 'grayscale(1)', opacity: 0.6 }}>🚻</span> <span>미방문</span>
-          </div>
-          <div className="flex items-center gap-2 text-xs" style={{ color: '#b5810f' }}>
-            <span style={{ width: '10px', height: '10px', borderRadius: '50%', background: '#E8A838', display: 'inline-block', outline: '2px solid #E8A838', outlineOffset: '2px' }} />
-            <span>24시간 개방</span>
-          </div>
-        </div>
-
-        {/* ── 선택된 화장실 팝업 ── */}
+        {/* 메인 팝업 */}
         <AnimatePresence>
           {selectedToilet && (
-            <div className="absolute inset-0 z-30 pointer-events-none">
-              <div
-                className="absolute pointer-events-auto"
-                style={{ left: '50%', top: '50%', transform: 'translate(-50%, -50%)' }}
-              >
-                <ToiletPopup
-                  toilet={selectedToilet}
-                  onClose={() => setSelectedToilet(null)}
-                  onFavoriteToggle={(id) => {
-                    toggleFavorite(id);
-                    setSelectedToilet((prev) =>
-                      prev?.id === id ? { ...prev, isFavorite: !prev.isFavorite } : prev
-                    );
-                  }}
-                  onVisitComplete={(id) => {
-                    markVisited(id);
-                    setSelectedToilet((prev) =>
-                      prev?.id === id ? { ...prev, isVisited: true } : prev
-                    );
-                  }}
+            <div className="absolute inset-0 z-[1001] pointer-events-none">
+              <div className="absolute pointer-events-auto" style={{ left: '50%', top: '75%', transform: 'translate(-50%, -50%)' }}>
+                <ToiletPopup 
+                  toilet={selectedToilet} 
+                  onClose={() => handleSelectToilet(null)} 
+                  onFavoriteToggle={handleFavoriteToggle} 
+                  onVisitRequest={handleVisitRequest} 
                 />
               </div>
             </div>
           )}
         </AnimatePresence>
+
+        {/* 방문 인증 모달 */}
+        <AnimatePresence>
+          {targetForVisit && (
+            <VisitModal toilet={targetForVisit} onClose={() => setTargetForVisit(null)} onComplete={handleVisitComplete} />
+          )}
+        </AnimatePresence>
       </div>
+
+      {/* 내 위치 펄스 애니메이션 */}
+      <style>{`
+        @keyframes mypulse {
+          0%   { box-shadow: 0 0 0 0 rgba(59,130,246,0.4); }
+          70%  { box-shadow: 0 0 0 14px rgba(59,130,246,0); }
+          100% { box-shadow: 0 0 0 0 rgba(59,130,246,0); }
+        }
+      `}</style>
     </div>
   );
 }

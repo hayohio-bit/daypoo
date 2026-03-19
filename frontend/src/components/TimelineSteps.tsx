@@ -17,21 +17,21 @@ const STEPS: Step[] = [
     icon: <MapPin size={26} />,
     title: '전국 화장실 실시간 탐색',
     desc: '내 주변 7만 개 공용 화장실 데이터를\n가장 빠르게 찾아보세요.',
-    color: '#2D6A4F',
+    color: '#1B4332',
   },
   {
     id: 2,
     icon: <Zap size={26} />,
     title: '스마트한 배변 기록',
     desc: '다녀온 후 브리스톨 척도로 3초 만에\n나의 컨디션을 기록하세요.',
-    color: '#E8A838',
+    color: '#2D6A4F',
   },
   {
     id: 3,
     icon: <Brain size={26} />,
     title: 'AI 건강 리포트 분석',
     desc: '누적된 데이터를 기반으로 AI가\n나의 장 건강 상태를 분석합니다.',
-    color: '#52b788',
+    color: '#40916C', // 좀 더 밝은 녹색
   },
   {
     id: 4,
@@ -134,9 +134,9 @@ export function TimelineSteps() {
   return (
     <div ref={containerRef} className="relative max-w-6xl mx-auto py-12 md:py-32 px-6 md:px-12">
       {/* ── 타임라인 수직 라인 (좌측 배치) ────────────────────────────── */}
-      <div className="absolute left-8 md:left-12 top-48 bottom-48 w-[2px] bg-gray-100 transform translate-x-[-1px] hidden md:block" />
+      <div className="absolute left-8 md:left-24 top-48 bottom-48 w-[2px] bg-gray-100 transform translate-x-[-1px] hidden md:block" />
       <motion.div 
-        className="absolute left-8 md:left-12 top-48 bottom-48 w-[2px] transform translate-x-[-1px] origin-top bg-gradient-to-b from-[#2D6A4F] via-[#E8A838] to-[#1B4332] hidden md:block"
+        className="absolute left-8 md:left-24 top-48 bottom-48 w-[2px] transform translate-x-[-1px] origin-top bg-gradient-to-b from-[#1B4332] via-[#2D6A4F] to-[#40916C] hidden md:block"
         style={{ scaleY: pathLength }}
       />
 
@@ -145,10 +145,10 @@ export function TimelineSteps() {
           <div key={step.id} className="relative pl-0 md:pl-40 flex items-center justify-center md:justify-start">
             {/* 타임라인 도트 indicator */}
             <motion.div 
-              className="absolute left-8 md:left-12 transform translate-x-[-50%] w-6 h-6 rounded-full border-[6px] border-white z-20 shadow-md ring-4 ring-gray-50 hidden md:block"
+              className="absolute left-8 md:left-24 transform translate-x-[-50%] w-7 h-7 rounded-full border-[5px] border-white z-20 shadow-[0_12px_24px_rgba(0,0,0,0.15)] ring-4 ring-white/50 hidden md:block"
               style={{ 
                 backgroundColor: step.color,
-                scale: useTransform(scrollYProgress, [i * 0.25, i * 0.25 + 0.1], [0.8, 1.3])
+                scale: useTransform(scrollYProgress, [i * 0.25, i * 0.25 + 0.1], [0.85, 1.25])
               }}
             />
 

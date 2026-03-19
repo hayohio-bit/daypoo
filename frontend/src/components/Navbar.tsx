@@ -10,12 +10,11 @@ export function Navbar({ openAuth }: { openAuth: (mode: 'login' | 'signup') => v
   const scale = useTransform(scrollY, [0, 100], [1, 0.97]);
   const [hasNotif] = useState(true); // 알림 뱃지 (실제론 API 연동)
   
-  // 실제 로그인 상태 확인
-  // 실제 로그인 상태 확인 (undefined 문자열로 저장된 경우 방지)
+  // 실제 로그인 상태 확인 (undefined/null 문자열로 저장된 경우 방지)
   const token = localStorage.getItem('accessToken');
-  const isLoggedIn = !!token && token !== 'undefined';
+  const isLoggedIn = !!token && token !== 'undefined' && token !== 'null';
   
-  if (token === 'undefined') {
+  if (token === 'undefined' || token === 'null') {
     localStorage.removeItem('accessToken');
   }
 
@@ -87,6 +86,7 @@ export function Navbar({ openAuth }: { openAuth: (mode: 'login' | 'signup') => v
           {[
             { label: '지도', path: '/map', variant: 0 },
             { label: '랭킹', path: '/ranking', variant: 1 },
+            { label: 'FAQ', path: '/support', variant: 0 },
           ].map((link) => (
             <AnimatedUnderlink
               key={link.path}

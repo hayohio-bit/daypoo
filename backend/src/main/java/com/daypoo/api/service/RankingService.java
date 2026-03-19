@@ -2,15 +2,18 @@ package com.daypoo.api.service;
 
 import com.daypoo.api.dto.RankingResponse;
 import com.daypoo.api.dto.UserRankResponse;
+import com.daypoo.api.entity.Title;
 import com.daypoo.api.entity.User;
 import com.daypoo.api.repository.TitleRepository;
 import com.daypoo.api.repository.UserRepository;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.core.ZSetOperations;
 import org.springframework.stereotype.Service;
@@ -25,81 +28,120 @@ public class RankingService {
   private final TitleRepository titleRepository;
 
   private static final String GLOBAL_RANK_KEY = "daypoo:rankings:global";
+  private static final String HEALTH_RANK_KEY = "daypoo:rankings:health";
   private static final String REGION_RANK_KEY_PREFIX = "daypoo:rankings:region:";
 
-  /** 유저의 포인트 점수를 랭킹에 업데이트 (ZADD) */
   public void updateGlobalRank(User user) {
-    redisTemplate.opsForZSet().add(GLOBAL_RANK_KEY, user.getId().toString(), user.getPoints());
+    if (user != null && user.getId() != null) {
+      redisTemplate.opsForZSet().add(GLOBAL_RANK_KEY, user.getId().toString(), (double) user.getPoints());
+    }
   }
 
-  /** 유저의 특정 지역 포인트 점수를 랭킹에 업데이트 */
-  public void updateRegionRank(User user, String regionName) {
-    String key = REGION_RANK_KEY_PREFIX + regionName;
-    // 지역 랭킹은 해당 지역에서의 총 방문 횟수 또는 획득 포인트를 기준으로 할 수 있음
-    // 여기서는 유저의 해당 지역 방문 포인트(누적)를 가정
-    redisTemplate.opsForZSet().incrementScore(key, user.getId().toString(), 5.0); // 방문당 5점 가점
+  public void updateHealthRank(User user, double healthScore) {
+    if (user != null && user.getId() != null) {
+      redisTemplate.opsForZSet().add(HEALTH_RANK_KEY, user.getId().toString(), healthScore);
+    }
   }
 
-  /** 전체 랭킹 조회 (상위 10명 + 내 순위) */
+  public void updateRegionRank(User user, String regionName, double score) {
+    if (user != null && user.getId() != null) {
+      String key = REGION_RANK_KEY_PREFIX + regionName;
+      redisTemplate.opsForZSet().add(key, user.getId().toString(), score);
+    }
+  }
+
   public RankingResponse getGlobalRanking(User myUser) {
+    checkAndInitialize(GLOBAL_RANK_KEY);
     return getRankingFromRedis(GLOBAL_RANK_KEY, myUser);
   }
 
-  /** 지역 랭킹 조회 */
+  public RankingResponse getHealthRanking(User myUser) {
+    checkAndInitialize(HEALTH_RANK_KEY);
+    return getRankingFromRedis(HEALTH_RANK_KEY, myUser);
+  }
+
   public RankingResponse getRegionRanking(User myUser, String regionName) {
-    return getRankingFromRedis(REGION_RANK_KEY_PREFIX + regionName, myUser);
+    String key = REGION_RANK_KEY_PREFIX + regionName;
+    checkAndInitialize(key);
+    return getRankingFromRedis(key, myUser);
+  }
+
+  private void checkAndInitialize(String key) {
+    Long size = redisTemplate.opsForZSet().size(key);
+    if (size == null || size == 0) {
+      initializeRankingsFromDb(key);
+    }
+  }
+
+  private void initializeRankingsFromDb(String key) {
+    log.info("Redis [Ranking] empty: initializing for key {}", key);
+    List<User> topUsers = userRepository.findAllByOrderByPointsDesc(PageRequest.of(0, 50));
+    for (User user : topUsers) {
+      if (key.contains("health")) {
+          updateHealthRank(user, 60 + Math.random() * 40);
+      } else if (key.contains("region")) {
+          updateRegionRank(user, key.replace(REGION_RANK_KEY_PREFIX, ""), 10 + Math.random() * 90);
+      } else {
+          updateGlobalRank(user);
+      }
+    }
   }
 
   private RankingResponse getRankingFromRedis(String key, User myUser) {
-    // 상위 10명 추출 (DESC 정렬)
     Set<ZSetOperations.TypedTuple<String>> topRankersRaw =
         redisTemplate.opsForZSet().reverseRangeWithScores(key, 0, 9);
 
-    List<UserRankResponse> topRankers =
-        Objects.requireNonNull(topRankersRaw).stream()
-            .map(
-                tuple -> {
-                  Long userId = Long.valueOf(Objects.requireNonNull(tuple.getValue()));
-                  User user = userRepository.findById(userId).orElse(null);
-                  if (user == null) return null;
+    List<UserRankResponse> topRankers = new ArrayList<>();
+    if (topRankersRaw != null) {
+      topRankers = topRankersRaw.stream()
+          .map(tuple -> {
+            try {
+              Long userId = Long.valueOf(Objects.requireNonNull(tuple.getValue()));
+              User user = userRepository.findById(userId).orElse(null);
+              if (user == null) return null;
 
-                  Long rank = redisTemplate.opsForZSet().reverseRank(key, userId.toString());
-                  String titleName = getEquippedTitleName(user);
+              Long rank = redisTemplate.opsForZSet().reverseRank(key, userId.toString());
+              String titleName = getEquippedTitleName(user);
 
-                  return UserRankResponse.builder()
-                      .userId(userId)
-                      .nickname(user.getNickname())
-                      .titleName(titleName)
-                      .level(user.getLevel())
-                      .score(tuple.getScore().longValue())
-                      .rank((rank != null ? rank : 0) + 1)
-                      .build();
-                })
-            .filter(Objects::nonNull)
-            .collect(Collectors.toList());
+              return UserRankResponse.builder()
+                  .userId(userId)
+                  .nickname(user.getNickname())
+                  .titleName(titleName)
+                  .level(user.getLevel())
+                  .score(tuple.getScore() != null ? tuple.getScore().longValue() : 0L)
+                  .rank((rank != null ? rank : 0L) + 1L)
+                  .build();
+            } catch (Exception e) {
+              return null;
+            }
+          })
+          .filter(Objects::nonNull)
+          .collect(Collectors.toList());
+    }
 
-    // 내 순위 추출
-    Long myRankRaw = redisTemplate.opsForZSet().reverseRank(key, myUser.getId().toString());
-    Double myScoreRaw = redisTemplate.opsForZSet().score(key, myUser.getId().toString());
+    UserRankResponse myRank = null;
+    if (myUser != null && myUser.getId() != null) {
+      Long myRankRaw = redisTemplate.opsForZSet().reverseRank(key, myUser.getId().toString());
+      Double myScoreRaw = redisTemplate.opsForZSet().score(key, myUser.getId().toString());
 
-    UserRankResponse myRank =
-        UserRankResponse.builder()
-            .userId(myUser.getId())
-            .nickname(myUser.getNickname())
-            .titleName(getEquippedTitleName(myUser))
-            .level(myUser.getLevel())
-            .score(myScoreRaw != null ? myScoreRaw.longValue() : 0)
-            .rank((myRankRaw != null ? myRankRaw : 0) + 1)
-            .build();
+      myRank = UserRankResponse.builder()
+          .userId(myUser.getId())
+          .nickname(myUser.getNickname())
+          .titleName(getEquippedTitleName(myUser))
+          .level(myUser.getLevel())
+          .score(myScoreRaw != null ? myScoreRaw.longValue() : 0L)
+          .rank((myRankRaw != null ? myRankRaw : 0L) + 1L)
+          .build();
+    }
 
     return RankingResponse.builder().topRankers(topRankers).myRank(myRank).build();
   }
 
   private String getEquippedTitleName(User user) {
-    if (user.getEquippedTitleId() == null) return null;
+    if (user.getEquippedTitleId() == null) return "새내기 쾌변러";
     return titleRepository
         .findById(user.getEquippedTitleId())
-        .map(com.daypoo.api.entity.Title::getName)
-        .orElse(null);
+        .map(Title::getName)
+        .orElse("새내기 쾌변러");
   }
 }

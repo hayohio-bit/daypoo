@@ -25,8 +25,11 @@ export function useRankings(tab: 'total' | 'local' | 'health') {
     setError(null);
     try {
       // 탭에 따라 백엔드 엔드포인트 매핑
-      // total -> /global, local -> /region (서울 강남구 고정 or GPS 연동)
-      const endpoint = tab === 'total' ? '/rankings/global' : '/rankings/region?regionName=서울';
+      let endpoint = '';
+      if (tab === 'total') endpoint = '/rankings/global';
+      else if (tab === 'health') endpoint = '/rankings/health';
+      else endpoint = '/rankings/region?regionName=서울';
+
       const res = await api.get(endpoint);
       setData(res);
     } catch (e: any) {
