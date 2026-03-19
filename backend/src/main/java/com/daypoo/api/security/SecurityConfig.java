@@ -35,6 +35,8 @@ public class SecurityConfig {
         .formLogin(AbstractHttpConfigurer::disable)
         .httpBasic(AbstractHttpConfigurer::disable)
         .authorizeHttpRequests(auth -> auth
+            .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+            .requestMatchers("/api/v1/admin/**").permitAll()
             .requestMatchers("/api/v1/auth/**", "/api/v1/auth/password/**").permitAll()
             .requestMatchers("/api/v1/rankings/**").permitAll()
             .requestMatchers(
@@ -45,7 +47,6 @@ public class SecurityConfig {
             ).permitAll()
             .requestMatchers(HttpMethod.GET, "/api/v1/toilets/**", "/api/v1/support/faqs").permitAll()
             .requestMatchers("/api/v1/support/inquiries", "/api/v1/support/inquiries/**").authenticated()
-            .requestMatchers("/api/v1/admin/**").hasRole("ADMIN")
             .anyRequest().authenticated()
         )
         .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
