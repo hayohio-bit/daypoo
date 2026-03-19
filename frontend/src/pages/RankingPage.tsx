@@ -540,11 +540,19 @@ export function RankingPage({ openAuth }: { openAuth: (mode: 'login' | 'signup')
             </AnimatePresence>
 
             {/* 통계 칩 */}
-            <div className="grid grid-cols-3 gap-3 mt-8">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mt-8">
               {[
-                { label: '오늘 참여자', value: '3,241', unit: '명' },
-                { label: '내 현재 순위', value: '128', unit: '위' },
-                { label: 'TOP10까지', value: '15', unit: '번' },
+                { label: '활성 사용자', value: '1,000', unit: '+' },
+                { 
+                  label: '내 현재 순위', 
+                  value: myRankData ? myRankData.rank.toString() : '-', 
+                  unit: '위' 
+                },
+                { 
+                  label: '상위권 도전', 
+                  value: myRankData && myRankData.rank > 10 ? (myRankData.rank - 10).toString() : '0', 
+                  unit: '계단' 
+                },
               ].map((s, i) => (
                 <motion.div
                   key={i}

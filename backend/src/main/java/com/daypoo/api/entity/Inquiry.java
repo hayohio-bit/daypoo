@@ -2,6 +2,7 @@ package com.daypoo.api.entity;
 
 import com.daypoo.api.global.BaseTimeEntity;
 import jakarta.persistence.*;
+import jakarta.persistence.Lob;
 import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Getter;
@@ -25,9 +26,14 @@ public class Inquiry extends BaseTimeEntity {
   @Column(nullable = false)
   private InquiryType type;
 
+  @Column(nullable = false, length = 1000)
+  private String title;
+
+  @Lob
   @Column(nullable = false, columnDefinition = "TEXT")
   private String content;
 
+  @Lob
   @Column(columnDefinition = "TEXT")
   private String answer;
 
@@ -36,9 +42,10 @@ public class Inquiry extends BaseTimeEntity {
   private InquiryStatus status = InquiryStatus.PENDING;
 
   @Builder
-  public Inquiry(User user, InquiryType type, String content) {
+  public Inquiry(User user, InquiryType type, String title, String content) {
     this.user = user;
     this.type = type;
+    this.title = title;
     this.content = content;
     this.status = InquiryStatus.PENDING;
   }

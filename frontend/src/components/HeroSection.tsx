@@ -74,7 +74,7 @@ const SLIDES = [
 export function HeroSection({ onCtaClick }: HeroSectionProps) {
   const fadeUp = {
     hidden: { opacity: 0, y: 36 },
-    show: { opacity: 1, y: 0, transition: { duration: 0.7, ease: 'easeOut' } },
+    show: { opacity: 1, y: 0, transition: { duration: 0.7, ease: 'easeOut' as const } },
   };
   const stagger = {
     hidden: {},
@@ -98,19 +98,6 @@ export function HeroSection({ onCtaClick }: HeroSectionProps) {
             viewport={{ once: true }}
             className="max-w-4xl relative z-10"
           >
-            <motion.div variants={fadeUp} className="flex justify-center mb-6">
-              <span
-                className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-sm font-semibold"
-                style={{
-                  backgroundColor: 'rgba(45,106,79,0.1)',
-                  color: 'var(--green-mid)',
-                  border: '1px solid rgba(45,106,79,0.2)',
-                  backdropFilter: 'blur(4px)',
-                }}
-              >
-                💩 세상에 없던 배변 건강 지도
-              </span>
-            </motion.div>
 
             <motion.h1
               variants={fadeUp}

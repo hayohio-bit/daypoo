@@ -44,11 +44,11 @@ public class ApiApplication {
           "백엔드 서버가 시작되었습니다. 가상 스레드와 메일 발송 기능이 정상적으로 로드되었습니다.\n\n발송 시각: "
               + java.time.LocalDateTime.now());
 
-      // 2. 동기화 테스트 (1페이지만 샘플로 수행)
+      // 2. 동기화 테스트 (30페이지만 샘플로 수행 - 약 3000개)
       try {
-        log.info("🚀 Testing ULTRA-FAST sync for Page 1...");
-        syncService.syncToiletData(1, 100);
-        log.info("✅ ULTRA-FAST SYNC TEST PASSED!");
+        log.info("🚀 Starting BULK sync for 30 pages...");
+        syncService.syncAllToilets(1, 30);
+        log.info("✅ BULK SYNC COMPLETED!");
       } catch (Exception e) {
         log.error("Sync test failed: {}", e.getMessage());
       }

@@ -44,10 +44,10 @@ export function Footer() {
         {/* 좌측 — 초대형 로고 텍스트 & 카피라이트 */}
         <div className="lg:w-1/2 select-none flex flex-col gap-4">
           <h2 
-            className="text-[14vw] lg:text-[10rem] font-black leading-[0.8] tracking-tighter text-white opacity-[0.15] pointer-events-none"
-            style={{ fontFamily: 'sans-serif' }}
+            className="text-[14vw] lg:text-[10rem] font-bold leading-[0.8] tracking-tighter text-white opacity-[0.15] pointer-events-none"
+            style={{ fontFamily: 'SchoolSafetyNotification, sans-serif' }}
           >
-            DAY<span className="text-[#E8A838]">.</span>POO
+            Day<span className="text-[#E8A838]">.</span>Poo
           </h2>
           <p className="text-white/10 text-[10px] font-medium uppercase tracking-widest whitespace-nowrap pl-2">
             © 2026 DAY.POO ALL RIGHTS RESERVED.

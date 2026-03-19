@@ -19,7 +19,7 @@ spring:
 
   jpa:
     hibernate:
-      ddl-auto: update
+      ddl-auto: create
     show-sql: false
     properties:
       hibernate:
@@ -91,6 +91,9 @@ public-data:
 
 ai-service:
   url: ${AI_SERVICE_URL}
+
+toss:
+  secret-key: ${TOSS_SECRET_KEY}
 
 logging:
   level:

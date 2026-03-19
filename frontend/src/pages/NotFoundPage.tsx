@@ -188,7 +188,7 @@ export function NotFoundPage() {
       <div className="relative z-10 flex flex-col items-center text-center px-6">
 
         {/* 404 — FuzzyText 글리치 */}
-        <div style={{ marginBottom: '16px' }}>
+        <div style={{ marginBottom: '0px' }}>
           <FuzzyText
             text="404"
             fontFamily="SchoolSafetyNotification, sans-serif"
@@ -204,9 +204,9 @@ export function NotFoundPage() {
         </div>
 
         {/* 서브 타이틀 — FuzzyText */}
-        <div style={{ marginBottom: '20px' }}>
+        <div style={{ marginBottom: '8px' }}>
           <FuzzyText
-            text="화장실을 찾지 못했어요"
+            text="페이지를 찾지 못했습니다"
             fontFamily="SchoolSafetyNotification, sans-serif"
             fontSize={typeof window !== 'undefined' ? Math.min(32, window.innerWidth * 0.055) : 32}
             fontWeight={700}
@@ -229,7 +229,7 @@ export function NotFoundPage() {
             color: 'rgba(255,255,255,0.4)',
             lineHeight: 1.6,
             maxWidth: '400px',
-            marginBottom: '48px',
+            marginBottom: '32px',
           }}
         >
           요청하신 페이지가 존재하지 않거나<br />

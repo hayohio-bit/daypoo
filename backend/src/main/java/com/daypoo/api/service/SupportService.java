@@ -5,6 +5,7 @@ import com.daypoo.api.dto.InquiryRequest;
 import com.daypoo.api.dto.InquiryResponse;
 import com.daypoo.api.entity.Faq;
 import com.daypoo.api.entity.Inquiry;
+import com.daypoo.api.entity.InquiryType;
 import com.daypoo.api.entity.User;
 import com.daypoo.api.repository.FaqRepository;
 import com.daypoo.api.repository.InquiryRepository;
@@ -25,7 +26,12 @@ public class SupportService {
   /** 1:1 문의 등록 */
   public void createInquiry(User user, InquiryRequest request) {
     Inquiry inquiry =
-        Inquiry.builder().user(user).type(request.type()).content(request.content()).build();
+        Inquiry.builder()
+            .user(user)
+            .type(InquiryType.fromLabel(request.category()))
+            .title(request.title())
+            .content(request.content())
+            .build();
     inquiryRepository.save(inquiry);
   }
 
@@ -37,10 +43,11 @@ public class SupportService {
             i ->
                 InquiryResponse.builder()
                     .id(i.getId())
-                    .type(i.getType())
+                    .category(i.getType().getLabel())
+                    .title(i.getTitle())
                     .content(i.getContent())
                     .answer(i.getAnswer())
-                    .status(i.getStatus())
+                    .status(i.getStatus().getLabel())
                     .createdAt(i.getCreatedAt())
                     .build())
         .collect(Collectors.toList());

@@ -442,6 +442,34 @@ function SignupForm({ onSwitch, onSuccess }: { onSwitch: () => void; onSuccess?:
       setTimeout(() => setShake(false), 500);
       return;
     }
+
+    // 단계별 서버 측 검증 (중복 체크 등)
+    if (step === 0) {
+      setLoading(true);
+      try {
+        await api.get(`/auth/check-username?username=${email}`);
+      } catch (err: any) {
+        setErrors({ email: err.message || '이미 사용 중인 이메일입니다.' });
+        setShake(true);
+        setTimeout(() => setShake(false), 500);
+        return;
+      } finally {
+        setLoading(false);
+      }
+    } else if (step === 1) {
+      setLoading(true);
+      try {
+        await api.get(`/auth/check-nickname?nickname=${nickname}`);
+      } catch (err: any) {
+        setErrors({ nickname: err.message || '이미 사용 중인 닉네임입니다.' });
+        setShake(true);
+        setTimeout(() => setShake(false), 500);
+        return;
+      } finally {
+        setLoading(false);
+      }
+    }
+
     if (step < 2) { setDir(1); setStep((s) => s + 1); return; }
     setLoading(true);
     try {
