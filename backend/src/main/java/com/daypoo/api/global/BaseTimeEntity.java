@@ -15,10 +15,14 @@ import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 public abstract class BaseTimeEntity {
 
   @CreatedDate
-  @Column(name = "created_at", updatable = false)
+  @Column(name = "created_at")
   private LocalDateTime createdAt;
 
   @LastModifiedDate
   @Column(name = "updated_at")
   private LocalDateTime updatedAt;
+
+  protected void setCreatedAt(LocalDateTime createdAt) {
+    this.createdAt = createdAt;
+  }
 }
