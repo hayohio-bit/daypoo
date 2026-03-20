@@ -30,9 +30,6 @@ public class AdminService {
 
   @Transactional(readOnly = true)
   public AdminStatsResponse getAdminStats() {
-    LocalDateTime now = LocalDateTime.now();
-    LocalDateTime todayStart = LocalDate.now().atStartOfDay();
-
     long totalUsers = userRepository.count();
     long totalToilets = toiletRepository.count();
     long pendingInquiries = inquiryRepository.countByStatus(InquiryStatus.PENDING);
@@ -87,6 +84,13 @@ public class AdminService {
     // paymentRepository.deleteAll();
 
     // 2. 과거 14일치 결제 데이터 생성
+    com.daypoo.api.entity.User user =
+        userRepository
+            .findAll()
+            .stream()
+            .findFirst()
+            .orElseThrow(() -> new RuntimeException("테스트 데이터를 생성할 유저가 없습니다."));
+
     for (int i = 13; i >= 0; i--) {
       LocalDate date = LocalDate.now().minusDays(i);
       int dailyCount = (int) (Math.random() * 10) + 5; // 하루 5~15건 결제
@@ -97,7 +101,8 @@ public class AdminService {
 
         paymentRepository.save(
             Payment.builder()
-                .username("user" + (int) (Math.random() * 100))
+                .username(user.getUsername())
+                .user(user)
                 .orderId(UUID.randomUUID().toString().substring(0, 8))
                 .amount((long) ((Math.random() * 5 + 1) * 10000)) // 1만~5만원
                 .paymentKey("toss_" + UUID.randomUUID().toString().substring(0, 12))
