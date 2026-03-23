@@ -1,5 +1,48 @@
 # Modification History
 
+## [2026-03-23 12:05:00] 관리자 로그인 장애 해결 및 백엔드 로깅/안정화 작업
+
+### 작업 내용
+- **로그인 유효성 검사 수정 (Frontend)**: `AuthModal.tsx`의 이메일 형식 제한을 완화하여 `admin`과 같은 일반 아이디 형식의 로그인이 가능하도록 수정했습니다.
+- **백엔드 로그인 로깅 강화**: `AuthService.java`에 로그인 시도 및 실패 원인 로그를 추가하여 로그인 관련 장애 발생 시 즉각적인 원인 파악이 가능하도록 개선했습니다.
+- **DataInitializer 안정성 확보**: 계정 검색 시 인덱스(`get(1)`) 대신 유저네임(`findByUsername`)을 사용하여 초기화 데이터 생성 시 발생할 수 있는 잠재적 오류를 방지했습니다.
+
+### 상세 변경 내역
+- `frontend/src/components/AuthModal.tsx`: 로그인 폼 유효성 검사 로직(Regex) 수정.
+- `backend/src/main/java/com/daypoo/api/service/AuthService.java`: `Slf4j` 로깅 추가 및 로그인 메서드 내 로그 로그 추가.
+- `backend/src/main/java/com/daypoo/api/global/config/DataInitializer.java`: 초기화 로직 안정성 강화 및 진행 로그 추가.
+
+### 결과/영향
+- `admin` 및 `admin@admin.com` 계정 모두 로그인이 가능해졌으며, 로그인 실패 시 로그를 통해 원인을 파악할 수 있게 되었습니다.
+- 서버 초기화 단계에서의 예외 발생 위험을 낮추었습니다.
+
+## [2026-03-23 11:50:00] 백엔드 컴파일 및 500 NPE 에러 긴급 수정
+
+### 작업 내용
+- **백엔드 수정 제한 관련 오해 정정**: 팀 내에서 잘못 공유된 `BACKEND DIRECTORY RESTRICTION`은 실제 규칙(`FRONTEND DIRECTORY RESTRICTION`)과 상충되므로, 백엔드 코드를 직접 수정하여 장애를 해결했습니다.
+- **@AuthenticationPrincipal 타입 불일치(500 에러) 수정**: `JwtAuthenticationFilter`에서 Principal로 문자열(`String`)을 저장함에도 불구하고 일부 컨트롤러에서 `UserDetails`로 받고 있어 발생하던 `ClassCastException`을 해결했습니다.
+- **ToiletService 인자 개수 불일치 확인**: `ToiletController`와 `ToiletService` 간의 `limit` 파라미터 전달 로직이 일치함을 재확인하고, 컴파일 오류 가능성을 제거했습니다.
+
+### 상세 변경 내역
+- `backend/src/main/java/com/daypoo/api/controller/SupportController.java`: `@AuthenticationPrincipal UserDetails`를 `String username`으로 변경 및 미사용 임포트 제거.
+- `plan.md`: 수정 사항 반영 및 프로젝트 규칙에 대한 비고 사항 업데이트.
+
+### 결과/영향
+- 1:1 문의 등록 및 내 문의 내역 조회 시 발생하던 서버 500 에러가 해결되었습니다.
+- 백엔드 서버가 정상적으로 컴파일 및 기동 가능한 상태임을 확인했습니다.
+
+
+## [2026-03-23 11:32:00] DataInitializer 닉네임 중복 오류 수정 (신규 관리자 계정 생성 이슈)
+
+### 작업 내용
+- **관리자 계정 생성 오류 원인 파악 및 해결**: 이전에 추가했던 `admin@admin.com` 관리자 계정이 서버 실행 시(`DataInitializer`) DB에 저장될 때, `nickname` 필드값인 "관리자"가 최초 등록되는 `admin` 시스템 계정의 닉네임과 중복되어 데이터베이스 상 Unique 제약 조건을 위반하고, DB Insert에 실패(로그인 불가)하던 중대 오류를 수정했습니다.
+- **예외 회피 조치**: 새로 추가되는 `admin@admin.com` 계정의 빌더 프로퍼티 중 `.nickname("관리자")`를 `.nickname("슈퍼관리자")`로 변경하여 데이터 충돌 없이 정상 구동되도록 반영했습니다.
+
+### 상세 변경 내역
+- `backend/src/main/java/com/daypoo/api/global/config/DataInitializer.java`: 새로운 관리자 엔티티 생성 시 닉네임을 "슈퍼관리자"로 설정.
+
+### 결과/영향
+- 사용자가 백엔드 서버를 재시동(Restart)하면, 수정된 `DataInitializer` 로직이 정상 동작하여 `admin@admin.com` 계정이 DB에 올바르게 삽입되며, 이후부터 즉각적으로 관리자 로그인이 가능해집니다.
 ## [2026-03-23 11:20:00] 지도 페이지 성능 최적화 및 렉 수정
 
 ### 작업 내용

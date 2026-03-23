@@ -6,10 +6,12 @@ import com.daypoo.api.repository.InquiryRepository;
 import com.daypoo.api.repository.ToiletRepository;
 import com.daypoo.api.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 
+@Slf4j
 @Component
 @RequiredArgsConstructor
 public class DataInitializer implements CommandLineRunner {
@@ -22,8 +24,10 @@ public class DataInitializer implements CommandLineRunner {
 
   @Override
   public void run(String... args) throws Exception {
+    log.info("🏁 DataInitializer started...");
     // 1. Admin & Users
     if (userRepository.count() == 0) {
+      log.info("Creating default users (admin, user1, user2)...");
       userRepository.save(
           User.builder()
               .username("admin")
@@ -54,14 +58,17 @@ public class DataInitializer implements CommandLineRunner {
 
     // 2. 관리자 계정 추가 (admin@admin.com / admin1234)
     if (userRepository.findByUsername("admin@admin.com").isEmpty()) {
+      log.info("Creating super admin (admin@admin.com)...");
       userRepository.save(
           User.builder()
               .username("admin@admin.com")
               .password(passwordEncoder.encode("admin1234"))
-              .nickname("관리자")
+              .nickname("슈퍼관리자")
               .email("admin@admin.com")
               .role(User.Role.ROLE_ADMIN)
               .build());
+    } else {
+      log.info("Super admin (admin@admin.com) already exists.");
     }
 
     // 3. Toilets
@@ -101,7 +108,8 @@ public class DataInitializer implements CommandLineRunner {
 
     // 3. Inquiries
     if (inquiryRepository.count() == 0) {
-      User user = userRepository.findAll().get(1); // 'user1'
+      User user = userRepository.findByUsername("user1").orElse(null);
+      if (user != null) {
 
       inquiryRepository.save(
           Inquiry.builder()
@@ -127,5 +135,7 @@ public class DataInitializer implements CommandLineRunner {
               .content("오늘 아침 기록을 분석했는데 비정상적으로 좋게 나왔어요. 원래 이런가요?")
               .build());
     }
+    log.info("✅ DataInitializer completed.");
   }
+}
 }
