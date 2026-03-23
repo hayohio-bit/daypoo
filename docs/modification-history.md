@@ -1,5 +1,80 @@
 # Modification History
 
+## [2026-03-23 15:35:00] 팀원 간 DB 세팅 및 환경 동기화 체계 구축
+
+### 작업 내용
+- **`.env.example` 생성**: 민감 정보 보안 및 팀 프로젝트를 위한 환경 변수 샘플 파일을 루트 디렉토리에 추가하였습니다.
+- **`schema.sql` 최신화**: `inquiries` 테이블에 누락되었던 `title` 컬럼(VARCHAR 1000)을 추가하고, `updated_at` 필드를 반영하여 실제 엔티티(`Inquiry.java`)와 DB 구조의 완전한 일치를 확인했습니다.
+- **동기화 가이드 작성**: 새로운 팀원이 프로젝트에 참여할 때 DB 환경을 손쉽게 세팅하고 문제가 발생했을 때(Clean Reset)의 대처 방안을 포함한 `docs/DB_SYNC_GUIDE.md`를 작성했습니다.
+
+### 상세 변경 내역
+- **`.env.example`**: DB 접속 정보, JWT, OAuth2 등 로컬 개발 필수 설정값 샘플링.
+- **`backend/src/main/resources/schema.sql`**: `inquiries` 테이블 명세 수정.
+- **`docs/DB_SYNC_GUIDE.md`**: 원활한 협업을 위한 기술 가이드 제작.
+
+### 결과/영향
+- 이제 팀원들이 `.env` 설정이나 DB 구조 파편화 문제 없이 동일한 환경에서 즉각적으로 개발을 진행할 수 있습니다.
+
+
+## [2026-03-23 15:28:00] DB 스키마 파편화 제거 (username 컬럼 완전 삭제)
+
+### 작업 내용
+- **`users` 테이블 `username` 컬럼 삭제**: 이미 모든 기능이 `email` 인증으로 전환됨에 따라, 더 이상 사용되지 않는 `username` 컬럼을 DB에서 완전히 삭제하였습니다.
+- **스키마 최적화**: 엔티티 클래스(`User.java`)와 실제 DB 구조를 100% 일치시켜 불필요한 제약 조건 충돌을 방지했습니다.
+
+### 상세 변경 내역
+- **DB 작업**: `ALTER TABLE users DROP COLUMN IF EXISTS username CASCADE;` 실행
+
+### 결과/영향
+- 데이터베이스 구조가 더욱 깔끔해졌으며, 관리자 계정 등 신규 계정 생성 시 제약 조건 충돌 위험이 사라졌습니다.
+
+
+## [2026-03-23 15:16:00] DB 스키마 정합성 해결 (Payment 엔티티 동기화)
+
+### 작업 내용
+- **`payments` 테이블 드랍**: `Payment` 엔티티 변경 사항(username -> email, user_id 추가)이 기존 데이터와 충돌하여 자동 업데이트가 실패하던 문제를 해결하기 위해, 기존 `payments` 테이블을 삭제(Drop)하였습니다.
+- **스키마 자동 생성 유도**: 테이블이 삭제된 상태에서 서버가 재시작되면 Hibernate의 `ddl-auto: update` 옵션에 의해 최신 엔티티 정의에 맞는 스키마가 자동으로 생성됩니다.
+
+### 상세 변경 내역
+- **DB 작업**: `DROP TABLE IF EXISTS payments CASCADE;` 실행 (데이터 1건 소멸)
+
+### 결과/영향
+- 이제 애플리케이션 실행 시 `Payment` 엔티티의 최신 정의(`email`, `user_id` 등)가 DB 스키마에 올바르게 반영됩니다.
+- DB 로그에서 발생하던 DDL 관련 에러(`column contains null values`)가 해결되었습니다.
+
+
+## [2026-03-23 13:35:00] 관리자 계정 초기화 로직 안정화 (Idempotency 확보)
+
+### 작업 내용
+- **안전한 초기화 방식으로 전환**: 서버 시작 시마다 관리자 계정을 삭제하고 재생성하던 강제 초기화 로직을 제거하고, `existsByEmail`을 통해 계정이 없는 경우에만 생성하도록 변경했습니다.
+- **DB 정합성 유지**: 이제 한 번 생성된 관리자 계정은 DB에 영구적으로 보존되며, 서버 재시작으로 인해 사용자의 프로필 수정이나 데이터가 유실되지 않습니다.
+
+### 상세 변경 내역
+- **`DataInitializer.java`**:
+  - `userRepository.delete()` 로직 제거.
+  - `if (!userRepository.existsByEmail("admin@admin.com"))` 조건부 생성 로직 적용.
+
+### 결과/영향
+- 이제 DB에 저장된 관리자 계정 정보가 최우선으로 유지되며, 신규 환경에서만 자동으로 초기 계정이 생성됩니다.
+
+## [2026-03-23 13:25:00] 관리자 계정 로그인 원천 해결 및 권한 시스템 정합성 강화
+
+### 작업 내용
+- **초기화 로직 구조적 결함 수정**: `DataInitializer`가 전체 유저 수(`count == 0`)만 체크하던 방식을 특정 관리자 계정(`admin@daypoo.com`) 존재 여부 체크 방식으로 변경하여, 테스트 데이터(`RankingDataSeeder`)가 이미 존재하더라도 관리자 계정이 반드시 생성되도록 보장했습니다.
+- **관리자 이메일 스펙 통일**: 개선 계획서(`plan_project_improvement.md`)에 따라 관리자 이메일을 `admin@admin.com`에서 `admin@daypoo.com`으로 공식 변경하였습니다.
+- **소셜 로그인 권한 버그 수정**: `OAuth2SuccessHandler`에서 기존 유저 로그인 시 권한을 `ROLE_USER`로 하드코딩하던 로직을 DB에 저장된 실제 권한(`user.getRole()`)을 사용하도록 수정하여, 관리자 계정의 소셜 로그인 접근성을 확보했습니다.
+
+### 상세 변경 내역
+- **`DataInitializer.java`**:
+  - `if (userRepository.count() == 0)` -> `if (!userRepository.existsByEmail("admin@daypoo.com"))`
+  - 관리자 계정 생성: `admin@daypoo.com` / `admin1234`
+- **`OAuth2SuccessHandler.java`**:
+  - `jwtProvider.createAccessToken(email, "ROLE_USER")` -> `jwtProvider.createAccessToken(email, user.getRole().name())`
+
+### 결과/영향
+- 이제 서버 시작 시 관리자 계정(`admin@daypoo.com` / `admin1234`)이 항상 보장됩니다.
+- 관리자 권한을 가진 사용자가 소셜 로그인으로 접속하더라도 정상적으로 관리자 권한을 유지할 수 있습니다.
+
 ## [2026-03-23 13:15:00] Enum 추출 및 패키지 관리 체계 구축
 
 ### 작업 내용
