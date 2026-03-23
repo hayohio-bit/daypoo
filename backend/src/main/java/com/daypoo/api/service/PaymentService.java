@@ -1,6 +1,7 @@
 package com.daypoo.api.service;
 
 import com.daypoo.api.entity.Payment;
+import com.daypoo.api.entity.User;
 import com.daypoo.api.global.exception.BusinessException;
 import com.daypoo.api.global.exception.ErrorCode;
 import com.daypoo.api.repository.PaymentRepository;
@@ -55,6 +56,12 @@ public class PaymentService {
       if (response.getStatusCode() != HttpStatus.OK) {
         throw new BusinessException(ErrorCode.INTERNAL_SERVER_ERROR);
       }
+
+      // 결제 유저 조회
+      User user =
+          userRepository
+              .findByUsername(username)
+              .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
 
       // 결제 내역 저장
       com.daypoo.api.entity.User user =
@@ -126,7 +133,7 @@ public class PaymentService {
     }
   }
 
-  private void addPointsToUser(com.daypoo.api.entity.User user, Long amount) {
+  private void addPointsToUser(User user, Long amount) {
     if (user == null) return;
     user.addExpAndPoints(0, amount);
     userRepository.save(user);
