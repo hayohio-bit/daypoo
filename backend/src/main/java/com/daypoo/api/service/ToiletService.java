@@ -18,10 +18,9 @@ public class ToiletService {
   private final ToiletMapper toiletMapper;
 
   @Transactional(readOnly = true)
-  public List<ToiletResponse> searchToilets(
-      double latitude, double longitude, double radius, int limit) {
+  public List<ToiletResponse> searchToilets(double latitude, double longitude, double radius) {
     List<ToiletProjection> results =
-        toiletRepository.findToiletsWithinRadius(latitude, longitude, radius, limit);
+        toiletRepository.findToiletsWithinRadius(latitude, longitude, radius);
     return results.stream().map(toiletMapper::toResponse).collect(Collectors.toList());
   }
 }
