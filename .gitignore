@@ -121,10 +121,12 @@ htmlcov/
 *.tsbuildinfo
 
 # ================================================
-# 🤖 Agent / AI 도구
+# 🤖 Agent / Skills
 # ================================================
 .agent/
-.claude/
-.gemini/
 **/venv/
+**/.venv/
+**/.pytest_cache/
+**/__pycache__/
+**/.python-version
 **/node_modules/
