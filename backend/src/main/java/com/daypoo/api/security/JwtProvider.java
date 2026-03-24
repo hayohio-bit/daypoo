@@ -73,4 +73,10 @@ public class JwtProvider {
   public Claims getClaims(String token) {
     return Jwts.parser().verifyWith(key).build().parseSignedClaims(token).getPayload();
   }
+
+  public long getRemainingTime(String token) {
+    Claims claims = getClaims(token);
+    Date expiration = claims.getExpiration();
+    return Math.max(0, expiration.getTime() - System.currentTimeMillis());
+  }
 }

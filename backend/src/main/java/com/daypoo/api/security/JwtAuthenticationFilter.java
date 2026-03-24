@@ -8,6 +8,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.util.Collections;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
@@ -21,6 +22,7 @@ import org.springframework.web.filter.OncePerRequestFilter;
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
   private final JwtProvider jwtProvider;
+  private final StringRedisTemplate redisTemplate;
 
   @Override
   protected void doFilterInternal(
@@ -29,6 +31,13 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     String token = resolveToken(request);
 
     if (token != null && jwtProvider.validateToken(token)) {
+      // 블랙리스트 확인
+      Boolean isBlacklisted = redisTemplate.hasKey("blacklist:" + token);
+      if (Boolean.TRUE.equals(isBlacklisted)) {
+        filterChain.doFilter(request, response);
+        return;
+      }
+
       Claims claims = jwtProvider.getClaims(token);
       String email = claims.getSubject();
       String role = claims.get("role", String.class);
@@ -50,10 +59,13 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
       return bearerToken.substring(7);
     }
 
-    // 2. 쿼리 파라미터에서 토큰 추출 (SSE용)
-    String tokenParam = request.getParameter("token");
-    if (StringUtils.hasText(tokenParam)) {
-      return tokenParam;
+    // 2. 쿼리 파라미터에서 토큰 추출 (SSE용: /api/v1/notifications/subscribe 경로만 허용)
+    String path = request.getRequestURI();
+    if (path != null && path.contains("/notifications/subscribe")) {
+      String tokenParam = request.getParameter("token");
+      if (StringUtils.hasText(tokenParam)) {
+        return tokenParam;
+      }
     }
 
     return null;

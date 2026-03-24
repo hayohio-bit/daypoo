@@ -29,6 +29,9 @@ public class SecurityConfig {
   @Value("${app.frontend.url}")
   private String frontendUrl;
 
+  @Value("${app.cors.allowed-origins}")
+  private List<String> allowedOrigins;
+
   private final JwtAuthenticationFilter jwtAuthenticationFilter;
   private final CustomOAuth2UserService customOAuth2UserService;
   private final OAuth2SuccessHandler oAuth2SuccessHandler;
@@ -92,9 +95,10 @@ public class SecurityConfig {
   @Bean
   public CorsConfigurationSource corsConfigurationSource() {
     CorsConfiguration config = new CorsConfiguration();
-    config.setAllowedOriginPatterns(List.of("*"));
-    config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
-    config.setAllowedHeaders(List.of("*"));
+    config.setAllowedOrigins(allowedOrigins);
+    config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"));
+    config.setAllowedHeaders(List.of("Authorization", "Content-Type", "Accept", "X-Correlation-Id"));
+    config.setExposedHeaders(List.of("Authorization"));
     config.setAllowCredentials(true);
     config.setMaxAge(3600L);
 

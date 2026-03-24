@@ -5,15 +5,14 @@ import com.daypoo.api.entity.User;
 import com.daypoo.api.global.exception.BusinessException;
 import com.daypoo.api.global.exception.ErrorCode;
 import com.daypoo.api.repository.PaymentRepository;
-import com.daypoo.api.repository.UserRepository;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 import java.util.HashMap;
 import java.util.Map;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.*;
 import org.springframework.stereotype.Service;
@@ -23,13 +22,22 @@ import org.springframework.web.client.RestTemplate;
 
 @Slf4j
 @Service
-@RequiredArgsConstructor
 public class PaymentService {
-
-  private final UserRepository userRepository;
+  private final UserService userService;
   private final PaymentRepository paymentRepository;
   private final ObjectMapper objectMapper;
-  private final RestTemplate restTemplate = new RestTemplate();
+  private final RestTemplate restTemplate;
+
+  public PaymentService(
+      UserService userService,
+      PaymentRepository paymentRepository,
+      ObjectMapper objectMapper,
+      @Qualifier("externalRestTemplate") RestTemplate restTemplate) {
+    this.userService = userService;
+    this.paymentRepository = paymentRepository;
+    this.objectMapper = objectMapper;
+    this.restTemplate = restTemplate;
+  }
 
   @Value("${toss.secret-key}")
   private String secretKey;
@@ -58,10 +66,7 @@ public class PaymentService {
       }
 
       // 결제 유저 조회
-      User user =
-          userRepository
-              .findByEmail(email)
-              .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
+      User user = userService.getByEmail(email);
 
       // 결제 내역 저장
 
@@ -132,6 +137,5 @@ public class PaymentService {
   private void addPointsToUser(User user, Long amount) {
     if (user == null) return;
     user.addExpAndPoints(0, amount);
-    userRepository.save(user);
   }
 }

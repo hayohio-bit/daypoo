@@ -14,7 +14,10 @@ public interface PooRecordRepository extends JpaRepository<PooRecord, Long> {
   List<PooRecord> findAllByUserAndCreatedAtAfterOrderByCreatedAtDesc(
       User user, LocalDateTime dateTime);
 
-  Page<PooRecord> findByUserOrderByCreatedAtDesc(User user, Pageable pageable);
+  @Query(
+      value = "SELECT p FROM PooRecord p JOIN FETCH p.toilet WHERE p.user = :user",
+      countQuery = "SELECT COUNT(p) FROM PooRecord p WHERE p.user = :user")
+  Page<PooRecord> findByUserOrderByCreatedAtDesc(@Param("user") User user, Pageable pageable);
 
   long countByUser(User user);
 

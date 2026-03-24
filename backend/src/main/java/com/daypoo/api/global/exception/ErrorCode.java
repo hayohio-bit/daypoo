@@ -12,6 +12,8 @@ public enum ErrorCode {
   INTERNAL_SERVER_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "C004", "서버 내부 오류입니다."),
   INVALID_TYPE_VALUE(HttpStatus.BAD_REQUEST, "C005", "잘못된 타입의 값입니다."),
   HANDLE_ACCESS_DENIED(HttpStatus.FORBIDDEN, "C006", "접근 권한이 없습니다."),
+  DUPLICATE_KEY(HttpStatus.CONFLICT, "C007", "중복된 데이터가 존재합니다."),
+  TOO_MANY_REQUESTS(HttpStatus.TOO_MANY_REQUESTS, "C008", "너무 많은 요청이 발생했습니다. 잠시 후 다시 시도해주세요."),
 
   // User
   USER_NOT_FOUND(HttpStatus.NOT_FOUND, "U001", "사용자를 찾을 수 없습니다."),
@@ -31,7 +33,9 @@ public enum ErrorCode {
   LOCATION_OUT_OF_RANGE(HttpStatus.BAD_REQUEST, "R001", "화장실 반경 밖에서는 인증할 수 없습니다."),
   COOLDOWN_ACTIVE(HttpStatus.BAD_REQUEST, "R002", "이미 최근 인증을 완료한 화장실입니다."),
   AI_SERVICE_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "R003", "AI 분석 서비스 호출에 실패했습니다."),
-  NO_RECORDS_FOR_REPORT(HttpStatus.BAD_REQUEST, "R004", "분석할 배변 기록이 없습니다.");
+  NO_RECORDS_FOR_REPORT(HttpStatus.BAD_REQUEST, "R004", "분석할 배변 기록이 없습니다."),
+  STAY_TIME_NOT_MET(HttpStatus.BAD_REQUEST, "R005", "화장실 내 체류 시간이 충분하지 않습니다. (최소 60초)"),
+  OUT_OF_RANGE(HttpStatus.BAD_REQUEST, "R006", "화장실 반경 밖에서는 인증할 수 없습니다.");
 
   private final HttpStatus status;
   private final String code;

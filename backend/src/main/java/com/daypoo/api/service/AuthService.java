@@ -16,11 +16,16 @@ import com.daypoo.api.security.JwtProvider;
 import io.jsonwebtoken.Claims;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.concurrent.TimeUnit;
+
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class AuthService {
@@ -29,6 +34,7 @@ public class AuthService {
   private final PasswordEncoder passwordEncoder;
   private final JwtProvider jwtProvider;
   private final EmailService emailService;
+  private final StringRedisTemplate redisTemplate;
 
   @Transactional
   public TokenResponse socialSignUp(SocialSignUpRequest request) {
@@ -212,9 +218,16 @@ public class AuthService {
   }
 
   @Transactional
-  public void logout(String email) {
-    // Redis 블랙리스트 등을 사용하여 토큰을 무효화하는 로직을 여기에 구현할 수 있습니다.
-    // 현재는 로그아웃 성공 메시지만 반환하는 수준으로 처리합니다.
+  public void logout(String email, String accessToken) {
+    if (accessToken != null) {
+      long remainingTime = jwtProvider.getRemainingTime(accessToken);
+      if (remainingTime > 0) {
+        redisTemplate
+            .opsForValue()
+            .set("blacklist:" + accessToken, "logout", remainingTime, TimeUnit.MILLISECONDS);
+      }
+    }
+    log.info("User {} logged out and token blacklisted", email);
   }
 
   @Transactional

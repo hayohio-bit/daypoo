@@ -4,7 +4,11 @@ import com.daypoo.api.dto.NotificationResponse;
 import com.daypoo.api.entity.Notification;
 import com.daypoo.api.entity.User;
 import com.daypoo.api.entity.enums.NotificationType;
+import com.daypoo.api.global.exception.BusinessException;
+import com.daypoo.api.global.exception.ErrorCode;
 import com.daypoo.api.repository.NotificationRepository;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import jakarta.annotation.PostConstruct;
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
@@ -12,6 +16,9 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.data.redis.listener.ChannelTopic;
+import org.springframework.data.redis.listener.RedisMessageListenerContainer;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
@@ -22,23 +29,43 @@ import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 public class NotificationService {
 
   private final NotificationRepository notificationRepository;
+  private final StringRedisTemplate redisTemplate;
+  private final RedisMessageListenerContainer redisMessageListenerContainer;
+  private final ObjectMapper objectMapper;
 
-  // 유저별 SSE Emitter 관리 (메모리 저장소)
-  private final Map<Long, SseEmitter> emitters = new ConcurrentHashMap<>();
+  // 유저별 SSE Emitter 관리 (로컬 메모리 저장소)
+  private final Map<Long, SseEmitter> localEmitters = new ConcurrentHashMap<>();
+
+  /** Redis Pub/Sub 구독 설정 */
+  @PostConstruct
+  public void init() {
+    redisMessageListenerContainer.addMessageListener(
+        (message, pattern) -> {
+          try {
+            String content = new String(message.getBody());
+            NotificationResponse response = objectMapper.readValue(content, NotificationResponse.class);
+            // 모든 로컬 인스턴스에서 해당 유저의 Emitter가 있는지 확인 후 전송
+            sendToLocal(response.userId(), response);
+          } catch (Exception e) {
+            log.error("Error processing Redis message: {}", e.getMessage());
+          }
+        },
+        new ChannelTopic("notifications"));
+  }
 
   /** SSE 연결 수립 */
   public SseEmitter subscribe(Long userId) {
     SseEmitter emitter = new SseEmitter(60L * 1000 * 60); // 1시간 타임아웃
-    emitters.put(userId, emitter);
+    localEmitters.put(userId, emitter);
 
-    emitter.onCompletion(() -> emitters.remove(userId));
-    emitter.onTimeout(() -> emitters.remove(userId));
+    emitter.onCompletion(() -> localEmitters.remove(userId));
+    emitter.onTimeout(() -> localEmitters.remove(userId));
 
     // 연결 시 더미 이벤트 전송 (연결 확인용)
     try {
       emitter.send(SseEmitter.event().name("connect").data("connected!"));
     } catch (IOException e) {
-      emitters.remove(userId);
+      localEmitters.remove(userId);
     }
 
     return emitter;
@@ -59,25 +86,36 @@ public class NotificationService {
 
     notificationRepository.save(notification);
 
-    // 실시간 전송 (SSE)
-    if (emitters.containsKey(user.getId())) {
-      SseEmitter emitter = emitters.get(user.getId());
+    // Redis Pub/Sub 발행 (분산 환경 대응)
+    NotificationResponse response =
+        NotificationResponse.builder()
+            .id(notification.getId())
+            .userId(user.getId()) // UserId 포함 필드 필요 (DTO에 추가 예정)
+            .type(notification.getType())
+            .title(notification.getTitle())
+            .content(notification.getContent())
+            .redirectUrl(notification.getRedirectUrl())
+            .isRead(notification.isRead())
+            .createdAt(notification.getCreatedAt())
+            .build();
+
+    try {
+      redisTemplate.convertAndSend("notifications", objectMapper.writeValueAsString(response));
+    } catch (Exception e) {
+      log.error("Failed to publish notification to Redis: {}", e.getMessage());
+      // Redis 장애 시에도 로컬 인스턴스에는 즉시 전송 시도
+      sendToLocal(user.getId(), response);
+    }
+  }
+
+  /** 로컬 메모리의 Emitter를 통해 실시간 전송 */
+  private void sendToLocal(Long userId, NotificationResponse response) {
+    if (localEmitters.containsKey(userId)) {
+      SseEmitter emitter = localEmitters.get(userId);
       try {
-        emitter.send(
-            SseEmitter.event()
-                .name("notification")
-                .data(
-                    NotificationResponse.builder()
-                        .id(notification.getId())
-                        .type(notification.getType())
-                        .title(notification.getTitle())
-                        .content(notification.getContent())
-                        .redirectUrl(notification.getRedirectUrl())
-                        .isRead(notification.isRead())
-                        .createdAt(notification.getCreatedAt())
-                        .build()));
+        emitter.send(SseEmitter.event().name("notification").data(response));
       } catch (IOException e) {
-        emitters.remove(user.getId());
+        localEmitters.remove(userId);
       }
     }
   }
@@ -90,6 +128,7 @@ public class NotificationService {
             n ->
                 NotificationResponse.builder()
                     .id(n.getId())
+                    .userId(user.getId())
                     .type(n.getType())
                     .title(n.getTitle())
                     .content(n.getContent())
@@ -106,7 +145,7 @@ public class NotificationService {
     Notification notification =
         notificationRepository
             .findById(notificationId)
-            .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 알림입니다."));
+            .orElseThrow(() -> new BusinessException(ErrorCode.ENTITY_NOT_FOUND));
     notification.markAsRead();
   }
 
@@ -123,11 +162,11 @@ public class NotificationService {
     Notification notification =
         notificationRepository
             .findById(notificationId)
-            .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 알림입니다."));
+            .orElseThrow(() -> new BusinessException(ErrorCode.ENTITY_NOT_FOUND));
 
     // 본인의 알림인지 확인
     if (!notification.getUser().getId().equals(user.getId())) {
-      throw new IllegalArgumentException("본인의 알림만 삭제할 수 있습니다.");
+      throw new BusinessException(ErrorCode.HANDLE_ACCESS_DENIED);
     }
 
     notificationRepository.delete(notification);
