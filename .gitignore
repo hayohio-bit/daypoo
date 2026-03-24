@@ -124,6 +124,7 @@ htmlcov/
 # 🤖 Agent / Skills
 # ================================================
 .agent/
+.claude/
 **/venv/
 **/.venv/
 **/.pytest_cache/
