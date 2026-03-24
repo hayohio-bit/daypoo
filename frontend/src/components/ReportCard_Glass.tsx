@@ -65,6 +65,7 @@ export function ReportCard({ openAuth }: { openAuth: (mode: 'login' | 'signup') 
   return (
     <section
       ref={sectionRef}
+      id="health-section"
       className="relative pt-40 pb-64 px-6 overflow-hidden"
       style={{ backgroundColor: '#eef5f0' }}
     >

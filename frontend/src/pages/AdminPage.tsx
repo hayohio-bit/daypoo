@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Navigate } from 'react-router-dom';
+import { Navigate, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import {
   LayoutDashboard, Users, MapPin, MessageSquare,
@@ -10,7 +10,8 @@ import {
   Navigation,
   Star,
   Maximize2,
-  X
+  X,
+  Home
 } from 'lucide-react';
 import {
   AreaChart, Area, PieChart, Pie, Cell,
@@ -19,6 +20,18 @@ import {
 } from 'recharts';
 import { useToilets } from '../hooks/useToilets';
 import { ToiletData, MOCK_TOILETS } from '../types/toilet';
+import { api } from '../services/apiClient';
+import {
+  AdminUserListResponse,
+  AdminInquiryListResponse,
+  AdminToiletListResponse,
+  PageResponse,
+  Role,
+  InquiryStatus,
+  ItemResponse,
+  ItemType,
+  AdminStatsResponse
+} from '../types/admin';
 
 // ── Shared Constants & Types ──────────────────────────────────────────
 type AdminTab = 'dashboard' | 'users' | 'toilets' | 'cs' | 'store' | 'system' | 'add-item' | 'logs';
@@ -295,68 +308,248 @@ const DashboardView = ({ setActiveTab }: { setActiveTab: (tab: AdminTab) => void
 
 // ── Screen: Users Management ─────────────────────────────────────────
 const UsersView = () => {
-  const users = [
-    { id: 1, nick: '황금변기왕', email: 'king@poop.com', joined: '2024.03.15', points: '12,500', status: '정상', badge: 'PRO' },
-    { id: 2, nick: '변비탈출러', email: 'escape@drain.com', joined: '2024.03.20', points: '8,200', status: '주의', badge: 'FREE' },
-    { id: 3, nick: '새벽배변러', email: 'dawn@morning.com', joined: '2024.03.22', points: '14,900', status: '정지', badge: 'BASE' },
-    { id: 4, nick: '급똥전문가', email: 'expert@urgent.com', joined: '2024.03.23', points: '2,100', status: '정상', badge: 'PRO' },
-  ];
+  const [users, setUsers] = useState<AdminUserListResponse[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState('');
+  const [page, setPage] = useState(0);
+  const [totalPages, setTotalPages] = useState(0);
+  const [totalElements, setTotalElements] = useState(0);
+
+  const fetchUsers = async () => {
+    setLoading(true);
+    try {
+      const params = new URLSearchParams({
+        page: page.toString(),
+        size: '20',
+      });
+      if (search) params.append('search', search);
+
+      const response = await api.get<PageResponse<AdminUserListResponse>>(`/admin/users?${params}`);
+      setUsers(response.content);
+      setTotalPages(response.totalPages);
+      setTotalElements(response.totalElements);
+    } catch (error) {
+      console.error('유저 목록 조회 실패:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchUsers();
+  }, [page, search]);
+
+  const handleSearch = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    setPage(0);
+    fetchUsers();
+  };
+
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString('ko-KR', {
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit'
+    }).replace(/\. /g, '.').replace('.', '');
+  };
+
+  const getRoleBadge = (role: Role) => {
+    return role === 'ROLE_ADMIN' ? 'ADMIN' : 'USER';
+  };
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
           <h3 className="text-2xl font-black text-black">유저 데이터 센터</h3>
-          <p className="text-sm text-black/60 font-bold">글로벌 사용자 현황 및 계정 규제 관리</p>
+          <p className="text-sm text-black/60 font-bold">총 {totalElements.toLocaleString()}명의 사용자</p>
         </div>
         <div className="flex gap-2">
-          <button className="px-5 py-2.5 rounded-2xl bg-black text-white font-black text-xs shadow-lg">사용자 리포트 추출</button>
+          <form onSubmit={handleSearch} className="flex gap-2">
+            <input
+              type="text"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="이메일 또는 닉네임 검색"
+              className="px-4 py-2.5 rounded-2xl border bg-white/80 backdrop-blur-sm text-sm font-bold focus:ring-2 ring-[#1B4332]/20 outline-none"
+            />
+            <button type="submit" className="px-5 py-2.5 rounded-2xl bg-[#1B4332] text-white font-black text-xs shadow-lg">
+              <Search size={16} />
+            </button>
+          </form>
         </div>
       </div>
 
-      <GlassCard className="p-0 border-none bg-transparent shadow-none">
-        <div className="overflow-x-auto rounded-[28px] border bg-white/50 backdrop-blur-xl" style={{ borderColor: COLORS.border }}>
-          <table className="w-full text-left border-collapse">
-            <thead>
-              <tr className="bg-black/[0.02] border-b" style={{ borderColor: COLORS.border }}>
-                <th className="px-8 py-5 text-[11px] font-black uppercase tracking-widest text-black/40">사용자 정보</th>
-                <th className="px-8 py-5 text-[11px] font-black uppercase tracking-widest text-black/40">가입일</th>
-                <th className="px-8 py-5 text-[11px] font-black uppercase tracking-widest text-black/40">포인트</th>
-                <th className="px-8 py-5 text-[11px] font-black uppercase tracking-widest text-black/40">계정 상태</th>
-                <th className="px-8 py-5 text-[11px] font-black uppercase tracking-widest text-black/40 text-right">관리</th>
-              </tr>
-            </thead>
-            <tbody>
-              {users.map((u) => (
-                <tr key={u.id} className="border-b transition-colors hover:bg-black/[0.01]" style={{ borderColor: COLORS.border }}>
-                  <td className="px-8 py-5">
-                    <div className="flex items-center gap-4">
-                      <div className="w-10 h-10 rounded-2xl bg-black/[0.05] flex items-center justify-center font-black text-black/60">{u.id}</div>
-                      <div>
-                        <div className="flex items-center gap-2">
-                          <span className="font-black text-sm text-[#1B4332]">{u.nick}</span>
-                          <span className="text-[9px] font-black px-1.5 py-0.5 rounded-md bg-black/5 text-black/40">{u.badge}</span>
+      {loading ? (
+        <div className="flex items-center justify-center py-20">
+          <RefreshCw size={32} className="animate-spin text-[#1B4332]" />
+        </div>
+      ) : (
+        <>
+          <GlassCard className="p-0 border-none bg-transparent shadow-none">
+            <div className="overflow-x-auto rounded-[28px] border bg-white/50 backdrop-blur-xl" style={{ borderColor: COLORS.border }}>
+              <table className="w-full text-left border-collapse">
+                <thead>
+                  <tr className="bg-black/[0.02] border-b" style={{ borderColor: COLORS.border }}>
+                    <th className="px-8 py-5 text-[11px] font-black uppercase tracking-widest text-black/40">사용자 정보</th>
+                    <th className="px-8 py-5 text-[11px] font-black uppercase tracking-widest text-black/40">가입일</th>
+                    <th className="px-8 py-5 text-[11px] font-black uppercase tracking-widest text-black/40">레벨</th>
+                    <th className="px-8 py-5 text-[11px] font-black uppercase tracking-widest text-black/40">포인트</th>
+                    <th className="px-8 py-5 text-[11px] font-black uppercase tracking-widest text-black/40">기록 수</th>
+                    <th className="px-8 py-5 text-[11px] font-black uppercase tracking-widest text-black/40 text-right">관리</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {users.map((u) => (
+                    <tr key={u.id} className="border-b transition-colors hover:bg-black/[0.01]" style={{ borderColor: COLORS.border }}>
+                      <td className="px-8 py-5">
+                        <div className="flex items-center gap-4">
+                          <div className="w-10 h-10 rounded-2xl bg-black/[0.05] flex items-center justify-center font-black text-black/60 text-xs">
+                            {u.id}
+                          </div>
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <span className="font-black text-sm text-[#1B4332]">{u.nickname}</span>
+                              <span className={`text-[9px] font-black px-1.5 py-0.5 rounded-md ${
+                                u.role === 'ROLE_ADMIN'
+                                  ? 'bg-red-100 text-red-600'
+                                  : 'bg-black/5 text-black/40'
+                              }`}>
+                                {getRoleBadge(u.role)}
+                              </span>
+                            </div>
+                            <p className="text-xs text-black/30 font-bold">{u.email}</p>
+                          </div>
                         </div>
-                        <p className="text-xs text-black/30 font-bold">{u.email}</p>
-                      </div>
-                    </div>
-                  </td>
-                  <td className="px-8 py-5 text-sm font-bold text-black/60">{u.joined}</td>
-                  <td className="px-8 py-5 font-black text-[#E8A838]">{u.points} P</td>
-                  <td className="px-8 py-5">
-                    <span className={`text-[10px] font-black px-2.5 py-1 rounded-full ${u.status === '정상' ? 'bg-green-100 text-green-700' : u.status === '주의' ? 'bg-orange-100 text-orange-700' : 'bg-red-100 text-red-700'}`}>
-                      {u.status}
+                      </td>
+                      <td className="px-8 py-5 text-sm font-bold text-black/60">{formatDate(u.createdAt)}</td>
+                      <td className="px-8 py-5 font-black text-[#2D6A4F]">Lv.{u.level}</td>
+                      <td className="px-8 py-5 font-black text-[#E8A838]">{u.points.toLocaleString()} P</td>
+                      <td className="px-8 py-5 font-bold text-black/60">{u.recordCount}건</td>
+                      <td className="px-8 py-5 text-right">
+                        <button className="p-2 rounded-xl hover:bg-black/5 text-black/20 hover:text-black/60 transition-colors">
+                          <Settings size={18} />
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </GlassCard>
+
+          {/* Pagination */}
+          {totalPages > 1 && (
+            <div className="flex items-center justify-center gap-2">
+              <button
+                onClick={() => setPage(Math.max(0, page - 1))}
+                disabled={page === 0}
+                className="p-2 rounded-xl bg-white border hover:bg-black/5 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+              >
+                <ChevronLeft size={18} />
+              </button>
+              <span className="px-4 py-2 font-bold text-sm">
+                {page + 1} / {totalPages}
+              </span>
+              <button
+                onClick={() => setPage(Math.min(totalPages - 1, page + 1))}
+                disabled={page >= totalPages - 1}
+                className="p-2 rounded-xl bg-white border hover:bg-black/5 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+              >
+                <ChevronRight size={18} />
+              </button>
+            </div>
+          )}
+        </>
+      )}
+    </div>
+  );
+};
+
+// ── Recent Toilets Panel Component ────────────────────────────────────
+const RecentToiletsPanel = () => {
+  const [recentToilets, setRecentToilets] = useState<AdminToiletListResponse[]>([]);
+  const [loadingRecent, setLoadingRecent] = useState(true);
+
+  useEffect(() => {
+    const fetchRecentToilets = async () => {
+      try {
+        const response = await api.get<PageResponse<AdminToiletListResponse>>('/admin/toilets?page=0&size=5');
+        setRecentToilets(response.content);
+      } catch (error) {
+        console.error('최근 화장실 목록 조회 실패:', error);
+      } finally {
+        setLoadingRecent(false);
+      }
+    };
+    fetchRecentToilets();
+  }, []);
+
+  const formatTimeAgo = (dateString: string) => {
+    const now = new Date();
+    const date = new Date(dateString);
+    const diffMs = now.getTime() - date.getTime();
+    const diffHours = Math.floor(diffMs / 3600000);
+    const diffDays = Math.floor(diffMs / 86400000);
+
+    if (diffHours < 1) return '방금 전';
+    if (diffHours < 24) return `${diffHours}시간 전`;
+    return `${diffDays}일 전`;
+  };
+
+  return (
+    <div className="space-y-6">
+      <GlassCard className="h-full">
+        <div className="flex items-center justify-between mb-6">
+          <h4 className="text-xl font-black text-black">최근 등록 화장실</h4>
+          <span className="text-[10px] font-black uppercase tracking-widest text-[#1B4332]/50">
+            {recentToilets.length}건
+          </span>
+        </div>
+        {loadingRecent ? (
+          <div className="flex items-center justify-center py-10">
+            <RefreshCw size={24} className="animate-spin text-[#1B4332]" />
+          </div>
+        ) : recentToilets.length === 0 ? (
+          <div className="text-center py-10">
+            <p className="text-sm text-black/40 font-bold">등록된 화장실이 없습니다.</p>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {recentToilets.map((toilet) => (
+              <div
+                key={toilet.id}
+                className="p-5 rounded-[28px] border transition-all hover:border-[#1B4332]/20 hover:bg-[#1B4332]/[0.02]"
+                style={{ borderColor: COLORS.border }}
+              >
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-2">
+                    <span className="text-[10px] font-black px-2 py-0.5 rounded-md bg-green-50 text-green-600">
+                      {toilet.is24h ? '24시간' : '시간제'}
                     </span>
-                  </td>
-                  <td className="px-8 py-5 text-right">
-                    <button className="p-2 rounded-xl hover:bg-black/5 text-black/20 hover:text-black/60 transition-colors">
-                      <Settings size={18} />
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+                    {toilet.isUnisex && (
+                      <span className="text-[10px] font-black px-2 py-0.5 rounded-md bg-blue-50 text-blue-600">
+                        남녀공용
+                      </span>
+                    )}
+                  </div>
+                  <span className="text-[10px] text-black/50 font-bold italic">
+                    {formatTimeAgo(toilet.createdAt)}
+                  </span>
+                </div>
+                <p className="font-black text-sm mb-1 leading-tight text-black">{toilet.name}</p>
+                <p className="text-[11px] font-bold text-black/60 mb-1">{toilet.address}</p>
+                <p className="text-[10px] text-black/40 font-bold">
+                  운영시간: {toilet.openHours || '정보 없음'}
+                </p>
+              </div>
+            ))}
+          </div>
+        )}
+        <div className="mt-8 pt-6 border-t border-dashed">
+          <button className="w-full py-4 rounded-2xl border-2 border-dashed border-black/10 text-[11px] font-black text-black/30 hover:bg-black/[0.02] transition-colors">
+            전체 화장실 목록 보기
+          </button>
         </div>
       </GlassCard>
     </div>
@@ -539,41 +732,7 @@ const ToiletsView = () => {
              </AnimatePresence>
           </div>
 
-          <div className="space-y-6">
-             <GlassCard className="h-full">
-                <div className="flex items-center justify-between mb-6">
-                   <h4 className="text-xl font-black text-black">긴급 이슈 큐</h4>
-                   <button className="text-[10px] font-black uppercase tracking-widest text-[#1B4332] opacity-70 hover:opacity-100">Refresh</button>
-                </div>
-                <div className="space-y-4">
-                   {[
-                     { id: 1, loc: '강남구청 공중화장실', type: '위치 오차', time: '2시간 전', urgent: true, desc: '실제 입구 위치가 지도상 12m 남쪽에 있음' },
-                     { id: 2, loc: '서울숲 중앙 화장실', type: '데이터 중복', time: '5시간 전', urgent: false, desc: 'T-102 노드와 동일한 장소로 추정' },
-                     { id: 3, loc: '홍대 레드로드 지하', type: '폐쇄 신고', time: '1일 전', urgent: false, desc: '리모델링 공사로 인한 임시 폐쇄' },
-                   ].map((issue) => (
-                     <div key={issue.id} className="p-5 rounded-[28px] border transition-all hover:border-[#1B4332]/20 hover:bg-[#1B4332]/[0.02]" style={{ borderColor: COLORS.border }}>
-                        <div className="flex items-center justify-between mb-2">
-                           <span className={`text-[10px] font-black px-2 py-0.5 rounded-md ${issue.urgent ? 'bg-red-50 text-red-500' : 'bg-blue-50 text-blue-500'}`}>
-                              {issue.type}
-                           </span>
-                           <span className="text-[10px] text-black/50 font-bold italic">{issue.time}</span>
-                        </div>
-                        <p className="font-black text-sm mb-1 leading-tight text-black">{issue.loc}</p>
-                        <p className="text-[11px] font-bold text-black/60 mb-4">{issue.desc}</p>
-                        <div className="flex gap-2">
-                           <button className="flex-1 py-3 rounded-xl bg-black text-white text-[10px] font-black shadow-lg shadow-black/10">승인</button>
-                           <button className="flex-1 py-3 rounded-xl border bg-red-50 text-[#FF4B4B] text-[10px] font-black hover:bg-red-100 transition-colors">거부</button>
-                        </div>
-                     </div>
-                   ))}
-                </div>
-                <div className="mt-8 pt-6 border-t border-dashed">
-                   <button className="w-full py-4 rounded-2xl border-2 border-dashed border-black/10 text-[11px] font-black text-black/30 hover:bg-black/[0.02] transition-colors">
-                      과거 해결된 이슈 아카이브 보기
-                   </button>
-                </div>
-             </GlassCard>
-          </div>
+          <RecentToiletsPanel />
        </div>
     </div>
   );
@@ -581,65 +740,237 @@ const ToiletsView = () => {
 
 // ── Screen: Customer Service ──────────────────────────────────────────
 const CsView = () => {
+  const [inquiries, setInquiries] = useState<AdminInquiryListResponse[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [filter, setFilter] = useState<InquiryStatus | 'ALL'>('PENDING');
+  const [page, setPage] = useState(0);
+  const [totalPages, setTotalPages] = useState(0);
+  const [pendingCount, setPendingCount] = useState(0);
+
+  const fetchInquiries = async () => {
+    setLoading(true);
+    try {
+      const params = new URLSearchParams({
+        page: page.toString(),
+        size: '10',
+      });
+      if (filter !== 'ALL') params.append('status', filter);
+
+      const response = await api.get<PageResponse<AdminInquiryListResponse>>(`/admin/inquiries?${params}`);
+      setInquiries(response.content);
+      setTotalPages(response.totalPages);
+
+      // 미답변 개수 별도 조회
+      const pendingRes = await api.get<PageResponse<AdminInquiryListResponse>>(`/admin/inquiries?status=PENDING&page=0&size=1`);
+      setPendingCount(pendingRes.totalElements);
+    } catch (error) {
+      console.error('문의 목록 조회 실패:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchInquiries();
+  }, [page, filter]);
+
+  const formatTimeAgo = (dateString: string) => {
+    const now = new Date();
+    const date = new Date(dateString);
+    const diffMs = now.getTime() - date.getTime();
+    const diffMins = Math.floor(diffMs / 60000);
+    const diffHours = Math.floor(diffMs / 3600000);
+    const diffDays = Math.floor(diffMs / 86400000);
+
+    if (diffMins < 1) return '방금 전';
+    if (diffMins < 60) return `${diffMins}분 전`;
+    if (diffHours < 24) return `${diffHours}시간 전`;
+    return `${diffDays}일 전`;
+  };
+
   return (
     <div className="space-y-6">
-       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <GlassCard>
-             <div className="flex items-center justify-between mb-6">
-                <h4 className="text-xl font-black text-black">미답변 1:1 문의</h4>
-                <span className="text-xs font-black text-red-500">12건 대기 중</span>
-             </div>
-             <div className="space-y-3">
-                {[
-                  { id: 1, title: '포인트 결제 오류가 발생했습니다', user: '급똥러12', date: '12분 전' },
-                  { id: 2, title: '화장실 정보 수정이 안돼요', user: '데이터헌터', date: '45분 전' },
-                  { id: 3, title: '계정이 갑자기 정지되었습니다', user: '억울한시민', date: '1시간 전' },
-                ].map((q) => (
-                  <div key={q.id} className="p-5 rounded-[24px] border border-black/[0.03] bg-black/[0.01] group cursor-pointer hover:bg-black/[0.04] transition-colors">
-                     <p className="text-sm font-black mb-1 group-hover:text-[#1B4332] transition-colors text-black">{q.title}</p>
-                     <div className="flex items-center gap-2 text-[11px] font-bold text-black/50">
-                        <span>{q.user}</span>
-                        <span className="w-1 h-1 rounded-full bg-black/20" />
-                        <span>{q.date}</span>
-                     </div>
-                  </div>
-                ))}
-             </div>
-          </GlassCard>
-
-          <GlassCard className="bg-[#1B4332]/5 border-[#1B4332]/10 overflow-hidden">
-             <div className="relative z-10 h-full flex flex-col">
-                <h4 className="text-xl font-black mb-6 text-black">AI 답변 도우미</h4>
-                <div className="flex-1 space-y-4 overflow-y-auto max-h-[300px] pr-2">
-                   <div className="bg-white p-4 rounded-2xl rounded-tr-none shadow-sm ml-8 text-sm font-bold text-black/80">
-                      사용자의 결제 로그를 분석한 결과, 03:15경 토스페이먼츠 통신 타임아웃이 확인되었습니다. 자동 환불 처리를 제안할까요?
-                   </div>
-                   <div className="bg-[#1B4332] p-4 rounded-2xl rounded-tl-none shadow-xl mr-8 text-sm font-bold text-white">
-                      네, 사용자에게 알림톡을 발송하고 포인트를 전액 복구하세요.
-                   </div>
-                </div>
-                <div className="mt-6 flex gap-2">
-                   <input className="flex-1 bg-white border px-4 py-3 rounded-2xl text-xs font-bold outline-none ring-[#1B4332]/20 focus:ring-4 transition-all" placeholder="명령어를 입력하세요..." />
-                   <button className="p-3 bg-[#1B4332] text-white rounded-2xl shadow-lg shadow-green-900/30"><Zap size={20} /></button>
-                </div>
-             </div>
-             <div className="absolute top-0 right-0 p-8">
-                <Activity className="w-32 h-32 opacity-[0.03] text-[#1B4332]" />
-             </div>
-          </GlassCard>
+       <div className="flex items-center justify-between mb-4">
+          <div>
+             <h3 className="text-2xl font-black text-black">고객 지원 센터</h3>
+             <p className="text-sm text-black/60 font-bold">1:1 문의 관리 및 답변</p>
+          </div>
+          <div className="flex gap-2">
+             <button
+                onClick={() => setFilter('ALL')}
+                className={`px-4 py-2 rounded-xl font-bold text-xs transition-all ${
+                   filter === 'ALL'
+                      ? 'bg-[#1B4332] text-white shadow-lg'
+                      : 'bg-white border hover:bg-black/5'
+                }`}
+             >
+                전체
+             </button>
+             <button
+                onClick={() => setFilter('PENDING')}
+                className={`px-4 py-2 rounded-xl font-bold text-xs transition-all ${
+                   filter === 'PENDING'
+                      ? 'bg-red-500 text-white shadow-lg'
+                      : 'bg-white border hover:bg-black/5'
+                }`}
+             >
+                미답변 {pendingCount > 0 && `(${pendingCount})`}
+             </button>
+             <button
+                onClick={() => setFilter('COMPLETED')}
+                className={`px-4 py-2 rounded-xl font-bold text-xs transition-all ${
+                   filter === 'COMPLETED'
+                      ? 'bg-green-600 text-white shadow-lg'
+                      : 'bg-white border hover:bg-black/5'
+                }`}
+             >
+                답변 완료
+             </button>
+          </div>
        </div>
+
+       {loading ? (
+          <div className="flex items-center justify-center py-20">
+             <RefreshCw size={32} className="animate-spin text-[#1B4332]" />
+          </div>
+       ) : (
+          <>
+             <GlassCard className="p-0 border-none bg-transparent shadow-none">
+                <div className="overflow-x-auto rounded-[28px] border bg-white/50 backdrop-blur-xl" style={{ borderColor: COLORS.border }}>
+                   <table className="w-full text-left border-collapse">
+                      <thead>
+                         <tr className="bg-black/[0.02] border-b" style={{ borderColor: COLORS.border }}>
+                            <th className="px-8 py-5 text-[11px] font-black uppercase tracking-widest text-black/40">사용자</th>
+                            <th className="px-8 py-5 text-[11px] font-black uppercase tracking-widest text-black/40">문의 유형</th>
+                            <th className="px-8 py-5 text-[11px] font-black uppercase tracking-widest text-black/40">제목</th>
+                            <th className="px-8 py-5 text-[11px] font-black uppercase tracking-widest text-black/40">등록 시간</th>
+                            <th className="px-8 py-5 text-[11px] font-black uppercase tracking-widest text-black/40">상태</th>
+                            <th className="px-8 py-5 text-[11px] font-black uppercase tracking-widest text-black/40 text-right">관리</th>
+                         </tr>
+                      </thead>
+                      <tbody>
+                         {inquiries.map((inq) => (
+                            <tr key={inq.id} className="border-b transition-colors hover:bg-black/[0.01]" style={{ borderColor: COLORS.border }}>
+                               <td className="px-8 py-5">
+                                  <div>
+                                     <div className="font-black text-sm text-black">{inq.userName}</div>
+                                     <div className="text-xs text-black/30 font-bold">{inq.userEmail}</div>
+                                  </div>
+                               </td>
+                               <td className="px-8 py-5 text-sm font-bold text-black/60">{inq.type}</td>
+                               <td className="px-8 py-5 font-bold text-black max-w-xs truncate">{inq.title}</td>
+                               <td className="px-8 py-5 text-xs font-bold text-black/40">{formatTimeAgo(inq.createdAt)}</td>
+                               <td className="px-8 py-5">
+                                  <span className={`text-[10px] font-black px-2.5 py-1 rounded-full ${
+                                     inq.status === 'PENDING'
+                                        ? 'bg-red-100 text-red-600'
+                                        : 'bg-green-100 text-green-600'
+                                  }`}>
+                                     {inq.status === 'PENDING' ? '미답변' : '완료'}
+                                  </span>
+                               </td>
+                               <td className="px-8 py-5 text-right">
+                                  <button className="px-3 py-1.5 rounded-xl bg-[#1B4332] text-white text-xs font-black hover:bg-[#2D6A4F] transition-colors">
+                                     {inq.status === 'PENDING' ? '답변하기' : '상세보기'}
+                                  </button>
+                               </td>
+                            </tr>
+                         ))}
+                      </tbody>
+                   </table>
+                </div>
+             </GlassCard>
+
+             {/* Pagination */}
+             {totalPages > 1 && (
+                <div className="flex items-center justify-center gap-2">
+                   <button
+                      onClick={() => setPage(Math.max(0, page - 1))}
+                      disabled={page === 0}
+                      className="p-2 rounded-xl bg-white border hover:bg-black/5 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                   >
+                      <ChevronLeft size={18} />
+                   </button>
+                   <span className="px-4 py-2 font-bold text-sm">
+                      {page + 1} / {totalPages}
+                   </span>
+                   <button
+                      onClick={() => setPage(Math.min(totalPages - 1, page + 1))}
+                      disabled={page >= totalPages - 1}
+                      className="p-2 rounded-xl bg-white border hover:bg-black/5 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                   >
+                      <ChevronRight size={18} />
+                   </button>
+                </div>
+             )}
+          </>
+       )}
     </div>
   );
 };
 
 // ── Screen: Store & Items Management ──────────────────────────────────
 const StoreView = ({ setActiveTab }: { setActiveTab: (tab: AdminTab) => void }) => {
-  const items = [
-    { id: 1, name: '황금 변기 칭호', price: '5,000 P', sales: 124, status: '판매 중', color: '#E8A838' },
-    { id: 2, name: '다이아 마커 아이콘', price: '12,000 P', sales: 86, status: '일시 품절', color: '#3B82F6' },
-    { id: 3, name: '무지개 오라 이펙트', price: '8,000 P', sales: 42, status: '판매 중', color: '#52b788' },
-    { id: 4, name: '투명 날개 액세서리', price: '15,000 P', sales: 12, status: '한정 판매', color: '#FF4B4B' },
-  ];
+  const [items, setItems] = useState<ItemResponse[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [filter, setFilter] = useState<ItemType | 'ALL'>('ALL');
+  const [page, setPage] = useState(0);
+  const [totalPages, setTotalPages] = useState(0);
+  const [totalElements, setTotalElements] = useState(0);
+
+  const fetchItems = async () => {
+    setLoading(true);
+    try {
+      const params = new URLSearchParams({
+        page: page.toString(),
+        size: '12',
+      });
+      if (filter !== 'ALL') params.append('type', filter);
+
+      const response = await api.get<PageResponse<ItemResponse>>(`/admin/shop/items?${params}`);
+      setItems(response.content);
+      setTotalPages(response.totalPages);
+      setTotalElements(response.totalElements);
+    } catch (error) {
+      console.error('아이템 목록 조회 실패:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchItems();
+  }, [page, filter]);
+
+  const handleDeleteItem = async (id: number, name: string) => {
+    if (!confirm(`"${name}" 아이템을 삭제하시겠습니까?`)) return;
+
+    try {
+      await api.delete(`/admin/shop/items/${id}`);
+      alert('아이템이 삭제되었습니다.');
+      fetchItems();
+    } catch (error: any) {
+      alert(error.message || '아이템 삭제에 실패했습니다.');
+    }
+  };
+
+  const getItemTypeColor = (type: ItemType) => {
+    switch (type) {
+      case 'TITLE': return '#E8A838';
+      case 'AVATAR': return '#3B82F6';
+      case 'EFFECT': return '#52b788';
+      default: return '#1B4332';
+    }
+  };
+
+  const getItemTypeLabel = (type: ItemType) => {
+    switch (type) {
+      case 'TITLE': return '칭호';
+      case 'AVATAR': return '아바타';
+      case 'EFFECT': return '이펙트';
+      default: return type;
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -647,42 +978,111 @@ const StoreView = ({ setActiveTab }: { setActiveTab: (tab: AdminTab) => void }) 
           <div className="flex gap-4">
              <GlassCard className="py-2 px-4 shadow-none border-dashed bg-transparent" glowColor="transparent">
                 <span className="text-[10px] font-black uppercase text-[#1B4332]/50 mr-2">총 아이템</span>
-                <span className="font-black text-[#E8A838]">124개</span>
+                <span className="font-black text-[#E8A838]">{totalElements}개</span>
              </GlassCard>
-             <GlassCard className="py-2 px-4 shadow-none border-dashed bg-transparent" glowColor="transparent">
-                <span className="text-[10px] font-black uppercase text-black/30 mr-2">이달의 매출</span>
-                <span className="font-black text-[#1B4332]">₩ 4,284,000</span>
-             </GlassCard>
+             <div className="flex gap-2">
+                {(['ALL', 'TITLE', 'AVATAR', 'EFFECT'] as const).map((type) => (
+                   <button
+                      key={type}
+                      onClick={() => setFilter(type)}
+                      className={`px-3 py-2 rounded-xl font-bold text-[10px] uppercase transition-all ${
+                         filter === type
+                            ? 'bg-[#1B4332] text-white shadow-lg'
+                            : 'bg-white border hover:bg-black/5'
+                      }`}
+                   >
+                      {type === 'ALL' ? '전체' : getItemTypeLabel(type as ItemType)}
+                   </button>
+                ))}
+             </div>
           </div>
           <button onClick={() => setActiveTab('add-item')} className="flex items-center gap-2 px-6 py-3 bg-[#1B4332] text-white rounded-2xl font-black text-xs shadow-xl shadow-green-900/20">
              <Plus size={16} /> 신규 아이템 등록
           </button>
        </div>
 
-       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
-          {items.map((item) => (
-             <GlassCard key={item.id} className="group cursor-pointer">
-                <div className="w-full aspect-square rounded-[24px] mb-4 bg-black/[0.02] flex items-center justify-center relative overflow-hidden">
-                   <div className="w-16 h-16 rounded-full blur-3xl opacity-20 absolute" style={{ background: item.color }} />
-                   <div className="p-6 transition-transform group-hover:scale-110 duration-500">
-                      <ShoppingBag size={48} style={{ color: item.color }} />
-                   </div>
-                   <div className="absolute top-3 right-3">
-                      <span className="text-[9px] font-black px-1.5 py-0.5 rounded-md bg-white border text-black/40">ID {item.id}</span>
-                   </div>
+       {loading ? (
+          <div className="flex items-center justify-center py-20">
+             <RefreshCw size={32} className="animate-spin text-[#1B4332]" />
+          </div>
+       ) : items.length === 0 ? (
+          <div className="text-center py-20">
+             <ShoppingBag size={48} className="mx-auto mb-4 text-black/20" />
+             <p className="font-bold text-black/40">등록된 아이템이 없습니다.</p>
+          </div>
+       ) : (
+          <>
+             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
+                {items.map((item) => {
+                   const color = getItemTypeColor(item.type);
+                   return (
+                      <GlassCard key={item.id} className="group cursor-pointer">
+                         <div className="w-full aspect-square rounded-[24px] mb-4 bg-black/[0.02] flex items-center justify-center relative overflow-hidden">
+                            {item.imageUrl ? (
+                               <img src={item.imageUrl} alt={item.name} className="w-full h-full object-cover rounded-[24px]" />
+                            ) : (
+                               <>
+                                  <div className="w-16 h-16 rounded-full blur-3xl opacity-20 absolute" style={{ background: color }} />
+                                  <div className="p-6 transition-transform group-hover:scale-110 duration-500">
+                                     <ShoppingBag size={48} style={{ color }} />
+                                  </div>
+                               </>
+                            )}
+                            <div className="absolute top-3 right-3 flex gap-1">
+                               <span className="text-[9px] font-black px-1.5 py-0.5 rounded-md bg-white/90 border text-black/40">
+                                  {getItemTypeLabel(item.type)}
+                               </span>
+                            </div>
+                            <div className="absolute top-3 left-3 opacity-0 group-hover:opacity-100 transition-opacity">
+                               <button
+                                  onClick={(e) => {
+                                     e.stopPropagation();
+                                     handleDeleteItem(item.id, item.name);
+                                  }}
+                                  className="p-1.5 rounded-lg bg-red-500 text-white hover:bg-red-600 transition-colors shadow-lg"
+                               >
+                                  <Trash2 size={14} />
+                               </button>
+                            </div>
+                         </div>
+                         <h5 className="font-black text-sm mb-1 text-black">{item.name}</h5>
+                         <p className="text-xs text-black/50 mb-2 line-clamp-2 font-bold">{item.description}</p>
+                         <p className="font-black text-lg mb-4" style={{ color }}>{item.price.toLocaleString()} P</p>
+                         <div className="flex items-center justify-between border-t pt-4" style={{ borderColor: COLORS.border }}>
+                            <span className="text-[9px] font-black text-black/40 uppercase tracking-widest">
+                               {new Date(item.createdAt).toLocaleDateString('ko-KR', { month: 'short', day: 'numeric' })}
+                            </span>
+                            <span className="text-[10px] font-black italic text-green-500">판매중</span>
+                         </div>
+                      </GlassCard>
+                   );
+                })}
+             </div>
+
+             {/* Pagination */}
+             {totalPages > 1 && (
+                <div className="flex items-center justify-center gap-2">
+                   <button
+                      onClick={() => setPage(Math.max(0, page - 1))}
+                      disabled={page === 0}
+                      className="p-2 rounded-xl bg-white border hover:bg-black/5 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                   >
+                      <ChevronLeft size={18} />
+                   </button>
+                   <span className="px-4 py-2 font-bold text-sm">
+                      {page + 1} / {totalPages}
+                   </span>
+                   <button
+                      onClick={() => setPage(Math.min(totalPages - 1, page + 1))}
+                      disabled={page >= totalPages - 1}
+                      className="p-2 rounded-xl bg-white border hover:bg-black/5 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                   >
+                      <ChevronRight size={18} />
+                   </button>
                 </div>
-                <h5 className="font-black text-sm mb-1 text-black">{item.name}</h5>
-                <p className="font-black text-lg mb-4" style={{ color: item.color }}>{item.price}</p>
-                <div className="flex items-center justify-between border-t pt-4" style={{ borderColor: COLORS.border }}>
-                   <div className="flex flex-col">
-                      <span className="text-[9px] font-black text-black/40 uppercase tracking-widest">누적 판매</span>
-                      <span className="text-sm font-black text-black/80">{item.sales} 건</span>
-                   </div>
-                   <span className={`text-[10px] font-black italic ${item.status === '판매 중' ? 'text-green-500' : 'text-red-500'}`}>{item.status}</span>
-                </div>
-             </GlassCard>
-          ))}
-       </div>
+             )}
+          </>
+       )}
     </div>
   );
 };
@@ -881,10 +1281,12 @@ const LogsView = () => {
 
 // ── Main Page Layout: Admin Dashboard ─────────────────────────────────
 export function AdminPage() {
-  const { user, loading } = useAuth();
+  const navigate = useNavigate();
+  const { user, loading, logout } = useAuth();
   const [activeTab, setActiveTab] = useState<AdminTab>('dashboard');
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [currentTime, setCurrentTime] = useState(new Date());
+  const [globalSearch, setGlobalSearch] = useState('');
 
   if (loading) return <div className="h-screen flex items-center justify-center bg-[#f8faf9] text-[#1B4332] font-black tracking-widest text-xl">LOADING ENGINE...</div>;
   if (!user || (user.role !== 'ROLE_ADMIN' && user.role !== 'ADMIN')) {
@@ -916,7 +1318,13 @@ export function AdminPage() {
       >
         <div className={`mb-12 px-6 flex items-center justify-between ${sidebarCollapsed ? 'justify-center mx-auto' : ''}`}>
           {!sidebarCollapsed && (
-             <motion.span initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-2xl font-black" style={{ fontFamily: "'SchoolSafetyNotification'", color: COLORS.primary, letterSpacing: '-0.05em' }}>
+             <motion.span 
+               onClick={() => setActiveTab('dashboard')} 
+               initial={{ opacity: 0 }} 
+               animate={{ opacity: 1 }} 
+               className="text-2xl font-black cursor-pointer" 
+               style={{ fontFamily: "'SchoolSafetyNotification'", color: COLORS.primary, letterSpacing: '-0.05em' }}
+             >
                Day<span style={{ color: COLORS.accent }}>.</span>Poo
                <span className="ml-2 px-2 py-0.5 text-[9px] bg-[#E8A838]/20 text-[#E8A838] rounded-lg">ADMIN</span>
              </motion.span>
@@ -954,8 +1362,18 @@ export function AdminPage() {
           ))}
         </nav>
 
-        <div className="w-full px-4 mt-auto">
-           <button className="w-full py-4 rounded-2xl flex items-center gap-4 px-4 transition-colors hover:bg-red-50 text-red-500 font-bold text-sm">
+        <div className="w-full px-4 mt-auto space-y-1">
+           <button 
+             onClick={() => navigate('/')}
+             className="w-full py-4 rounded-2xl flex items-center gap-4 px-4 transition-colors hover:bg-emerald-50 text-emerald-600 font-bold text-sm"
+           >
+             <div className="p-1.5 rounded-xl bg-emerald-100"><Home size={20} /></div>
+             {!sidebarCollapsed && <span>메인 페이지로</span>}
+           </button>
+           <button 
+             onClick={logout}
+             className="w-full py-4 rounded-2xl flex items-center gap-4 px-4 transition-colors hover:bg-red-50 text-red-500 font-bold text-sm"
+           >
              <div className="p-1.5 rounded-xl bg-red-100"><LogOut size={20} /></div>
              {!sidebarCollapsed && <span>로그아웃</span>}
            </button>
@@ -995,16 +1413,15 @@ export function AdminPage() {
              </div>
 
              <div className="flex items-center gap-6">
-                <div className="hidden md:flex items-center bg-black/[0.03] border px-4 py-2.5 rounded-2xl gap-2 focus-within:bg-white focus-within:ring-2 ring-[#1B4332]/20 transition-all" style={{ borderColor: COLORS.border }}>
+                <div className="hidden md:flex items-center bg-black/[0.03] border px-4 py-2.5 rounded-2xl gap-2 focus-within:bg-white focus-within:ring-2 ring-[#1B4332]/20 transition-all z-30 relative" style={{ borderColor: COLORS.border }}>
                    <Search size={16} className="text-black/30" />
-                   <input type="text" placeholder="통합 검색 (유저/신고/상점)" className="bg-transparent border-none outline-none text-xs font-bold w-56" />
-                </div>
-                
-                <div className="flex items-center gap-3 pr-4 border-r" style={{ borderColor: COLORS.border }}>
-                   <button className="p-2.5 rounded-2xl hover:bg-black/5 transition-colors relative">
-                      <Bell size={20} className="text-black/50" />
-                      <span className="absolute top-2.5 right-2.5 w-2.5 h-2.5 bg-[#FF4B4B] rounded-full ring-2 ring-white"></span>
-                   </button>
+                   <input 
+                     type="text" 
+                     value={globalSearch}
+                     onChange={(e) => setGlobalSearch(e.target.value)}
+                     placeholder="통합 검색 (유저/신고/상점)" 
+                     className="bg-transparent border-none outline-none text-xs font-bold w-56" 
+                   />
                 </div>
 
                 <div className="flex items-center gap-3 group cursor-pointer pl-2">

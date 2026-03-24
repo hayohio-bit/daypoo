@@ -218,7 +218,11 @@ function Podium({ users, onSelect }: { users: RankUser[]; onSelect: (u: RankUser
       <div className="flex flex-col items-center p-6 pb-8">
         {/* 순위 배지 */}
         <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-4 py-1 rounded-full font-black text-xs shadow-lg"
-          style={{ background: user.rank === 1 ? '#E8A838' : user.rank === 2 ? '#B0B8B4' : '#CD7C4A', color: '#fff' }}>
+          style={{ 
+            background: user.rank === 1 ? '#E8A838' : user.rank === 2 ? '#B0B8B4' : '#CD7C4A', 
+            color: '#fff',
+            boxShadow: `0 4px 12px ${user.rank === 1 ? 'rgba(232,168,56,0.4)' : user.rank === 2 ? 'rgba(176,184,180,0.4)' : 'rgba(205,124,74,0.4)'}`
+          }}>
           {user.rank}ST
         </div>
 
@@ -280,7 +284,7 @@ function Podium({ users, onSelect }: { users: RankUser[]; onSelect: (u: RankUser
 function RankItem({
   user, index, onSelect,
 }: { user: RankUser; index: number; onSelect: (u: RankUser) => void }) {
-  const rankColor = user.rank === 1 ? '#E8A838' : user.rank === 2 ? '#b0b8b4' : user.rank === 3 ? '#cd7c4a' : 'rgba(27,67,50,0.08)';
+  const rankColor = user.rank === 1 ? '#E8A838' : user.rank === 2 ? '#B0B8B4' : user.rank === 3 ? '#CD7C4A' : 'rgba(27,67,50,0.08)';
   const isTop3 = user.rank <= 3;
 
   return (
@@ -363,31 +367,33 @@ function MyRankBar({ data }: { data: any }) {
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: 0.5, duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
-      className="sticky bottom-4 mx-4 rounded-2xl px-4 py-3 flex items-center gap-3"
+      className="rounded-[32px] px-10 py-8 flex items-center gap-6"
       style={{
         background: 'linear-gradient(135deg, #1B4332 0%, #2D6A4F 100%)',
-        border: '1.5px solid #E8A838',
-        boxShadow: '0 8px 32px rgba(27,67,50,0.5)',
-        zIndex: 50,
+        border: '2px solid #E8A838',
+        boxShadow: '0 20px 50px rgba(27,67,50,0.3)',
+        zIndex: 10,
       }}
     >
       <div
-        className="w-9 h-9 rounded-full flex items-center justify-center text-xl flex-shrink-0"
+        className="w-14 h-14 rounded-full flex items-center justify-center text-3xl flex-shrink-0"
         style={{ background: 'rgba(255,255,255,0.1)', border: '2px solid #E8A838' }}
       >
         {data.emoji}
       </div>
       <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-2">
-          <p className="font-black text-white text-sm">나의 순위: {data.rank}위 ({data.nick})</p>
-          <ChangeIcon change={data.change} />
+        <div className="flex items-center gap-3">
+          <p className="font-black text-white text-xl">나의 순위: {data.rank}위 ({data.nick})</p>
+          <div className="scale-125 origin-left">
+            <ChangeIcon change={data.change} />
+          </div>
         </div>
-        <p className="text-xs mt-0.5" style={{ color: 'rgba(255,255,255,0.6)' }}>
-          TOP {data.top}%까지 인증 {data.needed}번 더 필요해요!
+        <p className="text-base mt-2 font-medium" style={{ color: 'rgba(255,255,255,0.7)' }}>
+          TOP {data.top}%까지 <span className="text-[#E8A838] font-bold">인증 {data.needed}번</span> 더 필요해요!
         </p>
       </div>
       <button
-        className="px-4 py-2 rounded-xl font-black text-xs flex-shrink-0 transition-all hover:scale-105 active:scale-95"
+        className="px-8 py-3.5 rounded-2xl font-black text-base flex-shrink-0 transition-all hover:scale-105 active:scale-95 shadow-lg"
         style={{ background: '#E8A838', color: '#1B4332' }}
       >
         도전 →
@@ -436,8 +442,8 @@ export function RankingPage({ openAuth }: { openAuth: (mode: 'login' | 'signup')
           emoji: Number(r.rank) === 1 ? '💎' : Number(r.rank) === 2 ? '🦊' : '🐸',
           nick: r.nickname || '익명',
           title: r.titleName || '새내기 쾌변러',
-          titleColor: Number(r.rank) === 1 ? '#E8A838' : '#52b788',
-          titleBg: Number(r.rank) === 1 ? 'rgba(232,168,56,0.12)' : 'rgba(82,183,136,0.1)',
+          titleColor: Number(r.rank) === 1 ? '#E8A838' : Number(r.rank) === 2 ? '#B0B8B4' : Number(r.rank) === 3 ? '#CD7C4A' : '#52b788',
+          titleBg: Number(r.rank) === 1 ? 'rgba(232,168,56,0.12)' : Number(r.rank) === 2 ? 'rgba(176,184,180,0.12)' : Number(r.rank) === 3 ? 'rgba(205,124,74,0.12)' : 'rgba(82,183,136,0.1)',
           score: Number(r.score || 0),
           scoreLabel: tab === 'health' ? '점' : '인증',
           change: 0,
@@ -483,7 +489,7 @@ export function RankingPage({ openAuth }: { openAuth: (mode: 'login' | 'signup')
           }}
         />
 
-        <section className="relative z-10 pt-32 pb-64 px-6">
+        <section className="relative z-10 pt-32 pb-40 px-6">
           <div className="max-w-4xl mx-auto">
             {/* 헤더 */}
             <motion.div
@@ -571,7 +577,7 @@ export function RankingPage({ openAuth }: { openAuth: (mode: 'login' | 'signup')
             </AnimatePresence>
 
             {/* 통계 칩 */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mt-8">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mt-14">
               {[
                 { label: '활성 사용자', value: '1,000', unit: '+' },
                 { 
@@ -599,6 +605,11 @@ export function RankingPage({ openAuth }: { openAuth: (mode: 'login' | 'signup')
                   <p className="text-sm mt-1.5 font-bold" style={{ color: 'rgba(0,0,0,0.4)' }}>{s.label}</p>
                 </motion.div>
               ))}
+            </div>
+
+            {/* 내 순위 카드 (이동됨) */}
+            <div className="mt-16 mb-12">
+              {myRankData && <MyRankBar data={myRankData} />}
             </div>
           </div>
         </section>
@@ -664,10 +675,6 @@ export function RankingPage({ openAuth }: { openAuth: (mode: 'login' | 'signup')
           </div>
         </section>
 
-        {/* 내 순위 고정 바 */}
-        <div className="max-w-2xl mx-auto px-0 pb-16">
-          {myRankData && <MyRankBar data={myRankData} />}
-        </div>
       </div>
 
       {/* 아이템 팝업 */}

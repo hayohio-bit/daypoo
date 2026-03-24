@@ -7,15 +7,15 @@ const FOOTER_LINKS = [
     links: [
       { label: '지도', to: '/map' },
       { label: '랭킹', to: '/ranking' },
-      { label: 'AI 건강 분석', to: '/health' },
+      { label: 'AI 건강 분석', to: '/main#health-section' },
     ],
   },
   {
     title: '지원',
     links: [
-      { label: 'FAQ', to: '/faq' },
-      { label: '1:1 문의', to: '/contact' },
-      { label: '공지사항', to: '/notice' },
+      { label: 'FAQ', to: '/support?tab=faq' },
+      { label: '1:1 문의', to: '/support?tab=inquiry' },
+      { label: '공지사항', to: '/support' },
     ],
   },
   {
@@ -34,6 +34,18 @@ export function Footer() {
     if (to === '/ranking') {
       e.preventDefault();
       transitionTo(to);
+      return;
+    }
+
+    if (to.includes('#')) {
+      const [path, hash] = to.split('#');
+      if (window.location.pathname === path || (path === '/main' && window.location.pathname === '/')) {
+        e.preventDefault();
+        const element = document.getElementById(hash);
+        if (element) {
+          element.scrollIntoView({ behavior: 'smooth' });
+        }
+      }
     }
   };
 

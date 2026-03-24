@@ -638,10 +638,23 @@ function HomeTab({ equipped, setEquipped, user }: { equipped: AvatarItem | null;
         successUrl: window.location.origin + '/payment/success',
         failUrl: window.location.origin + '/mypage',
       });
-    } catch (err) {
+    } catch (err: any) {
       console.error('결제 요청 실패:', err);
+      // 토스 페이먼츠의 다양한 취소 에러 코드 및 메시지 대응 (PAY_PROCESS_CANCELED, USER_CANCEL 등)
+      const isCancellation = 
+        err?.code?.includes('CANCELED') || 
+        err?.errorCode?.includes('CANCELED') ||
+        err?.message?.includes('취소') || 
+        err?.message?.toLowerCase().includes('cancel') ||
+        String(err).includes('CANCELED');
+
+      if (isCancellation) {
+        if (confirm('결제를 취소하시겠습니까?')) {
+          setShowPaymentModal(false);
+        }
+        return;
+      }
       alert('결제창을 띄우는 중 오류가 발생했습니다.');
-    } finally {
       setShowPaymentModal(false);
     }
   };
@@ -755,43 +768,43 @@ function HomeTab({ equipped, setEquipped, user }: { equipped: AvatarItem | null;
         </AnimatePresence>
       </motion.div>
 
-      {/* 데일리 AI 분석 섹션 (사이즈 업) */}
-      <motion.div variants={fadeUp(0.12)} className="bg-white rounded-[40px] p-12 border border-gray-100 shadow-sm">
-        <div className="flex items-center justify-between mb-10">
-          <div className="flex items-center gap-5">
-            <div className="w-16 h-16 rounded-3xl bg-amber-50 flex items-center justify-center text-amber-500 shadow-inner">
-              <Brain size={32} />
+      {/* 데일리 AI 분석 섹션 (컴팩트화) */}
+      <motion.div variants={fadeUp(0.12)} className="bg-white rounded-[40px] p-10 border border-gray-100 shadow-sm">
+        <div className="flex items-center justify-between mb-8">
+          <div className="flex items-center gap-4">
+            <div className="w-14 h-14 rounded-2xl bg-amber-50 flex items-center justify-center text-amber-500 shadow-inner">
+              <Brain size={28} />
             </div>
             <div>
-              <h3 className="text-3xl font-black text-[#1A2B27] tracking-tight">오늘의 건강 지표</h3>
-              <p className="text-sm font-black text-gray-400 uppercase tracking-widest mt-1">AI Analyst Doctor Poo</p>
+              <h3 className="text-2xl font-black text-[#1A2B27] tracking-tight">오늘의 건강 지표</h3>
+              <p className="text-xs font-black text-gray-400 uppercase tracking-widest mt-1">AI Analyst Doctor Poo</p>
             </div>
           </div>
-          <div className="bg-emerald-50 px-6 py-3 rounded-2xl border border-emerald-100">
-            <p className="text-5xl font-black text-emerald-600 leading-none">89<span className="text-xl ml-1 font-bold">점</span></p>
+          <div className="bg-emerald-50 px-5 py-2.5 rounded-2xl border border-emerald-100">
+            <p className="text-4xl font-black text-emerald-600 leading-none">89<span className="text-lg ml-1 font-bold">점</span></p>
           </div>
         </div>
 
-        <div className="grid grid-cols-3 gap-5 mb-12">
+        <div className="grid grid-cols-3 gap-5 mb-10">
           {[
-            { label: '활동성', value: '매우 좋음', icon: <TrendingUp size={24} />, color: '#52b788' },
-            { label: '식단 균형', value: '균형 잡힘', icon: <Check size={24} />, color: '#E8A838' },
-            { label: '장 컨디션', value: '쾌적함', icon: <Activity size={24} />, color: '#2D6A4F' },
+            { label: '활동성', value: '매우 좋음', icon: <TrendingUp size={22} />, color: '#52b788' },
+            { label: '식단 균형', value: '균형 잡힘', icon: <Check size={22} />, color: '#E8A838' },
+            { label: '장 컨디션', value: '쾌적함', icon: <Activity size={22} />, color: '#2D6A4F' },
           ].map((s, i) => (
-            <div key={i} className="flex flex-col items-center py-8 rounded-[40px] bg-gray-50 border border-gray-100 transition-all hover:bg-white hover:border-emerald-100 hover:shadow-2xl group">
-              <div className="mb-4 transform group-hover:scale-110 transition-transform" style={{ color: s.color }}>{s.icon}</div>
-              <span className="text-xl font-black text-[#1A2B27]">{s.value}</span>
-              <span className="text-xs font-black text-gray-300 mt-2 uppercase tracking-[0.15em]">{s.label}</span>
+            <div key={i} className="flex flex-col items-center py-6 rounded-[32px] bg-gray-50 border border-gray-100 transition-all hover:bg-white hover:border-emerald-100 hover:shadow-2xl group">
+              <div className="mb-3 transform group-hover:scale-110 transition-transform" style={{ color: s.color }}>{s.icon}</div>
+              <span className="text-lg font-black text-[#1A2B27]">{s.value}</span>
+              <span className="text-xs font-black text-gray-300 mt-1.5 uppercase tracking-wide">{s.label}</span>
             </div>
           ))}
         </div>
 
-        <div className="relative p-10 rounded-[40px] overflow-hidden bg-emerald-50/50 border border-emerald-100 shadow-inner">
-          <Sparkles size={28} className="absolute top-8 right-10 text-emerald-300 opacity-60" />
-          <p className="text-base font-black text-emerald-600 mb-4 flex items-center gap-2.5">
-            <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse shadow-sm" /> 심층 AI 분석 가이드
+        <div className="relative p-8 rounded-[36px] overflow-hidden bg-emerald-50/50 border border-emerald-100 shadow-inner">
+          <Sparkles size={24} className="absolute top-7 right-8 text-emerald-300 opacity-60" />
+          <p className="text-[13px] font-black text-emerald-600 mb-3 flex items-center gap-2.5">
+            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shadow-sm" /> 심층 AI 분석 가이드
           </p>
-          <p className="text-2xl font-bold leading-relaxed text-[#1A2B27]/80 tracking-tight">
+          <p className="text-xl font-bold leading-relaxed text-[#1A2B27]/80 tracking-tight">
             "어제 드신 식이섬유가 드디어 빛을 발하네요! 오늘 아침 컨디션은 최상입니다.<br/>이 흐름을 유지하려면 물 500ml만 더 마셔보세요! 🥤"
           </p>
         </div>
@@ -810,6 +823,13 @@ function HomeTab({ equipped, setEquipped, user }: { equipped: AvatarItem | null;
               initial={{ opacity: 0, scale: 0.95, y: 30 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 20 }}
               className="relative w-full max-w-md bg-white rounded-[48px] overflow-hidden shadow-3xl p-12 text-center border border-white"
             >
+              <button 
+                onClick={() => setShowPaymentModal(false)}
+                className="absolute top-10 right-10 w-12 h-12 rounded-full bg-gray-50 flex items-center justify-center text-gray-400 hover:bg-gray-100 transition-colors"
+                aria-label="닫기"
+              >
+                <X size={24} />
+              </button>
               <div className="w-24 h-24 bg-amber-100 rounded-[36px] flex items-center justify-center mx-auto mb-8 transform rotate-3 shadow-lg">
                 <ShoppingBag size={42} className="text-amber-500" />
               </div>
@@ -873,17 +893,17 @@ function CollectionTab() {
           <Trophy size={180} />
         </div>
         <div className="relative z-10">
-          <p className="text-sm font-black text-amber-500 uppercase tracking-[0.25em] mb-3">Collection Progress</p>
-          <h2 className="text-4xl font-black text-[#1A2B27] mb-8 tracking-tighter">나의 명예로운 자취</h2>
+          <p className="text-xs font-black text-amber-500 uppercase tracking-[0.25em] mb-2.5">Collection Progress</p>
+          <h2 className="text-3xl font-black text-[#1A2B27] mb-6 tracking-tighter">나의 명예로운 자취</h2>
           
-          <div className="grid grid-cols-2 gap-6 mb-8">
-            <div className="p-8 rounded-[32px] bg-gray-50 border border-gray-100 shadow-inner">
+          <div className="grid grid-cols-2 gap-5 mb-6">
+            <div className="p-6 rounded-[28px] bg-gray-50 border border-gray-100 shadow-inner">
               <p className="text-xs font-bold text-gray-400 mb-2 uppercase tracking-wide">보유한 칭호</p>
-              <p className="text-4xl font-black text-[#1B4332]">{earnedCount} <span className="text-xl text-gray-300">/ {titles.length}</span></p>
+              <p className="text-3xl font-black text-[#1B4332]">{earnedCount} <span className="text-lg text-gray-300">/ {titles.length}</span></p>
             </div>
-            <div className="p-8 rounded-[32px] bg-gray-50 border border-gray-100 shadow-inner">
+            <div className="p-6 rounded-[28px] bg-gray-50 border border-gray-100 shadow-inner">
               <p className="text-xs font-bold text-gray-400 mb-2 uppercase tracking-wide">수집 랭크</p>
-              <p className="text-4xl font-black text-[#E8A838]">TOP 4%</p>
+              <p className="text-3xl font-black text-[#E8A838]">TOP 4%</p>
             </div>
           </div>
 
@@ -913,7 +933,7 @@ function CollectionTab() {
               <Check size={14} /> 수집 정보
             </div>
           </div>
-          <p className="text-3xl font-black text-[#1A2B27] tracking-tighter">
+          <p className="text-2xl font-black text-[#1A2B27] tracking-tighter">
             칭호 컬렉션 도감
           </p>
         </div>
@@ -1033,22 +1053,22 @@ function ReportTab({ records = [] }: { records?: any[] }) {
                   <Activity size={32} />
                 </div>
                 <div>
-                  <h3 className="text-3xl font-black text-[#1A2B27] tracking-tight">오늘의 쾌변 가이드</h3>
+                  <h3 className="text-2xl font-black text-[#1A2B27] tracking-tight">오늘의 쾌변 가이드</h3>
                   <p className="text-sm font-black text-gray-400 uppercase tracking-[0.15em] mt-1">Free Analyst • Live Update</p>
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-6 mb-10">
-                <div className="p-10 rounded-[40px] bg-gray-50 border border-gray-100 shadow-inner">
-                  <p className="text-xs font-black text-gray-400 uppercase tracking-widest mb-3">현재 장 상태</p>
-                  <p className="text-4xl font-black text-[#1B4332] flex items-center gap-3">
+              <div className="grid grid-cols-2 gap-5 mb-8">
+                <div className="p-8 rounded-[36px] bg-gray-50 border border-gray-100 shadow-inner">
+                  <p className="text-[11px] font-black text-gray-400 uppercase tracking-widest mb-2.5">현재 장 상태</p>
+                  <p className="text-2xl font-black text-[#1B4332] flex items-center gap-2.5">
                     {reportData?.healthScore > 80 ? '아주 좋음' : reportData?.healthScore > 60 ? '좋음' : '보통'} 
-                    <Sparkles size={28} className="text-amber-400" />
+                    <Sparkles size={22} className="text-amber-400" />
                   </p>
                 </div>
-                <div className="p-10 rounded-[40px] bg-gray-50 border border-gray-100 shadow-inner">
-                  <p className="text-xs font-black text-gray-400 uppercase tracking-widest mb-3">건강 점수</p>
-                  <p className="text-4xl font-black text-amber-500">{reportData?.healthScore || 0}</p>
+                <div className="p-8 rounded-[36px] bg-gray-50 border border-gray-100 shadow-inner">
+                  <p className="text-[11px] font-black text-gray-400 uppercase tracking-widest mb-2.5">건강 점수</p>
+                  <p className="text-3xl font-black text-amber-500">{reportData?.healthScore || 0}</p>
                 </div>
               </div>
 
@@ -1056,10 +1076,10 @@ function ReportTab({ records = [] }: { records?: any[] }) {
                 <div className="absolute top-0 right-0 p-8 opacity-10">
                   <Sparkles size={80} />
                 </div>
-                <p className="text-sm font-black text-emerald-300 mb-4 uppercase tracking-[0.2em] flex items-center gap-2">
-                  <div className="w-2 h-2 rounded-full bg-emerald-400" /> AI Doctor Poo Insight
+                <p className="text-[13px] font-black text-emerald-300 mb-3 uppercase tracking-[0.2em] flex items-center gap-2">
+                  <div className="w-1.5 h-1.5 rounded-full bg-emerald-400" /> AI Doctor Poo Insight
                 </p>
-                <p className="text-2xl font-bold leading-relaxed relative z-10 tracking-tight">
+                <p className="text-xl font-bold leading-relaxed relative z-10 tracking-tight">
                   "{reportData?.summary || "기록을 분석하고 있습니다. 화장실 기록을 남겨주세요!"}"
                 </p>
                 {reportData?.solution && (
@@ -1124,8 +1144,8 @@ function ReportTab({ records = [] }: { records?: any[] }) {
                          transform="rotate(-90 100 100)" />
                     </svg>
                     <div className="absolute inset-0 flex flex-col items-center justify-center">
-                      <span className="text-6xl font-black text-[#1A2B27] tracking-tighter">{reportData?.healthScore || 0}</span>
-                      <span className="text-sm font-black text-gray-400 mt-1 uppercase tracking-widest">Health Score</span>
+                      <span className="text-5xl font-black text-[#1A2B27] tracking-tighter">{reportData?.healthScore || 0}</span>
+                      <span className="text-[12px] font-black text-gray-400 mt-0.5 uppercase tracking-widest">Health Score</span>
                     </div>
                   </div>
                 </div>
@@ -1175,10 +1195,10 @@ function ReportTab({ records = [] }: { records?: any[] }) {
                    animate={{ opacity: 1, scale: 1 }}
                    className="w-full max-w-md bg-white/95 backdrop-blur-xl p-14 rounded-[56px] shadow-[0_32px_80px_rgba(0,0,0,0.15)] border border-white text-center"
                 >
-                  <div className="w-24 h-24 bg-amber-100 rounded-[36px] flex items-center justify-center mx-auto mb-8 shadow-inner transform rotate-6 hover:rotate-0 transition-transform duration-500">
-                    <Lock size={44} className="text-amber-500" />
+                  <div className="w-20 h-20 bg-amber-100 rounded-[32px] flex items-center justify-center mx-auto mb-6 shadow-inner transform rotate-6 hover:rotate-0 transition-transform duration-500">
+                    <Lock size={36} className="text-amber-500" />
                   </div>
-                  <h3 className="text-3xl font-black text-[#1A2B27] mb-4 tracking-tight">정밀 분석 리포트 잠금</h3>
+                  <h3 className="text-2xl font-black text-[#1A2B27] mb-3 tracking-tight">정밀 분석 리포트 잠금</h3>
                   <p className="text-gray-500 font-bold text-base mb-10 leading-relaxed">
                     7일간의 누적 기록을 바탕으로 산출되는 <br />
                     <span className="text-emerald-700">장 건강 점수</span>와 <span className="text-emerald-700">AI 푸의 맞춤 가이드</span>는<br />
@@ -1459,7 +1479,7 @@ export function MyPage({ openAuth }: { openAuth: (mode: 'login' | 'signup') => v
 
   const fetchRecords = useCallback(async () => {
     try {
-      const data = await api.get('/records');
+      const data = await api.get<any[]>('/records');
       setRecords(data);
     } catch (err) {
       console.error('Failed to fetch records', err);
