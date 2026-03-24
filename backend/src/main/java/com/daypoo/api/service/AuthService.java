@@ -11,7 +11,7 @@ import com.daypoo.api.entity.User;
 import com.daypoo.api.entity.enums.Role;
 import com.daypoo.api.global.exception.BusinessException;
 import com.daypoo.api.global.exception.ErrorCode;
-import com.daypoo.api.repository.UserRepository;
+import com.daypoo.api.repository.*;
 import com.daypoo.api.security.JwtProvider;
 import io.jsonwebtoken.Claims;
 import java.util.UUID;
@@ -34,6 +34,13 @@ public class AuthService {
   private final JwtProvider jwtProvider;
   private final EmailService emailService;
   private final StringRedisTemplate redisTemplate;
+  private final NotificationRepository notificationRepository;
+  private final InventoryRepository inventoryRepository;
+  private final UserTitleRepository userTitleRepository;
+  private final PooRecordRepository pooRecordRepository;
+  private final PaymentRepository paymentRepository;
+  private final InquiryRepository inquiryRepository;
+  private final ToiletReviewRepository toiletReviewRepository;
 
   @Transactional
   public TokenResponse socialSignUp(SocialSignUpRequest request) {
@@ -240,6 +247,16 @@ public class AuthService {
       throw new BusinessException(ErrorCode.INVALID_PASSWORD);
     }
 
+    // 연관 데이터 명시적 삭제 (FK 제약 조건 오류 방지)
+    notificationRepository.deleteAllByUser(user);
+    inventoryRepository.deleteAllByUser(user);
+    userTitleRepository.deleteAllByUser(user);
+    pooRecordRepository.deleteAllByUser(user);
+    paymentRepository.deleteAllByUser(user);
+    inquiryRepository.deleteAllByUser(user);
+    toiletReviewRepository.deleteAllByUser(user);
+
     userRepository.delete(user);
+    log.info("User {} successfully withdrawn", email);
   }
 }

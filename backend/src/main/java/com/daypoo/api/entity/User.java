@@ -63,6 +63,9 @@ public class User extends BaseTimeEntity {
   @OneToMany(mappedBy = "user", cascade = CascadeType.REMOVE, orphanRemoval = true)
   private List<Inquiry> inquiries = new ArrayList<>();
 
+  @OneToMany(mappedBy = "user", cascade = CascadeType.REMOVE, orphanRemoval = true)
+  private List<ToiletReview> reviews = new ArrayList<>();
+
   @Builder
   public User(String password, String email, String nickname, Role role) {
     this.password = password;

@@ -44,7 +44,10 @@ public enum ErrorCode {
   ADMIN_ITEM_NOT_FOUND(HttpStatus.NOT_FOUND, "A004", "아이템을 찾을 수 없습니다."),
   ADMIN_INQUIRY_ALREADY_ANSWERED(HttpStatus.BAD_REQUEST, "A005", "이미 답변 완료된 문의입니다."),
   ADMIN_CANNOT_CHANGE_OWN_ROLE(HttpStatus.BAD_REQUEST, "A006", "자신의 역할은 변경할 수 없습니다."),
-  ADMIN_ITEM_IN_USE(HttpStatus.CONFLICT, "A007", "유저가 보유 중인 아이템은 삭제할 수 없습니다.");
+  ADMIN_ITEM_IN_USE(HttpStatus.CONFLICT, "A007", "유저가 보유 중인 아이템은 삭제할 수 없습니다."),
+
+  // Toilet
+  TOILET_NOT_FOUND(HttpStatus.NOT_FOUND, "T001", "화장실을 찾을 수 없습니다.");
 
   private final HttpStatus status;
   private final String code;

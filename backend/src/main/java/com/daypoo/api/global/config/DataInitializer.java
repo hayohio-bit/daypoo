@@ -6,6 +6,7 @@ import com.daypoo.api.entity.enums.Role;
 import com.daypoo.api.global.GeometryUtil;
 import com.daypoo.api.repository.InquiryRepository;
 import com.daypoo.api.repository.ToiletRepository;
+import com.daypoo.api.repository.ToiletReviewRepository;
 import com.daypoo.api.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -21,6 +22,7 @@ public class DataInitializer implements CommandLineRunner {
   private final UserRepository userRepository;
   private final ToiletRepository toiletRepository;
   private final InquiryRepository inquiryRepository;
+  private final ToiletReviewRepository toiletReviewRepository;
   private final PasswordEncoder passwordEncoder;
   private final GeometryUtil geometryUtil;
 
@@ -28,20 +30,25 @@ public class DataInitializer implements CommandLineRunner {
   public void run(String... args) throws Exception {
     log.info("🏁 DataInitializer started...");
 
-    // 1. Admin & Users
-    // admin@admin.com 계정이 없을 때만 생성 (안전한 초기화)
+    initializeUsers();
+    initializeToiletsAndReviews();
+    initializeInquiries();
+
+    log.info("✅ DataInitializer completed.");
+  }
+
+  private void initializeUsers() {
+    // Admin
     userRepository
         .findByEmail("admin@admin.com")
         .ifPresentOrElse(
             existingAdmin -> {
               if (existingAdmin.getRole() != Role.ROLE_ADMIN) {
-                log.info("Updating existing admin@admin.com role to ROLE_ADMIN...");
                 existingAdmin.updateRole(Role.ROLE_ADMIN);
                 userRepository.save(existingAdmin);
               }
             },
             () -> {
-              log.info("Admin account not found. Creating default admin (admin@admin.com)...");
               userRepository.save(
                   User.builder()
                       .password(passwordEncoder.encode("admin1234"))
@@ -51,9 +58,8 @@ public class DataInitializer implements CommandLineRunner {
                       .build());
             });
 
-    // 테스트용 일반 유저들
+    // 일반 유저
     if (!userRepository.existsByEmail("user1@daypoo.com")) {
-      log.info("Creating user1@daypoo.com...");
       userRepository.save(
           User.builder()
               .password(passwordEncoder.encode("1234"))
@@ -64,7 +70,6 @@ public class DataInitializer implements CommandLineRunner {
     }
 
     if (!userRepository.existsByEmail("user2@daypoo.com")) {
-      log.info("Creating user2@daypoo.com...");
       userRepository.save(
           User.builder()
               .password(passwordEncoder.encode("1234"))
@@ -73,10 +78,11 @@ public class DataInitializer implements CommandLineRunner {
               .role(Role.ROLE_USER)
               .build());
     }
+  }
 
-    // 2. Toilets
+  private void initializeToiletsAndReviews() {
     if (toiletRepository.count() == 0) {
-      toiletRepository.save(
+      Toilet t1 = toiletRepository.save(
           Toilet.builder()
               .name("강남역 2호선 공중화장실")
               .mngNo("GN-001")
@@ -87,7 +93,7 @@ public class DataInitializer implements CommandLineRunner {
               .openHours("00:00-24:00")
               .build());
 
-      toiletRepository.save(
+      Toilet t2 = toiletRepository.save(
           Toilet.builder()
               .name("마포역 5호선 화장실")
               .mngNo("MP-005")
@@ -98,7 +104,7 @@ public class DataInitializer implements CommandLineRunner {
               .openHours("05:30-24:00")
               .build());
 
-      toiletRepository.save(
+      Toilet t3 = toiletRepository.save(
           Toilet.builder()
               .name("대치동 선릉공원 화장실")
               .mngNo("DC-012")
@@ -107,9 +113,41 @@ public class DataInitializer implements CommandLineRunner {
               .is24h(true)
               .isUnisex(false)
               .build());
-    }
 
-    // 3. Inquiries
+      // 리뷰 데이터 추가
+      User u1 = userRepository.findByEmail("user1@daypoo.com").orElse(null);
+      User u2 = userRepository.findByEmail("user2@daypoo.com").orElse(null);
+
+      if (u1 != null && u2 != null) {
+        addReview(u1, t1, 5, "clean,tissue", "정말 깨끗하고 관리가 잘 되어 있어요. 강남역 최고 명소!");
+        addReview(u2, t1, 4, "clean", "사람은 많지만 청소 주기가 빨라서 쓸만합니다.");
+        addReview(u1, t2, 3, "tissue", "휴지는 있는데 좀 좁아요.");
+        addReview(u2, t2, 4, "clean,tissue", "마포역 근처에서 가장 찾기 쉽고 괜찮은 곳.");
+        addReview(u1, t3, 2, "narrow", "밤에는 조금 어둡고 무서워요. 관리가 필요할 듯.");
+      }
+    }
+  }
+
+  private void addReview(User user, Toilet toilet, int rating, String tags, String comment) {
+    toiletReviewRepository.save(ToiletReview.builder()
+        .user(user)
+        .toilet(toilet)
+        .rating(rating)
+        .emojiTags(tags)
+        .comment(comment)
+        .build());
+    
+    // 통계 업데이트
+    Double avg = toiletReviewRepository.calculateAvgRatingByToiletId(toilet.getId());
+    long count = toiletReviewRepository.countByToiletId(toilet.getId());
+    toilet.updateReviewStats(avg != null ? avg : 0.0, (int) count);
+    if (count >= 5) {
+      toilet.updateAiSummary("많은 분들이 깔끔하고 휴지가 넉넉하다고 평가해주셨습니다.");
+    }
+    toiletRepository.save(toilet);
+  }
+
+  private void initializeInquiries() {
     if (inquiryRepository.count() == 0) {
       User user = userRepository.findByEmail("user1@daypoo.com").orElse(null);
       if (user != null) {
@@ -138,6 +176,5 @@ public class DataInitializer implements CommandLineRunner {
                 .build());
       }
     }
-    log.info("✅ DataInitializer completed.");
   }
 }

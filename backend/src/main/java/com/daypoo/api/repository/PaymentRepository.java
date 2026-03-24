@@ -1,6 +1,7 @@
 package com.daypoo.api.repository;
 
 import com.daypoo.api.entity.Payment;
+import com.daypoo.api.entity.User;
 import java.time.LocalDateTime;
 import java.util.List;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -20,4 +21,6 @@ public interface PaymentRepository extends JpaRepository<Payment, Long> {
 
   @Query("SELECT SUM(p.amount) FROM Payment p WHERE p.user.id = :userId")
   Long sumAmountByUserId(@Param("userId") Long userId);
+
+  void deleteAllByUser(User user);
 }

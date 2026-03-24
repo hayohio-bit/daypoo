@@ -16,4 +16,6 @@ public interface InquiryRepository extends JpaRepository<Inquiry, Long> {
   Page<Inquiry> findAllByStatusOrderByCreatedAtDesc(InquiryStatus status, Pageable pageable);
 
   long countByStatus(InquiryStatus status);
+
+  void deleteAllByUser(User user);
 }

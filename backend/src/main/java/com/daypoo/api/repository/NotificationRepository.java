@@ -16,4 +16,6 @@ public interface NotificationRepository extends JpaRepository<Notification, Long
 
   @Query("SELECT n FROM Notification n JOIN FETCH n.user WHERE n.user = :user AND n.isRead = false")
   List<Notification> findAllByUserAndIsReadFalse(@Param("user") User user);
+
+  void deleteAllByUser(User user);
 }

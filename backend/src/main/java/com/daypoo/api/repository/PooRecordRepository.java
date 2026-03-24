@@ -23,4 +23,6 @@ public interface PooRecordRepository extends JpaRepository<PooRecord, Long> {
 
   @Query("SELECT COUNT(DISTINCT p.toilet) FROM PooRecord p WHERE p.user = :user")
   long countDistinctToiletsByUser(@Param("user") User user);
+
+  void deleteAllByUser(User user);
 }

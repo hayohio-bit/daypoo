@@ -2,6 +2,8 @@ package com.daypoo.api.service;
 
 import com.daypoo.api.dto.AiAnalysisResponse;
 import com.daypoo.api.dto.AiReportRequest;
+import com.daypoo.api.dto.AiReviewSummaryRequest;
+import com.daypoo.api.dto.AiReviewSummaryResponse;
 import com.daypoo.api.dto.HealthReportResponse;
 import com.daypoo.api.global.exception.BusinessException;
 import com.daypoo.api.global.exception.ErrorCode;
@@ -91,6 +93,26 @@ public class AiClient {
       return restTemplate.postForObject(url, entity, HealthReportResponse.class);
     } catch (Exception e) {
       log.error("Failed to call AI Report Service: {}", e.getMessage());
+      throw new BusinessException(ErrorCode.AI_SERVICE_ERROR);
+    }
+  }
+
+  /** 화장실 리뷰 목록을 보내 AI 한 줄 요약 요청 */
+  @Retryable(
+      maxAttempts = 2,
+      backoff = @Backoff(delay = 1000),
+      noRetryFor = {BusinessException.class})
+  public AiReviewSummaryResponse summarizeReviews(AiReviewSummaryRequest request) {
+    String url = aiServiceUrl + "/api/v1/review/summarize";
+    HttpEntity<AiReviewSummaryRequest> entity = new HttpEntity<>(request, createHeaders());
+
+    try {
+      log.info("Requesting AI review summary for toilet {} ({})", request.toiletId(), request.toiletName());
+      return restTemplate.postForObject(url, entity, AiReviewSummaryResponse.class);
+    } catch (Exception e) {
+      log.error("Failed to call AI Review Summary Service: {}", e.getMessage());
+      // AI 호출 실패 시 비즈니스 로직에 큰 지장을 주지 않고 null이나 기본 메시지 처리할 수 있도록 
+      // 예외는 던지되, 호출부에서 적절히 처리하도록 권장
       throw new BusinessException(ErrorCode.AI_SERVICE_ERROR);
     }
   }

@@ -10,4 +10,6 @@ public interface UserTitleRepository extends JpaRepository<UserTitle, Long> {
   boolean existsByUserAndTitle(User user, Title title);
 
   List<UserTitle> findAllByUser(User user);
+
+  void deleteAllByUser(User user);
 }

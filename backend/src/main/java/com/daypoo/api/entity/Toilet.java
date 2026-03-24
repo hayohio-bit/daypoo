@@ -39,6 +39,15 @@ public class Toilet extends BaseTimeEntity {
   @Column(name = "is_unisex", nullable = false)
   private boolean isUnisex;
 
+  @Column(name = "avg_rating", precision = 3, scale = 2)
+  private Double avgRating = 0.0;
+
+  @Column(name = "review_count")
+  private Integer reviewCount = 0;
+
+  @Column(columnDefinition = "TEXT")
+  private String aiSummary;
+
   @Builder
   public Toilet(
       String name,
@@ -55,6 +64,8 @@ public class Toilet extends BaseTimeEntity {
     this.openHours = openHours;
     this.is24h = is24h;
     this.isUnisex = isUnisex;
+    this.avgRating = 0.0;
+    this.reviewCount = 0;
   }
 
   public void updateLocation(Point location) {
@@ -68,5 +79,14 @@ public class Toilet extends BaseTimeEntity {
     this.openHours = openHours;
     this.is24h = is24h;
     this.isUnisex = isUnisex;
+  }
+
+  public void updateReviewStats(Double avgRating, Integer reviewCount) {
+    this.avgRating = avgRating;
+    this.reviewCount = reviewCount;
+  }
+
+  public void updateAiSummary(String aiSummary) {
+    this.aiSummary = aiSummary;
   }
 }

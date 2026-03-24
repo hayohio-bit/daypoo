@@ -102,11 +102,12 @@ public class PooRecordService {
       throw new BusinessException(ErrorCode.COOLDOWN_ACTIVE);
     }
 
-    // 4. AI 분석 (이미지가 있을 경우)
+    // 4. AI 분석 또는 수동 입력값 결정
     Integer finalBristolScale = request.bristolScale();
     String finalColor = request.color();
     List<String> aiWarningTags = Collections.emptyList();
 
+    // AI 이미지가 있으면 분석 결과를 우선 적용 (수동 입력이 없더라도 통과 가능)
     if (request.imageBase64() != null && !request.imageBase64().isEmpty()) {
       AiAnalysisResponse aiResult = aiClient.analyzePoopImage(request.imageBase64());
       finalBristolScale = aiResult.bristolScale();
@@ -116,14 +117,27 @@ public class PooRecordService {
           finalBristolScale, finalColor, aiWarningTags);
     }
 
+    // 최종 검증: AI 결과도 없고 수동 입력도 없는 경우 에러 처리
+    if (finalBristolScale == null || finalColor == null || finalColor.isEmpty()) {
+      throw new BusinessException(ErrorCode.INVALID_INPUT_VALUE);
+    }
+
     // 5. 정확한 행정동 명칭 추출 (Reverse Geocoding)
     String regionName = geocodingService.reverseGeocode(request.latitude(), request.longitude());
 
-    // 6. 기록 생성 (null-safe 처리)
-    List<String> safeConditionTags =
-        request.conditionTags() != null ? request.conditionTags() : Collections.emptyList();
-    List<String> safeDietTags =
-        request.dietTags() != null ? request.dietTags() : Collections.emptyList();
+    // 6. 기록 생성 및 태그 검증 (수동 입력 시 필수값 체크)
+    boolean isManual = request.imageBase64() == null || request.imageBase64().isEmpty();
+    
+    List<String> conditionTags = request.conditionTags() != null ? request.conditionTags() : Collections.emptyList();
+    List<String> dietTags = request.dietTags() != null ? request.dietTags() : Collections.emptyList();
+
+    // 수동 입력 사용자인데 키워드(태그)가 하나도 없으면 에러 (브리스톨/색상은 위에서 이미 체크됨)
+    if (isManual && (conditionTags.isEmpty() || dietTags.isEmpty())) {
+      throw new BusinessException(ErrorCode.INVALID_INPUT_VALUE);
+    }
+
+    List<String> safeConditionTags = conditionTags;
+    List<String> safeDietTags = dietTags;
 
     PooRecord record =
         PooRecord.builder()
