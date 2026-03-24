@@ -630,7 +630,7 @@ function HomeTab({ equipped, setEquipped, user }: { equipped: AvatarItem | null;
   // 토스 페이먼츠 결제창 호출
   const handleTossPayment = async () => {
     try {
-      const tossPayments = await loadTossPayments('test_ck_LlDJaYngroyaax07NxRl3ezGdRpX');
+      const tossPayments = await loadTossPayments(import.meta.env.VITE_TOSS_CLIENT_KEY);
       await tossPayments.requestPayment('카드', {
         amount: 5000,
         orderId: `POOPMAP_${Math.random().toString(36).substring(2, 11)}`,

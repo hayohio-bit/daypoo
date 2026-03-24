@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback, useEffect } from 'react';
 import { motion, AnimatePresence, useInView } from 'framer-motion';
 import { Navbar } from '../components/Navbar';
 import { Footer } from '../components/Footer';
@@ -41,9 +41,9 @@ function ConicGlow({ color, thickness = 1.5, borderRadius = '16px' }: { color: s
 
 // ── 데이터 ────────────────────────────────────────────────────────────
 const TAB_CONFIG: { key: TabKey; label: string; desc: string; icon: React.ReactNode }[] = [
-  { key: 'total',  label: '전체 랭킹',    desc: '누적 인증 횟수 기준',          icon: <Trophy size={14} /> },
-  { key: 'local',  label: '우리 동네 왕',  desc: '현재 위치 기반 지역 랭킹',     icon: <MapPin size={14} /> },
-  { key: 'health', label: '건강왕',        desc: 'AI 쾌변 점수 기준',            icon: <Activity size={14} /> },
+  { key: 'total',  label: '전체 랭킹',    desc: '누적 인증 횟수 기준',          icon: <Trophy size={16} /> },
+  { key: 'local',  label: '우리 동네 왕',  desc: '현재 위치 기반 지역 랭킹',     icon: <MapPin size={16} /> },
+  { key: 'health', label: '건강왕',        desc: 'AI 쾌변 점수 기준',            icon: <Activity size={16} /> },
 ];
 
 // ── 순위 변화 아이콘 ──────────────────────────────────────────────────
@@ -332,13 +332,15 @@ function RankItem({
       </div>
 
       {/* 정보 */}
-      <div className="flex-1 min-w-0">
-        <span
-          className="text-sm font-bold px-2.5 py-1 rounded-full inline-block mb-1.5"
-          style={{ background: user.titleBg, color: user.titleColor }}
-        >
-          {user.title}
-        </span>
+      <div className="flex-1 min-w-0 flex flex-col justify-center">
+        <div>
+          <span
+            className="text-[10px] font-bold px-2.5 py-0.5 rounded-full inline-block mb-1"
+            style={{ background: user.titleBg, color: user.titleColor }}
+          >
+            {user.title}
+          </span>
+        </div>
         <p className="font-black text-[#1A2B27] text-lg leading-tight truncate">{user.nick}</p>
       </div>
 
@@ -398,11 +400,31 @@ function MyRankBar({ data }: { data: any }) {
 export function RankingPage({ openAuth }: { openAuth: (mode: 'login' | 'signup') => void }) {
   const [tab, setTab] = useState<TabKey>('total');
   const [selectedUser, setSelectedUser] = useState<RankUser | null>(null);
+  const [regionName, setRegionName] = useState<string | undefined>(undefined);
   const listRef = useRef<HTMLDivElement>(null);
   const inView = useInView(listRef, { once: true, margin: '-40px' });
 
+  // 현위치 기반 행정구역명 자동 감지 (Kakao Geocoder)
+  useEffect(() => {
+    if (!navigator.geolocation) return;
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        const { kakao } = window as any;
+        if (!kakao?.maps?.services) return;
+        const geocoder = new kakao.maps.services.Geocoder();
+        geocoder.coord2RegionCode(pos.coords.longitude, pos.coords.latitude, (result: any[], status: string) => {
+          if (status === kakao.maps.services.Status.OK && result.length > 0) {
+            const region = result.find((r: any) => r.region_type === 'H') || result[0];
+            setRegionName(region.region_1depth_name);
+          }
+        });
+      },
+      () => { /* 위치 권한 거부 시 기본값(서울) 사용 */ }
+    );
+  }, []);
+
   // 실시간 랭킹 데이터 가져오기
-  const { data, loading, error } = useRankings(tab);
+  const { data, loading, error } = useRankings(tab, regionName);
 
   // 백엔드 데이터를 프론트엔드 UI 포맷으로 변환
   const isDataValid = data && typeof data === 'object' && !Array.isArray(data);
@@ -423,15 +445,23 @@ export function RankingPage({ openAuth }: { openAuth: (mode: 'login' | 'signup')
         }))
     : [];
 
-  const myRankData = (isDataValid && (data as any).myRank) ? {
-    rank: Number((data as any).myRank.rank || 0),
-    nick: (data as any).myRank.nickname || '나',
-    emoji: <Activity size={18} />,
-    score: Number((data as any).myRank.score || 0),
-    change: 0,
-    top: 10,
-    needed: 15
-  } : null;
+  const myRankData = (isDataValid && (data as any).myRank) ? (() => {
+    const myRank = Number((data as any).myRank.rank || 0);
+    const myScore = Number((data as any).myRank.score || 0);
+    const totalRankers = users.length;
+    const topPercent = totalRankers > 0 ? Math.ceil((myRank / totalRankers) * 100) : 0;
+    const nextRanker = users.find(u => u.rank === myRank - 1);
+    const needed = nextRanker ? nextRanker.score - myScore : 0;
+    return {
+      rank: myRank,
+      nick: (data as any).myRank.nickname || '나',
+      emoji: <Activity size={18} />,
+      score: myScore,
+      change: 0,
+      top: topPercent,
+      needed: Math.max(needed, 0),
+    };
+  })() : null;
 
   const currentTab = TAB_CONFIG.find(t => t.key === tab)!;
 
@@ -504,8 +534,9 @@ export function RankingPage({ openAuth }: { openAuth: (mode: 'login' | 'signup')
                       transition={{ type: 'spring', stiffness: 400, damping: 30 }}
                     />
                   )}
-                  <span className="relative z-10 flex flex-col items-center gap-0.5">
-                    <span>{t.icon} {t.label}</span>
+                  <span className="relative z-10 flex items-center justify-center gap-2">
+                    {t.icon}
+                    <span className="leading-none">{t.label}</span>
                   </span>
                 </button>
               ))}

@@ -129,15 +129,3 @@ export const MOCK_TOILETS: ToiletData[] = [
   },
 ];
 
-export const MOCK_REVIEWS: ToiletReview[] = [
-  { id:'r1', toiletId:'t1', userId:'u1', userName:'깔끔이', rating:5,
-    emojiTags:['clean','tissue'], bristolType:4, comment:'정말 깨끗해요! 휴지도 잘 채워져 있고 관리가 잘 됩니다.', createdAt:'2026-03-15', helpfulCount:12 },
-  { id:'r2', toiletId:'t1', userId:'u2', userName:'급똥맨', rating:4,
-    emojiTags:['clean','quiet'], bristolType:3, comment:'접근성도 좋고 깔끔한 편입니다.', createdAt:'2026-03-10', helpfulCount:5 },
-  { id:'r3', toiletId:'t1', userId:'u3', userName:'화장실평론가', rating:3,
-    emojiTags:['smell'], bristolType:6, comment:'냄새가 조금 나긴 하지만 그나마 나은 편이에요.', createdAt:'2026-03-05', helpfulCount:3 },
-  { id:'r4', toiletId:'t1', userId:'u4', userName:'익명', rating:5,
-    emojiTags:['clean','tissue','quiet'], comment:'완벽합니다.', createdAt:'2026-02-28', helpfulCount:8 },
-  { id:'r5', toiletId:'t1', userId:'u5', userName:'나그네', rating:4,
-    emojiTags:['tissue'], bristolType:4, comment:'휴지가 항상 있어서 좋아요.', createdAt:'2026-02-20', helpfulCount:2 },
-];

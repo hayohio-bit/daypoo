@@ -1,8 +1,6 @@
-import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Navigation, Star, Clock, Users, Baby, Bell, Shield, ChevronRight, Heart } from 'lucide-react';
-import { ToiletData, ToiletReview, EMOJI_TAG_MAP, EmojiTag, MOCK_REVIEWS } from '../../types/toilet';
-import { ReviewFullModal } from './ReviewFullModal';
+import { X, Navigation, Star, Clock, Users, Heart } from 'lucide-react';
+import { ToiletData } from '../../types/toilet';
 
 interface ToiletPopupProps {
   toilet: ToiletData;
@@ -30,45 +28,13 @@ function StarRating({ rating }: { rating: number }) {
   );
 }
 
-// 이모지 태그 집계
-function EmojiSummary({ reviews }: { reviews: ToiletReview[] }) {
-  const counts: Partial<Record<EmojiTag, number>> = {};
-  reviews.forEach((r) => r.emojiTags.forEach((tag) => { counts[tag] = (counts[tag] ?? 0) + 1; }));
-  const sorted = (Object.entries(counts) as [EmojiTag, number][]).sort((a, b) => b[1] - a[1]);
-  if (!sorted.length) return null;
-
-  return (
-    <div className="flex flex-wrap gap-1.5 mt-2">
-      {sorted.map(([tag, count]) => (
-        <span
-          key={tag}
-          className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold"
-          style={{ background: '#f4faf6', color: '#2D6A4F', border: '1px solid #d4e8db' }}
-        >
-          {EMOJI_TAG_MAP[tag].emoji} {EMOJI_TAG_MAP[tag].label}
-          <span className="font-bold opacity-60">{count}</span>
-        </span>
-      ))}
-    </div>
-  );
-}
 
 export function ToiletPopup({ toilet, onClose, onFavoriteToggle, onVisitRequest }: ToiletPopupProps) {
-  const [showReviews, setShowReviews] = useState(false);
-  const [activeEmojiTag, setActiveEmojiTag] = useState<EmojiTag | null>(null);
-
-  const reviews = MOCK_REVIEWS.filter((r) => r.toiletId === toilet.id);
-  const previewReviews = reviews.slice(0, 3);
-
   const openKakaoMap = () => {
     window.open(`https://map.kakao.com/link/to/${encodeURIComponent(toilet.name)},${toilet.lat},${toilet.lng}`, '_blank');
   };
   const openNaverMap = () => {
     window.open(`https://map.naver.com/v5/directions/-/-/-/transit?lng=${toilet.lng}&lat=${toilet.lat}&title=${encodeURIComponent(toilet.name)}`, '_blank');
-  };
-
-  const handleEmojiTag = (tag: EmojiTag) => {
-    setActiveEmojiTag(activeEmojiTag === tag ? null : tag);
   };
 
   return (
@@ -132,15 +98,8 @@ export function ToiletPopup({ toilet, onClose, onFavoriteToggle, onVisitRequest 
 
           {/* ── 최근 후기 ── */}
           <div className="px-4 py-3" style={{ borderBottom: '1px solid #eef5f0' }}>
-            <div className="flex items-center justify-between mb-2">
-              <p className="text-xs font-bold" style={{ color: '#1a2b22' }}>최근 후기</p>
-              {reviews.length > 3 && (
-                <button onClick={() => setShowReviews(true)} className="flex items-center gap-0.5 text-xs font-semibold" style={{ color: '#2D6A4F' }}>
-                  전체보기 <ChevronRight size={12} />
-                </button>
-              )}
-            </div>
-            {reviews.length === 0 ? <p className="text-xs" style={{ color: '#7a9e8a' }}>아직 후기가 없어요.</p> : <EmojiSummary reviews={reviews} />}
+            <p className="text-xs font-bold mb-2" style={{ color: '#1a2b22' }}>최근 후기</p>
+            <p className="text-xs" style={{ color: '#7a9e8a' }}>리뷰 기능을 준비 중입니다.</p>
           </div>
 
           {/* ── 길찾기 버튼 ── */}
@@ -168,10 +127,6 @@ export function ToiletPopup({ toilet, onClose, onFavoriteToggle, onVisitRequest 
         </motion.div>
       </AnimatePresence>
 
-      {/* 후기 전체보기 모달 (필요시 Portal 권장) */}
-      {showReviews && (
-        <ReviewFullModal toilet={toilet} reviews={reviews} onClose={() => setShowReviews(false)} />
-      )}
     </>
   );
 }

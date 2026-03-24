@@ -27,6 +27,7 @@ export function VisitModal({ toilet, onClose, onComplete, checkInTime }: VisitMo
   // AI 관련 상태
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const streamRef = useRef<MediaStream | null>(null);
   const [isCameraActive, setIsCameraActive] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [capturedImage, setCapturedImage] = useState<string | null>(null);
@@ -56,10 +57,8 @@ export function VisitModal({ toilet, onClose, onComplete, checkInTime }: VisitMo
   const startCamera = async () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' }, audio: false });
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream;
-        setIsCameraActive(true);
-      }
+      streamRef.current = stream;   // 스트림 임시 저장
+      setIsCameraActive(true);      // 먼저 video 엘리먼트를 DOM에 마운트
     } catch (err) {
       console.error('카메라 시작 실패:', err);
       alert('카메라 권한이 필요합니다.');
@@ -67,11 +66,14 @@ export function VisitModal({ toilet, onClose, onComplete, checkInTime }: VisitMo
   };
 
   const stopCamera = useCallback(() => {
-    if (videoRef.current && videoRef.current.srcObject) {
-      const stream = videoRef.current.srcObject as MediaStream;
-      stream.getTracks().forEach(track => track.stop());
-      setIsCameraActive(false);
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach(track => track.stop());
+      streamRef.current = null;
     }
+    if (videoRef.current) {
+      videoRef.current.srcObject = null;
+    }
+    setIsCameraActive(false);
   }, []);
 
   const captureAndAnalyze = async () => {
@@ -136,6 +138,13 @@ export function VisitModal({ toilet, onClose, onComplete, checkInTime }: VisitMo
       onClose();
     }
   };
+
+  // isCameraActive가 true가 되면 (video DOM 마운트 후) srcObject 할당
+  useEffect(() => {
+    if (isCameraActive && videoRef.current && streamRef.current) {
+      videoRef.current.srcObject = streamRef.current;
+    }
+  }, [isCameraActive]);
 
   // 카메라 종료 정리
   useEffect(() => {

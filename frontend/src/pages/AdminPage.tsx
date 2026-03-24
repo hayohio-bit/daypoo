@@ -379,6 +379,7 @@ const ToiletsView = () => {
     level: mapScale
   });
 
+  // API 실패 시 fallback으로 MOCK_TOILETS 사용 (UI 깨짐 방지)
   const toilets = apiToilets.length > 0 ? apiToilets : MOCK_TOILETS;
 
   // 1. 지도 초기화
@@ -830,6 +831,7 @@ const AddItemView = ({ setActiveTab }: { setActiveTab: (tab: AdminTab) => void }
 
 // ── Screen: System Logs View ──────────────────────────────────────────
 const LogsView = () => {
+  // TODO: 백엔드 로그 API 연동 시 실제 데이터로 교체 필요 (현재 UI 데모용 mock 데이터)
   const logs = [
     { id: 1, type: 'SECURITY', msg: 'Admin login detected from 192.168.0.1', time: '15:02:11', status: 'OK' },
     { id: 2, type: 'API', msg: 'GET /api/v1/toilets response 200', time: '15:01:45', status: 'OK' },

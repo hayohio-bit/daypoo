@@ -52,7 +52,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
 
   const fetchNotifications = async () => {
     try {
-      const data = await api.get('/api/v1/notifications');
+      const data = await api.get('/notifications');
       setNotifications(data || []);
     } catch (err) {
       console.error('알림 목록 가져오기 실패:', err);
@@ -61,7 +61,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
 
   const markAllAsRead = async () => {
     try {
-      await api.post('/api/v1/notifications/mark-all-read', {});
+      await api.post('/notifications/mark-all-read', {});
       setNotifications(prev => prev.map(n => ({ ...n, isRead: true })));
     } catch (err) {
       console.error('알림 읽음 처리 실패:', err);
@@ -72,7 +72,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
 
   const deleteNotification = async (id: number) => {
     try {
-      await api.delete(`/api/v1/notifications/${id}`);
+      await api.delete(`/notifications/${id}`);
       setNotifications(prev => prev.filter(n => n.id !== id));
     } catch (err) {
       console.error('알림 삭제 실패:', err);

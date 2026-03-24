@@ -48,7 +48,7 @@ export function useGeoTracking(
               lastCheckInRef.current.set(toilet.id, now);
               console.log(`[Fast Check-in] ${toilet.name} 진입 감지 (${Math.round(dist)}m). 체크인 핑 전송.`);
               
-              api.post('/api/v1/records/check-in', {
+              api.post('/records/check-in', {
                 toiletId: Number(toilet.id),
                 latitude: newPos.lat,
                 longitude: newPos.lng

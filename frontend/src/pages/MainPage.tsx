@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Navbar } from '../components/Navbar';
 import { HeroSection } from '../components/HeroSection';
-import { ReportCard } from '../components/ReportCard';
+import { ReportCard } from '../components/ReportCard_Glass';
 import { MapSection } from '../components/MapSection';
 import { Footer } from '../components/Footer';
 import { EmergencyButton } from '../components/EmergencyButton';

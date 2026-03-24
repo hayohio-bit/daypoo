@@ -155,7 +155,7 @@ export function MapPage({ openAuth }: { openAuth: (mode: 'login' | 'signup') => 
 
     try {
       // 3. 백엔드 체크인 호출 (1분 타이머 시작 기준점)
-      const res = await api.post('/api/v1/records/check-in', {
+      const res = await api.post('/records/check-in', {
         toiletId: Number(selectedToilet.id),
         latitude: pos.lat,
         longitude: pos.lng

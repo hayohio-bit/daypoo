@@ -77,8 +77,7 @@ export function PremiumPage() {
 
     setLoading(true);
     try {
-      // 토스페이먼츠 클라이언트 키 (테스트)
-      const tossPayments = await loadTossPayments('test_ck_LlDJaYngroyaax07NxRl3ezGdRpX');
+      const tossPayments = await loadTossPayments(import.meta.env.VITE_TOSS_CLIENT_KEY);
       
       const amount = parseInt(plan.price.replace(/[^0-9]/g, ''));
       
