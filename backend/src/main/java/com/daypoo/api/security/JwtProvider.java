@@ -39,6 +39,20 @@ public class JwtProvider {
         .compact();
   }
 
+  public String createSseToken(String email, String role) {
+    long now = (new Date()).getTime();
+    long SSE_TOKEN_VALIDITY = 30 * 1000; // 30초
+    Date validity = new Date(now + SSE_TOKEN_VALIDITY);
+
+    return Jwts.builder()
+        .subject(email)
+        .claim("role", role)
+        .claim("type", "sse")
+        .signWith(key)
+        .expiration(validity)
+        .compact();
+  }
+
   public String createRegistrationToken(String email, String role) {
     long now = (new Date()).getTime();
     long FIVE_MINUTES = 5 * 60 * 1000;
