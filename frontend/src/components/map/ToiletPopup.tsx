@@ -1,6 +1,10 @@
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Navigation, Star, Clock, Users } from 'lucide-react';
-import { ToiletData } from '../../types/toilet';
+import { X, Navigation, Star, Clock, Users, MessageCircle, Loader2 } from 'lucide-react';
+import { ToiletData, EMOJI_TAG_MAP } from '../../types/toilet';
+import { getReviewSummary, ToiletReviewSummaryResponse } from '../../services/reviewService';
+import { ReviewModal } from './ReviewModal';
+import { ReviewListModal } from './ReviewListModal';
 
 interface GeoPosition {
   lat: number;
@@ -37,6 +41,31 @@ function StarRating({ rating }: { rating: number }) {
 
 
 export function ToiletPopup({ toilet, onClose, onFavoriteToggle, onVisitRequest, userPosition, distanceInMeters }: ToiletPopupProps) {
+  const [reviewSummary, setReviewSummary] = useState<ToiletReviewSummaryResponse | null>(null);
+  const [loadingReviews, setLoadingReviews] = useState(true);
+  const [showReviewModal, setShowReviewModal] = useState(false);
+  const [showReviewListModal, setShowReviewListModal] = useState(false);
+
+  const fetchReviews = async () => {
+    try {
+      setLoadingReviews(true);
+      const summary = await getReviewSummary(Number(toilet.id));
+      setReviewSummary(summary);
+    } catch (error) {
+      console.error('리뷰 요약 조회 실패:', error);
+    } finally {
+      setLoadingReviews(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchReviews();
+  }, [toilet.id]);
+
+  const handleReviewSuccess = () => {
+    fetchReviews(); // 리뷰 작성 성공 시 새로고침
+  };
+
   const openKakaoMap = () => {
     window.open(`https://map.kakao.com/link/to/${encodeURIComponent(toilet.name)},${toilet.lat},${toilet.lng}`, '_blank');
   };
@@ -48,6 +77,19 @@ export function ToiletPopup({ toilet, onClose, onFavoriteToggle, onVisitRequest,
   const distanceText = distanceInMeters < 1000
     ? `${Math.round(distanceInMeters)}m`
     : `${(distanceInMeters / 1000).toFixed(1)}km`;
+
+  const formatTimeAgo = (dateString: string) => {
+    const now = new Date();
+    const date = new Date(dateString);
+    const diffMs = now.getTime() - date.getTime();
+    const diffHours = Math.floor(diffMs / 3600000);
+    const diffDays = Math.floor(diffMs / 86400000);
+
+    if (diffHours < 1) return '방금 전';
+    if (diffHours < 24) return `${diffHours}시간 전`;
+    if (diffDays < 7) return `${diffDays}일 전`;
+    return date.toLocaleDateString('ko-KR', { month: 'short', day: 'numeric' });
+  };
 
   return (
     <>
@@ -128,8 +170,99 @@ export function ToiletPopup({ toilet, onClose, onFavoriteToggle, onVisitRequest,
 
           {/* ── 최근 후기 ── */}
           <div className="px-5 py-4" style={{ borderBottom: '1px solid #eef5f0' }}>
-            <p className="text-sm font-bold mb-2" style={{ color: '#1a2b22' }}>최근 후기</p>
-            <p className="text-sm" style={{ color: '#7a9e8a' }}>리뷰 기능을 준비 중입니다.</p>
+            <div className="flex items-center justify-between mb-3">
+              <p className="text-sm font-bold" style={{ color: '#1a2b22' }}>최근 후기</p>
+              {reviewSummary && reviewSummary.reviewCount > 0 && (
+                <button
+                  onClick={() => setShowReviewListModal(true)}
+                  className="text-xs font-bold px-3 py-1.5 rounded-full transition-all hover:scale-105"
+                  style={{ background: '#e8f3ec', color: '#2D6A4F' }}
+                >
+                  전체 {reviewSummary.reviewCount}개 보기
+                </button>
+              )}
+            </div>
+
+            {loadingReviews ? (
+              <div className="flex items-center justify-center py-6">
+                <Loader2 className="animate-spin" size={20} style={{ color: '#7a9e8a' }} />
+              </div>
+            ) : reviewSummary && reviewSummary.reviewCount > 0 ? (
+              <>
+                {/* AI 요약 */}
+                {reviewSummary.aiSummary && (
+                  <div className="mb-3 p-3 rounded-xl" style={{ background: '#f4faf6' }}>
+                    <div className="flex items-center gap-1.5 mb-1">
+                      <span className="text-xs">✨</span>
+                      <span className="text-xs font-bold" style={{ color: '#2D6A4F' }}>AI 요약</span>
+                    </div>
+                    <p className="text-sm leading-relaxed" style={{ color: '#5a7a6a' }}>
+                      {reviewSummary.aiSummary}
+                    </p>
+                  </div>
+                )}
+
+                {/* 최근 리뷰 3개 */}
+                <div className="space-y-3">
+                  {reviewSummary.recentReviews.slice(0, 3).map((review) => (
+                    <div key={review.id} className="pb-3 border-b last:border-0" style={{ borderColor: '#eef5f0' }}>
+                      <div className="flex items-center justify-between mb-1.5">
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs font-bold" style={{ color: '#1a2b22' }}>{review.userName}</span>
+                          <div className="flex items-center gap-0.5">
+                            {[1, 2, 3, 4, 5].map((i) => (
+                              <Star
+                                key={i}
+                                size={12}
+                                fill={i <= review.rating ? '#E8A838' : 'none'}
+                                stroke={i <= review.rating ? '#E8A838' : '#d4e8db'}
+                              />
+                            ))}
+                          </div>
+                        </div>
+                        <span className="text-xs" style={{ color: '#95a99e' }}>{formatTimeAgo(review.createdAt)}</span>
+                      </div>
+
+                      {review.emojiTags && review.emojiTags.length > 0 && (
+                        <div className="flex flex-wrap gap-1.5 mb-2">
+                          {review.emojiTags.map((tag) => {
+                            const emojiData = EMOJI_TAG_MAP[tag as keyof typeof EMOJI_TAG_MAP];
+                            return emojiData ? (
+                              <span key={tag} className="text-xs px-2 py-0.5 rounded-full" style={{ background: '#f4faf6', color: '#5a7a6a' }}>
+                                {emojiData.emoji} {emojiData.label}
+                              </span>
+                            ) : null;
+                          })}
+                        </div>
+                      )}
+
+                      <p className="text-sm leading-relaxed" style={{ color: '#5a7a6a' }}>{review.comment}</p>
+                    </div>
+                  ))}
+                </div>
+
+                {/* 리뷰 작성 버튼 */}
+                <button
+                  onClick={() => setShowReviewModal(true)}
+                  className="w-full mt-3 py-2.5 rounded-xl flex items-center justify-center gap-2 text-sm font-bold transition-all hover:scale-[1.02]"
+                  style={{ background: '#f4faf6', color: '#2D6A4F' }}
+                >
+                  <MessageCircle size={16} />
+                  후기 남기기
+                </button>
+              </>
+            ) : (
+              <div className="py-6 text-center">
+                <p className="text-sm mb-3" style={{ color: '#7a9e8a' }}>아직 후기가 없어요</p>
+                <button
+                  onClick={() => setShowReviewModal(true)}
+                  className="px-4 py-2.5 rounded-xl text-sm font-bold transition-all hover:scale-[1.02]"
+                  style={{ background: '#1B4332', color: '#fff' }}
+                >
+                  첫 후기 남기기 ✨
+                </button>
+              </div>
+            )}
           </div>
 
           {/* ── 길찾기 버튼 ── */}
@@ -164,6 +297,20 @@ export function ToiletPopup({ toilet, onClose, onFavoriteToggle, onVisitRequest,
         </motion.div>
       </AnimatePresence>
 
+      {showReviewModal && (
+        <ReviewModal
+          toilet={toilet}
+          onClose={() => setShowReviewModal(false)}
+          onSuccess={handleReviewSuccess}
+        />
+      )}
+
+      {showReviewListModal && (
+        <ReviewListModal
+          toilet={toilet}
+          onClose={() => setShowReviewListModal(false)}
+        />
+      )}
     </>
   );
 }
