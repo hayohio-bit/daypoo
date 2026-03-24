@@ -1,5 +1,38 @@
 # 수정 이력 (Modification History)
 
+## 2026-03-24 17:30:00
+- **작업 내용:** 백엔드 시스템 확장성 및 유지보수성 극대화 (Phase 3: 장기 개선 완료)
+- **상세 변경 내역:**
+  - **AOP 기반 공통 관심사 분리:** 
+    - `ServiceLoggingAspect.java`: 서비스 계층의 모든 메서드 호출 시 실행 시간 및 파라미터를 자동 로깅하는 AOP 구현.
+    - `RateLimitAspect.java` & `@RateLimit`: Redis 기반의 처리량 제한(Rate Limiting) 기능을 구현하여 로그인, 회원가입 등 주요 API의 남용 및 공격 방지 환경 구축.
+  - **SSE 분산 환경 최적화:** `NotificationService.java`를 Redis Pub/Sub 구조로 리팩토링. 서버 인스턴스가 여러 대인 환경에서도 실시간 알림이 끊김 없이 사용자에게 전달되도록 분산 메시징 레이어 구축.
+  - **데이터베이스 형상 관리 도입:** 
+    - Flyway 마이그레이션 도입 (`V1__init.sql` 생성).
+    - `application.yml`: `ddl-auto: validate`로 전환하여 운영 환경의 데이터 안전성 확보 및 코드 기반 스키마 동기화 체계 확립.
+- **결과/영향:** 시스템의 가시성(Logging)과 보안(Rate Limit)을 강화하고, 클라우드/분산 환경으로의 확장 준비를 모두 마쳤으며, 데이터베이스 변경 이력을 안전하게 관리할 수 있는 전문적인 백엔드 아키텍처를 완성함.
+
+## 2026-03-24 15:40:00
+- **작업 내용:** 백엔드 구조 개선 및 안정성 고도화 (Phase 2: 중기 개선 완료)
+- **상세 변경 내역:**
+  - **외부 API 추상화:** `ExternalApiConfig.java`를 통해 타임아웃(연결 5s, 읽기 30s)이 설정된 전용 `RestTemplate` 빈을 등록. `spring-retry`를 도입하여 `AiClient`, `GeocodingService` 등 외부 연동 시 일시적 장애에 대한 자동 재시도 로직 적용.
+  - **토큰 무효화 (Logout):** Redis 기반의 블랙리스트 메커니즘 구현. `AuthService.logout` 시 Access Token을 Redis에 등록하고, `JwtAuthenticationFilter`에서 모든 요청마다 블랙리스트 여부를 검증하여 로그아웃된 토큰의 재사용을 원천 차단.
+  - **성능 최적화 (DB & Query):** 
+    - `schema.sql`: `users(email, nickname)`, `poo_records(user_id, created_at)`, `notifications(user_id, is_read)` 등 주요 조회 경로에 인덱스를 추가하여 검색 속도 개선.
+    - **Fetch Join 적용:** `NotificationRepository`, `PooRecordRepository`, `InventoryRepository`에서 연관 엔티티 조회 시 `JOIN FETCH`를 사용하여 N+1 쿼리 문제를 해결하고 전체적인 API 응답 지연 시간 단축.
+  - **비즈니스 로직 강화:** `PooRecordService`에서 기존 '개발 모드(경고 후 통과)' 검증 로직을 제거하고, 실제 반경 이탈(`OUT_OF_RANGE`) 및 체류 시간 미달(`STAY_TIME_NOT_MET`) 시 엄격하게 예외를 발생시키도록 수정. `PooRecordController`의 경로 오타(`api/v1/api/v1`)도 정상화함.
+- **결과/영향:** 시스템의 회복탄력성(Resilience)과 보안성을 동시에 확보하였으며, 데이터베이스 접근 최적화를 통해 대규모 트래픽 상황에서도 안정적인 서비스 제공이 가능하도록 기반을 다짐.
+
+## 2026-03-24 12:45:00
+- **작업 내용:** 백엔드 아키텍처 리팩토링 및 보안 강화 (Phase 1: 단기 개선 완료)
+- **상세 변경 내역:**
+  - **보안 (CORS):** `SecurityConfig.java` 및 `application.yml` 수정. CORS 와일드카드(`*`)를 제거하고 설정 파일(`app.cors.allowed-origins`)을 통해 명시적인 도메인만 허용하도록 개선하여 보안성 강화.
+  - **계층 분리 (Service 도입):** `UserService.java`를 신규 생성하여 Controller에서 `UserRepository`에 직접 접근하던 레이어 위반 문제를 해결. 공통 사용자 조회 로직을 Service 계층으로 캡슐화.
+    - 적용 대상: `NotificationController`, `ShopController`, `SupportController`, `ReportController`, `HealthReportController`.
+  - **예외 처리 표준화:** `NotificationService.java` 등에서 발생하던 `IllegalArgumentException`을 `BusinessException` 체계로 전환하여 전역 에러 응답 규격을 통일함.
+  - **전역 예외 핸들러 보강:** `GlobalExceptionHandler.java`에 `DataIntegrityViolationException`(중복 키), `HttpMessageNotReadableException`(형식이 잘못된 요청) 처리 로직을 추가하고 `ErrorCode.DUPLICATE_KEY` 정의.
+- **결과/영향:** Controller-Service-Repository 간의 명확한 역할 분담을 통해 아키텍처를 정립하고, 보안 취약점 해결 및 일관된 에러 처리로 시스템 안정성을 대폭 향상함.
+
 ## 2026-03-24 11:08:00
 - **작업 내용:** 메인 페이지 AI 건강 리포트 컴포넌트 최종 확정 (Glassmorphism)
 - **상세 변경 내역:**

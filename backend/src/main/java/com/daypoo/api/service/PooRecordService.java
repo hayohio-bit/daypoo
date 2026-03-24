@@ -12,7 +12,6 @@ import com.daypoo.api.global.exception.ErrorCode;
 import com.daypoo.api.mapper.PooRecordMapper;
 import com.daypoo.api.repository.PooRecordRepository;
 import com.daypoo.api.repository.ToiletRepository;
-import com.daypoo.api.repository.UserRepository;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
@@ -32,7 +31,7 @@ public class PooRecordService {
 
   private final PooRecordRepository recordRepository;
   private final ToiletRepository toiletRepository;
-  private final UserRepository userRepository;
+  private final UserService userService;
   private final LocationVerificationService locationVerificationService;
   private final GeocodingService geocodingService;
   private final TitleAchievementService titleAchievementService;
@@ -48,18 +47,12 @@ public class PooRecordService {
   /** 화장실 도착 체크인 담당 */
   @Transactional
   public PooCheckInResponse checkIn(String email, Long toiletId, double lat, double lon) {
-    User user =
-        userRepository
-            .findByEmail(email)
-            .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
+    User user = userService.getByEmail(email);
 
     // 위치 검증 (확대된 150m 반경 사용)
     boolean isNear = locationVerificationService.isWithinAllowedDistance(toiletId, lat, lon);
     if (!isNear) {
-      log.warn(
-          "User {} is outside radius for toilet {} during check-in. Proceeding anyway (dev mode).",
-          email,
-          toiletId);
+      throw new BusinessException(ErrorCode.OUT_OF_RANGE);
     }
 
     // 도착 시간 기록 및 반환 (Fast Check-in 로직 대응)
@@ -81,44 +74,32 @@ public class PooRecordService {
   public PooRecordResponse createRecord(String email, PooRecordCreateRequest request) {
 
     // 1. 엔티티 검증
-    User user =
-        userRepository
-            .findByEmail(email)
-            .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
+    User user = userService.getByEmail(email);
 
     Toilet toilet =
         toiletRepository
             .findById(request.toiletId())
             .orElseThrow(() -> new BusinessException(ErrorCode.ENTITY_NOT_FOUND));
 
-    // 2. 물리적 위치 반경 검증 (개발 환경에서는 경고만 출력)
+    // 2. 물리적 위치 반경 검증
     boolean isNear =
         locationVerificationService.isWithinAllowedDistance(
             request.toiletId(), request.latitude(), request.longitude());
     if (!isNear) {
-      log.warn(
-          "User {} is outside radius for toilet {}. Proceeding anyway (dev mode).",
-          email,
-          request.toiletId());
+      throw new BusinessException(ErrorCode.OUT_OF_RANGE);
     }
 
-    // 2.2 체류 시간 검증 (개발 환경에서는 경고만 출력)
+    // 2.2 체류 시간 검증
     boolean stayedEnough =
         locationVerificationService.hasStayedLongEnough(user.getId(), toilet.getId());
     if (!stayedEnough) {
-      log.warn(
-          "User {} has not stayed long enough at toilet {}. Proceeding anyway (dev mode).",
-          email,
-          request.toiletId());
+      throw new BusinessException(ErrorCode.STAY_TIME_NOT_MET);
     }
 
-    // 3. 레디스 Rate Limiter(어뷰징 체크 - 개발 환경에서는 경고만)
+    // 3. 레디스 Rate Limiter (어뷰징 체크)
     boolean allowed = locationVerificationService.checkAndSetCooldown(user.getId(), toilet.getId());
     if (!allowed) {
-      log.warn(
-          "User {} hit cooldown for toilet {}. Proceeding anyway (dev mode).",
-          email,
-          request.toiletId());
+      throw new BusinessException(ErrorCode.COOLDOWN_ACTIVE);
     }
 
     // 4. AI 분석 (이미지가 있을 경우)
@@ -156,7 +137,6 @@ public class PooRecordService {
 
     // 7. 유저 보상 체계(TX)
     user.addExpAndPoints(REWARD_EXP, REWARD_POINTS);
-    userRepository.save(user); // 포인트 변경 사항 명시적 저장
 
     // 8. 실시간 랭킹 업데이트
     rankingService.updateGlobalRank(user);
@@ -178,10 +158,7 @@ public class PooRecordService {
 
   @Transactional(readOnly = true)
   public Page<PooRecordResponse> getMyRecords(String email, Pageable pageable) {
-    User user =
-        userRepository
-            .findByEmail(email)
-            .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
+    User user = userService.getByEmail(email);
 
     return recordRepository
         .findByUserOrderByCreatedAtDesc(user, pageable)

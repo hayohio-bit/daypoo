@@ -3,7 +3,9 @@
     "allow": [
       "Bash(dir /s \"d:\\\\poop-map\\\\backend\")",
       "Bash(npm run build:*)",
-      "Bash(npx tsc:*)"
+      "Bash(npx tsc:*)",
+      "Bash(wc -l /Users/changjun/Desktop/project/daypoo/backend/src/main/java/com/daypoo/api/controller/*.java)",
+      "Bash(grep -r N+1 /Users/changjun/Desktop/project/daypoo/backend/src/main/java/com/daypoo/api --include=*.java)"
     ]
   }
 }

@@ -4,26 +4,32 @@ import com.daypoo.api.global.GeometryUtil;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.net.URI;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.locationtech.jts.geom.Point;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.HttpEntity;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.HttpMethod;
-import org.springframework.http.ResponseEntity;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.http.*;
+import org.springframework.retry.annotation.Backoff;
+import org.springframework.retry.annotation.Retryable;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.util.UriComponentsBuilder;
 
 @Slf4j
 @Service
-@RequiredArgsConstructor
 public class GeocodingService {
-
   private final RestTemplate restTemplate;
   private final ObjectMapper objectMapper;
   private final GeometryUtil geometryUtil;
+
+  public GeocodingService(
+      @Qualifier("externalRestTemplate") RestTemplate restTemplate,
+      ObjectMapper objectMapper,
+      GeometryUtil geometryUtil) {
+    this.restTemplate = restTemplate;
+    this.objectMapper = objectMapper;
+    this.geometryUtil = geometryUtil;
+  }
 
   @Value("${KAKAO_CLIENT_ID}") // REST API 키로 활용
   private String kakaoApiKey;
@@ -34,6 +40,7 @@ public class GeocodingService {
       "https://dapi.kakao.com/v2/local/geo/coord2regioncode.json";
 
   /** 주소를 받아 위경도 좌표(Point)를 반환합니다. */
+  @Retryable(maxAttempts = 2, backoff = @Backoff(delay = 1000))
   public Point geocodeAddress(String address) {
     if (address == null || address.trim().isEmpty()) {
       return null;
@@ -77,6 +84,7 @@ public class GeocodingService {
   }
 
   /** 위경도 좌표를 받아 행정동 명칭(H)을 반환합니다. */
+  @Retryable(maxAttempts = 2, backoff = @Backoff(delay = 1000))
   public String reverseGeocode(double lat, double lon) {
     try {
       URI uri =

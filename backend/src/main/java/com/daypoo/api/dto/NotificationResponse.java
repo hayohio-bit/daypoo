@@ -7,6 +7,7 @@ import lombok.Builder;
 @Builder
 public record NotificationResponse(
     Long id,
+    Long userId,
     NotificationType type,
     String title,
     String content,

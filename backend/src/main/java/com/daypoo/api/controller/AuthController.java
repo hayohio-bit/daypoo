@@ -7,10 +7,12 @@ import com.daypoo.api.dto.SignUpRequest;
 import com.daypoo.api.dto.SocialSignUpRequest;
 import com.daypoo.api.dto.TokenResponse;
 import com.daypoo.api.dto.UserResponse;
+import com.daypoo.api.global.aop.RateLimit;
 import com.daypoo.api.service.AuthService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -56,6 +58,7 @@ public class AuthController {
   @Operation(summary = "이메일 중복 확인", description = "입력한 이메일의 중복 여부를 확인합니다.")
   @ApiResponse(responseCode = "200", description = "사용 가능한 이메일")
   @ApiResponse(responseCode = "400", description = "이미 존재하는 이메일")
+  @RateLimit(maxAttempts = 10, windowSeconds = 60)
   @GetMapping("/check-email")
   public ResponseEntity<String> checkEmail(@RequestParam String email) {
     authService.checkEmailDuplicate(email);
@@ -65,6 +68,7 @@ public class AuthController {
   @Operation(summary = "닉네임 중복 확인", description = "입력한 닉네임의 중복 여부를 확인합니다.")
   @ApiResponse(responseCode = "200", description = "사용 가능한 닉네임")
   @ApiResponse(responseCode = "400", description = "이미 존재하는 닉네임")
+  @RateLimit(maxAttempts = 10, windowSeconds = 60)
   @GetMapping("/check-nickname")
   public ResponseEntity<String> checkNickname(@RequestParam String nickname) {
     authService.checkNicknameDuplicate(nickname);
@@ -74,6 +78,7 @@ public class AuthController {
   @Operation(summary = "회원가입", description = "아이디, 비밀번호, 닉네임을 입력받아 신규 회원을 등록합니다.")
   @ApiResponse(responseCode = "200", description = "회원가입 성공")
   @ApiResponse(responseCode = "400", description = "잘못된 입력값 또는 중복된 아이디/닉네임")
+  @RateLimit(maxAttempts = 5, windowSeconds = 600)
   @PostMapping("/signup")
   public ResponseEntity<String> signUp(@Valid @RequestBody SignUpRequest request) {
     authService.signUp(request);
@@ -83,6 +88,7 @@ public class AuthController {
   @Operation(summary = "로그인", description = "아이디와 비밀번호를 검증하여 JWT 토큰을 발급합니다.")
   @ApiResponse(responseCode = "200", description = "로그인 성공 및 토큰 발급")
   @ApiResponse(responseCode = "401", description = "인증 실패")
+  @RateLimit(maxAttempts = 5, windowSeconds = 300)
   @PostMapping("/login")
   public ResponseEntity<TokenResponse> login(@Valid @RequestBody LoginRequest request) {
     TokenResponse response = authService.login(request);
@@ -120,8 +126,13 @@ public class AuthController {
   @Operation(summary = "로그아웃", description = "현재 로그아웃 처리를 수행합니다. (서버 측 토큰 무효화 준비)")
   @ApiResponse(responseCode = "200", description = "로그아웃 성공")
   @PostMapping("/logout")
-  public ResponseEntity<String> logout(Authentication authentication) {
-    authService.logout(authentication.getName());
+  public ResponseEntity<String> logout(HttpServletRequest request, Authentication authentication) {
+    String authHeader = request.getHeader("Authorization");
+    String accessToken = null;
+    if (authHeader != null && authHeader.startsWith("Bearer ")) {
+      accessToken = authHeader.substring(7);
+    }
+    authService.logout(authentication.getName(), accessToken);
     return ResponseEntity.ok("로그아웃되었습니다.");
   }
 

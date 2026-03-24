@@ -3,10 +3,8 @@ package com.daypoo.api.controller;
 import com.daypoo.api.dto.*;
 import com.daypoo.api.entity.User;
 import com.daypoo.api.entity.enums.ItemType;
-import com.daypoo.api.global.exception.BusinessException;
-import com.daypoo.api.global.exception.ErrorCode;
-import com.daypoo.api.repository.UserRepository;
 import com.daypoo.api.service.ShopService;
+import com.daypoo.api.service.UserService;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -19,7 +17,7 @@ import org.springframework.web.bind.annotation.*;
 public class ShopController {
 
   private final ShopService shopService;
-  private final UserRepository userRepository;
+  private final UserService userService;
 
   /** 상점 아이템 목록 조회 */
   @GetMapping("/items")
@@ -32,7 +30,7 @@ public class ShopController {
   @PostMapping("/purchase")
   public ResponseEntity<Void> purchaseItem(
       @AuthenticationPrincipal String email, @RequestBody ShopPurchaseRequest request) {
-    User user = getUserByEmail(email);
+    User user = userService.getByEmail(email);
     shopService.purchaseItem(user, request.itemId());
     return ResponseEntity.ok().build();
   }
@@ -41,7 +39,7 @@ public class ShopController {
   @GetMapping("/inventory")
   public ResponseEntity<List<InventoryResponse>> getUserInventory(
       @AuthenticationPrincipal String email) {
-    User user = getUserByEmail(email);
+    User user = userService.getByEmail(email);
     return ResponseEntity.ok(shopService.getUserInventory(user));
   }
 
@@ -49,7 +47,7 @@ public class ShopController {
   @PostMapping("/inventory/{inventoryId}/toggle")
   public ResponseEntity<Void> toggleEquipItem(
       @AuthenticationPrincipal String email, @PathVariable Long inventoryId) {
-    User user = getUserByEmail(email);
+    User user = userService.getByEmail(email);
     shopService.toggleEquipItem(user, inventoryId);
     return ResponseEntity.ok().build();
   }
@@ -57,7 +55,7 @@ public class ShopController {
   /** 전체 칭호 목록 및 유저 보유 여부 조회 */
   @GetMapping("/titles")
   public ResponseEntity<List<TitleResponse>> getAllTitles(@AuthenticationPrincipal String email) {
-    User user = getUserByEmail(email);
+    User user = userService.getByEmail(email);
     return ResponseEntity.ok(shopService.getAllTitles(user));
   }
 
@@ -65,14 +63,8 @@ public class ShopController {
   @PostMapping("/titles/{titleId}/equip")
   public ResponseEntity<Void> equipTitle(
       @AuthenticationPrincipal String email, @PathVariable Long titleId) {
-    User user = getUserByEmail(email);
+    User user = userService.getByEmail(email);
     shopService.equipTitle(user, titleId);
     return ResponseEntity.ok().build();
-  }
-
-  private User getUserByEmail(String email) {
-    return userRepository
-        .findByEmail(email)
-        .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
   }
 }
