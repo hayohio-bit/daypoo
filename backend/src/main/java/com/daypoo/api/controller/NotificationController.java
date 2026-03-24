@@ -2,11 +2,13 @@ package com.daypoo.api.controller;
 
 import com.daypoo.api.dto.NotificationResponse;
 import com.daypoo.api.entity.User;
+import com.daypoo.api.security.JwtProvider;
 import com.daypoo.api.service.NotificationService;
 import com.daypoo.api.service.UserService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import java.util.List;
+import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -22,6 +24,15 @@ public class NotificationController {
 
   private final NotificationService notificationService;
   private final UserService userService;
+  private final JwtProvider jwtProvider;
+
+  @Operation(summary = "SSE 전용 토큰 발급", description = "실시간 알림 구독을 위한 단기 토큰을 발급합니다.")
+  @PostMapping("/sse-token")
+  public ResponseEntity<Map<String, String>> getSseToken(@AuthenticationPrincipal String email) {
+    User user = userService.getByEmail(email);
+    String sseToken = jwtProvider.createSseToken(email, user.getRole().name());
+    return ResponseEntity.ok(Map.of("sseToken", sseToken));
+  }
 
   /** 실시간 알림 구독 (SSE) */
   @GetMapping(value = "/subscribe", produces = MediaType.TEXT_EVENT_STREAM_VALUE)

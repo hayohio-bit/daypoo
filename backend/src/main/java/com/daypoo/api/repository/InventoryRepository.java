@@ -16,4 +16,6 @@ public interface InventoryRepository extends JpaRepository<Inventory, Long> {
   Optional<Inventory> findByUserAndItemId(@Param("user") User user, @Param("itemId") Long itemId);
 
   boolean existsByUserAndItemId(User user, Long itemId);
+
+  boolean existsByItemId(Long itemId);
 }

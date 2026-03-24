@@ -43,7 +43,8 @@ public class NotificationService {
         (message, pattern) -> {
           try {
             String content = new String(message.getBody());
-            NotificationResponse response = objectMapper.readValue(content, NotificationResponse.class);
+            NotificationResponse response =
+                objectMapper.readValue(content, NotificationResponse.class);
             // 모든 로컬 인스턴스에서 해당 유저의 Emitter가 있는지 확인 후 전송
             sendToLocal(response.userId(), response);
           } catch (Exception e) {

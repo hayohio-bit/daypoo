@@ -3,11 +3,16 @@ package com.daypoo.api.repository;
 import com.daypoo.api.dto.ToiletProjection;
 import com.daypoo.api.entity.Toilet;
 import java.util.List;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 public interface ToiletRepository extends JpaRepository<Toilet, Long> {
+
+  Page<Toilet> findByNameContainingOrAddressContaining(
+      String name, String address, Pageable pageable);
 
   @Query(
       value =

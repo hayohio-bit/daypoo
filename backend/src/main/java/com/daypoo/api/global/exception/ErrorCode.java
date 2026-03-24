@@ -35,7 +35,16 @@ public enum ErrorCode {
   AI_SERVICE_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "R003", "AI 분석 서비스 호출에 실패했습니다."),
   NO_RECORDS_FOR_REPORT(HttpStatus.BAD_REQUEST, "R004", "분석할 배변 기록이 없습니다."),
   STAY_TIME_NOT_MET(HttpStatus.BAD_REQUEST, "R005", "화장실 내 체류 시간이 충분하지 않습니다. (최소 60초)"),
-  OUT_OF_RANGE(HttpStatus.BAD_REQUEST, "R006", "화장실 반경 밖에서는 인증할 수 없습니다.");
+  OUT_OF_RANGE(HttpStatus.BAD_REQUEST, "R006", "화장실 반경 밖에서는 인증할 수 없습니다."),
+
+  // Admin
+  ADMIN_USER_NOT_FOUND(HttpStatus.NOT_FOUND, "A001", "사용자를 찾을 수 없습니다."),
+  ADMIN_INQUIRY_NOT_FOUND(HttpStatus.NOT_FOUND, "A002", "문의를 찾을 수 없습니다."),
+  ADMIN_TOILET_NOT_FOUND(HttpStatus.NOT_FOUND, "A003", "화장실을 찾을 수 없습니다."),
+  ADMIN_ITEM_NOT_FOUND(HttpStatus.NOT_FOUND, "A004", "아이템을 찾을 수 없습니다."),
+  ADMIN_INQUIRY_ALREADY_ANSWERED(HttpStatus.BAD_REQUEST, "A005", "이미 답변 완료된 문의입니다."),
+  ADMIN_CANNOT_CHANGE_OWN_ROLE(HttpStatus.BAD_REQUEST, "A006", "자신의 역할은 변경할 수 없습니다."),
+  ADMIN_ITEM_IN_USE(HttpStatus.CONFLICT, "A007", "유저가 보유 중인 아이템은 삭제할 수 없습니다.");
 
   private final HttpStatus status;
   private final String code;

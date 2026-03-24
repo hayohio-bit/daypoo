@@ -14,4 +14,10 @@ public interface PaymentRepository extends JpaRepository<Payment, Long> {
   @Query("SELECT p FROM Payment p WHERE p.createdAt BETWEEN :start AND :end")
   List<Payment> findAllByCreatedAtBetween(
       @Param("start") LocalDateTime start, @Param("end") LocalDateTime end);
+
+  @Query("SELECT COUNT(p) FROM Payment p WHERE p.user.id = :userId")
+  long countByUserId(@Param("userId") Long userId);
+
+  @Query("SELECT SUM(p.amount) FROM Payment p WHERE p.user.id = :userId")
+  Long sumAmountByUserId(@Param("userId") Long userId);
 }
