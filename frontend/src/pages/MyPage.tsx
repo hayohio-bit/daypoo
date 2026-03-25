@@ -1051,6 +1051,30 @@ function ReportTab({ records = [] }: { records?: any[] }) {
             initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -15 }}
             className="space-y-6"
           >
+            {/* 정밀 분석 유도 카드 */}
+            {!isPro && (
+              <motion.div 
+                whileHover={{ scale: 1.01 }}
+                onClick={() => navigate('/premium')}
+                className="rounded-[32px] p-6 cursor-pointer overflow-hidden relative"
+                style={{ background: 'linear-gradient(135deg, #1B4332 0%, #2D6A4F 100%)' }}
+              >
+                <div className="absolute top-0 right-0 w-32 h-32 bg-amber-400/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
+                <div className="flex items-center justify-between gap-4">
+                  <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 rounded-2xl bg-amber-400 flex items-center justify-center shadow-lg shadow-amber-900/30">
+                      <BarChart3 className="text-emerald-950" size={24} />
+                    </div>
+                    <div>
+                      <p className="text-white font-black text-base">7일 정밀 분석 리포트 해제</p>
+                      <p className="text-emerald-200/60 text-xs font-bold">PRO 멤버십으로 모든 통계를 한눈에 확인하세요</p>
+                    </div>
+                  </div>
+                  <ChevronRight className="text-emerald-300" size={20} />
+                </div>
+              </motion.div>
+            )}
+
             <div className="rounded-[40px] p-12 bg-white border border-gray-100 shadow-sm">
               <div className="flex items-center gap-5 mb-10">
                 <div className="w-16 h-16 rounded-[24px] bg-emerald-50 flex items-center justify-center text-emerald-600 shadow-inner">
@@ -1091,30 +1115,6 @@ function ReportTab({ records = [] }: { records?: any[] }) {
                 )}
               </div>
             </div>
-
-            {/* 정밀 분석 유도 카드 */}
-            {!isPro && (
-              <motion.div 
-                whileHover={{ scale: 1.01 }}
-                onClick={() => navigate('/premium')}
-                className="rounded-[32px] p-6 cursor-pointer overflow-hidden relative"
-                style={{ background: 'linear-gradient(135deg, #1B4332 0%, #2D6A4F 100%)' }}
-              >
-                <div className="absolute top-0 right-0 w-32 h-32 bg-amber-400/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
-                <div className="flex items-center justify-between gap-4">
-                  <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 rounded-2xl bg-amber-400 flex items-center justify-center shadow-lg shadow-amber-900/30">
-                      <BarChart3 className="text-emerald-950" size={24} />
-                    </div>
-                    <div>
-                      <p className="text-white font-black text-base">7일 정밀 분석 리포트 해제</p>
-                      <p className="text-emerald-200/60 text-xs font-bold">PRO 멤버십으로 모든 통계를 한눈에 확인하세요</p>
-                    </div>
-                  </div>
-                  <ChevronRight className="text-emerald-300" size={20} />
-                </div>
-              </motion.div>
-            )}
           </motion.div>
         ) : (
           <motion.div

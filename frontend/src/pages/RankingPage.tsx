@@ -388,7 +388,7 @@ function MyRankBar({ data }: { data: any }) {
     <motion.div 
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      className="max-w-5xl mx-auto rounded-[32px] p-8 flex flex-col md:flex-row items-center gap-8 relative overflow-hidden group border border-white/20 shadow-2xl hover:shadow-emerald-900/10 transition-all duration-700 mt-12 mb-12"
+      className="max-w-4xl mx-auto rounded-[32px] p-6 flex flex-col md:flex-row items-center gap-6 relative overflow-hidden group border border-white/20 shadow-2xl hover:shadow-emerald-900/10 transition-all duration-700"
       style={{ 
         background: 'linear-gradient(135deg, #1B4332 0%, #081C15 100%)',
         backdropFilter: 'blur(20px)',
@@ -629,7 +629,7 @@ export function RankingPage({ openAuth }: { openAuth: (mode: 'login' | 'signup')
             </AnimatePresence>
 
             {/* 통계 칩 */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mt-14">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mt-4">
               {[
                 { label: '활성 사용자', value: '1,000', unit: '+' },
                 { 
@@ -650,7 +650,7 @@ export function RankingPage({ openAuth }: { openAuth: (mode: 'login' | 'signup')
                   initial={{ opacity: 0, y: 12 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.3 + i * 0.08 }}
-                  className="rounded-3xl p-6 text-center"
+                  className="rounded-3xl py-4 px-6 text-center"
                   style={{ background: '#FFFFFF', border: '1px solid rgba(0,0,0,0.05)', boxShadow: '0 8px 24px rgba(27,67,50,0.04)' }}
                 >
                   <p className="font-black text-4xl" style={{ color: '#E8A838', letterSpacing: '-0.04em' }}>
@@ -662,7 +662,7 @@ export function RankingPage({ openAuth }: { openAuth: (mode: 'login' | 'signup')
             </div>
 
             {/* 내 순위 카드 (이동됨) */}
-            <div className="mt-16 mb-12">
+            <div className="mt-4 mb-4">
               {myRankData && <MyRankBar data={myRankData} />}
             </div>
           </div>
@@ -673,7 +673,7 @@ export function RankingPage({ openAuth }: { openAuth: (mode: 'login' | 'signup')
 
       {/* ── 랭킹 리스트 ─────────────────────────────────────── */}
       <div className="relative overflow-hidden" style={{ background: '#eef5f0' }}>
-        <section className="pt-16 pb-12 px-6" ref={listRef}>
+        <section className="pt-16 pb-40 px-6" ref={listRef}>
           <div className="max-w-2xl mx-auto">
             <div className="flex items-center justify-between mb-10">
               <h2 className="font-black text-3xl text-[#1A2B27]" style={{ letterSpacing: '-0.03em' }}>
@@ -728,7 +728,7 @@ export function RankingPage({ openAuth }: { openAuth: (mode: 'login' | 'signup')
             </AnimatePresence>
           </div>
         </section>
-
+        <WaveDivider fill="#111e18" />
       </div>
 
       {/* 아이템 팝업 */}

@@ -17,13 +17,14 @@ import {
 import {
   AreaChart, Area, PieChart, Pie, Cell,
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
-  BarChart, Bar
+  BarChart, Bar, RadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis
 } from 'recharts';
 import { useToilets } from '../hooks/useToilets';
 import { ToiletData, MOCK_TOILETS } from '../types/toilet';
 import { api } from '../services/apiClient';
 import {
   AdminUserListResponse,
+  AdminUserDetailResponse,
   AdminInquiryListResponse,
   AdminToiletListResponse,
   PageResponse,
@@ -336,6 +337,10 @@ const UsersView = () => {
   const [page, setPage] = useState(0);
   const [totalPages, setTotalPages] = useState(0);
   const [totalElements, setTotalElements] = useState(0);
+  const [showUserModal, setShowUserModal] = useState(false);
+  const [selectedUser, setSelectedUser] = useState<AdminUserListResponse | null>(null);
+  const [userDetail, setUserDetail] = useState<AdminUserDetailResponse | null>(null);
+  const [loadingDetail, setLoadingDetail] = useState(false);
 
   const fetchUsers = async () => {
     setLoading(true);
@@ -367,6 +372,36 @@ const UsersView = () => {
     fetchUsers();
   };
 
+  const handleOpenUserDetail = async (user: AdminUserListResponse) => {
+    setSelectedUser(user);
+    setShowUserModal(true);
+    setLoadingDetail(true);
+    try {
+      const detail = await api.get<AdminUserDetailResponse>(`/admin/users/${user.id}`);
+      setUserDetail(detail);
+    } catch (error: any) {
+      console.error('유저 상세 조회 실패:', error);
+      console.error('Error response:', error.response);
+      const errorMsg = error.response?.data?.message || error.message || '알 수 없는 오류';
+      alert(`유저 정보를 불러오는데 실패했습니다.\n상세: ${errorMsg}`);
+      setShowUserModal(false); // 에러 시 모달 닫기
+    } finally {
+      setLoadingDetail(false);
+    }
+  };
+
+  const handleUpdateUserRole = async (userId: number, newRole: Role) => {
+    try {
+      await api.patch(`/admin/users/${userId}/role`, { role: newRole });
+      alert('역할이 변경되었습니다.');
+      setShowUserModal(false);
+      fetchUsers(); // 목록 새로고침
+    } catch (error) {
+      console.error('역할 변경 실패:', error);
+      alert('역할 변경에 실패했습니다.');
+    }
+  };
+
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('ko-KR', {
       year: 'numeric',
@@ -393,7 +428,7 @@ const UsersView = () => {
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="이메일 또는 닉네임 검색"
-              className="px-4 py-2.5 rounded-2xl border bg-white/80 backdrop-blur-sm text-sm font-bold focus:ring-2 ring-[#1B4332]/20 outline-none"
+              className="px-4 py-2.5 rounded-2xl border bg-white/80 backdrop-blur-sm text-sm font-bold text-[#1A2B27] focus:ring-2 ring-[#1B4332]/20 outline-none"
             />
             <button type="submit" className="px-5 py-2.5 rounded-2xl bg-[#1B4332] text-white font-black text-xs shadow-lg">
               <Search size={16} />
@@ -449,7 +484,10 @@ const UsersView = () => {
                       <td className="px-8 py-5 font-black text-[#E8A838]">{u.points.toLocaleString()} P</td>
                       <td className="px-8 py-5 font-bold text-black/60">{u.recordCount}건</td>
                       <td className="px-8 py-5 text-right">
-                        <button className="p-2 rounded-xl hover:bg-black/5 text-black/20 hover:text-black/60 transition-colors">
+                        <button
+                          onClick={() => handleOpenUserDetail(u)}
+                          className="p-2 rounded-xl hover:bg-black/5 text-black/20 hover:text-black/60 transition-colors"
+                        >
                           <Settings size={18} />
                         </button>
                       </td>
@@ -484,6 +522,124 @@ const UsersView = () => {
           )}
         </>
       )}
+
+      {/* User Detail Modal */}
+      <AnimatePresence>
+        {showUserModal && selectedUser && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50"
+            onClick={() => setShowUserModal(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              onClick={(e) => e.stopPropagation()}
+              className="bg-white rounded-3xl p-8 max-w-2xl w-full mx-4 shadow-2xl"
+            >
+              <div className="flex items-center justify-between mb-6">
+                <h3 className="text-2xl font-black text-[#1B4332]">유저 상세 정보</h3>
+                <button
+                  onClick={() => setShowUserModal(false)}
+                  className="p-2 rounded-xl hover:bg-black/5 text-black/40 hover:text-black/60 transition-colors"
+                >
+                  <X size={20} />
+                </button>
+              </div>
+
+              {loadingDetail ? (
+                <div className="flex items-center justify-center py-20">
+                  <RefreshCw size={32} className="animate-spin text-[#1B4332]" />
+                </div>
+              ) : userDetail ? (
+                <div className="space-y-6">
+                  {/* User Info Grid */}
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="bg-black/[0.02] rounded-2xl p-4">
+                      <p className="text-xs font-black uppercase tracking-widest text-black/40 mb-2">이메일</p>
+                      <p className="text-sm font-bold text-black/80">{userDetail.email}</p>
+                    </div>
+                    <div className="bg-black/[0.02] rounded-2xl p-4">
+                      <p className="text-xs font-black uppercase tracking-widest text-black/40 mb-2">닉네임</p>
+                      <p className="text-sm font-bold text-black/80">{userDetail.nickname}</p>
+                    </div>
+                    <div className="bg-black/[0.02] rounded-2xl p-4">
+                      <p className="text-xs font-black uppercase tracking-widest text-black/40 mb-2">레벨</p>
+                      <p className="text-sm font-black text-[#2D6A4F]">Lv.{userDetail.level}</p>
+                    </div>
+                    <div className="bg-black/[0.02] rounded-2xl p-4">
+                      <p className="text-xs font-black uppercase tracking-widest text-black/40 mb-2">경험치</p>
+                      <p className="text-sm font-bold text-black/80">{userDetail.exp?.toLocaleString() || 0} EXP</p>
+                    </div>
+                    <div className="bg-black/[0.02] rounded-2xl p-4">
+                      <p className="text-xs font-black uppercase tracking-widest text-black/40 mb-2">포인트</p>
+                      <p className="text-sm font-black text-[#E8A838]">{userDetail.points.toLocaleString()} P</p>
+                    </div>
+                    <div className="bg-black/[0.02] rounded-2xl p-4">
+                      <p className="text-xs font-black uppercase tracking-widest text-black/40 mb-2">기록 수</p>
+                      <p className="text-sm font-bold text-black/80">{userDetail.recordCount}건</p>
+                    </div>
+                    <div className="bg-black/[0.02] rounded-2xl p-4">
+                      <p className="text-xs font-black uppercase tracking-widest text-black/40 mb-2">결제 횟수</p>
+                      <p className="text-sm font-bold text-black/80">{userDetail.paymentCount || 0}회</p>
+                    </div>
+                    <div className="bg-black/[0.02] rounded-2xl p-4">
+                      <p className="text-xs font-black uppercase tracking-widest text-black/40 mb-2">총 결제 금액</p>
+                      <p className="text-sm font-bold text-black/80">{userDetail.totalPaymentAmount?.toLocaleString() || 0}원</p>
+                    </div>
+                    <div className="bg-black/[0.02] rounded-2xl p-4">
+                      <p className="text-xs font-black uppercase tracking-widest text-black/40 mb-2">가입일</p>
+                      <p className="text-sm font-bold text-black/80">{formatDate(userDetail.createdAt)}</p>
+                    </div>
+                    <div className="bg-black/[0.02] rounded-2xl p-4">
+                      <p className="text-xs font-black uppercase tracking-widest text-black/40 mb-2">최근 수정일</p>
+                      <p className="text-sm font-bold text-black/80">{formatDate(userDetail.updatedAt)}</p>
+                    </div>
+                  </div>
+
+                  {/* Role Change */}
+                  <div className="bg-black/[0.02] rounded-2xl p-6">
+                    <p className="text-xs font-black uppercase tracking-widest text-black/40 mb-4">역할 변경</p>
+                    <div className="flex items-center gap-4">
+                      <div className="flex-1">
+                        <p className="text-sm font-bold text-black/60 mb-2">현재 역할</p>
+                        <span className={`inline-block text-xs font-black px-3 py-1.5 rounded-lg ${
+                          userDetail.role === 'ROLE_ADMIN'
+                            ? 'bg-red-100 text-red-600'
+                            : 'bg-black/5 text-black/40'
+                        }`}>
+                          {userDetail.role === 'ROLE_ADMIN' ? 'ADMIN' : 'USER'}
+                        </span>
+                      </div>
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => handleUpdateUserRole(userDetail.id, 'ROLE_USER')}
+                          disabled={userDetail.role === 'ROLE_USER'}
+                          className="px-4 py-2 rounded-xl bg-black/5 text-black/60 text-xs font-black hover:bg-black/10 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                        >
+                          USER로 변경
+                        </button>
+                        <button
+                          onClick={() => handleUpdateUserRole(userDetail.id, 'ROLE_ADMIN')}
+                          disabled={userDetail.role === 'ROLE_ADMIN'}
+                          className="px-4 py-2 rounded-xl bg-red-100 text-red-600 text-xs font-black hover:bg-red-200 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                        >
+                          ADMIN으로 변경
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <p className="text-center text-black/40 py-10">유저 정보를 불러올 수 없습니다.</p>
+              )}
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };
@@ -569,7 +725,10 @@ const RecentToiletsPanel = () => {
           </div>
         )}
         <div className="mt-8 pt-6 border-t border-dashed">
-          <button className="w-full py-4 rounded-2xl border-2 border-dashed border-black/10 text-[11px] font-black text-black/30 hover:bg-black/[0.02] transition-colors">
+          <button
+            onClick={() => alert('전체 화장실 목록 기능은 준비 중입니다.')}
+            className="w-full py-4 rounded-2xl border-2 border-dashed border-black/10 text-[11px] font-black text-black/30 hover:bg-black/[0.02] hover:border-[#1B4332]/20 hover:text-[#1B4332]/60 transition-colors"
+          >
             전체 화장실 목록 보기
           </button>
         </div>
@@ -621,7 +780,7 @@ const ToiletsView = () => {
     });
   }, []);
 
-  // 2. 마كر 업데이트
+  // 2. 마커 업데이트
   useEffect(() => {
     if (!mapRef.current || !toilets) return;
     const { kakao } = window as any;
@@ -712,14 +871,14 @@ const ToiletsView = () => {
                          </div>
                          <div>
                            <div className="flex items-center gap-2 mb-1">
-                             <h4 className="text-lg font-black">{selectedToilet.name}</h4>
-                             <span className="text-[10px] bg-black/5 px-2 py-0.5 rounded-md font-bold text-black/40">ID: {selectedToilet.id}</span>
+                             <h4 className="text-lg font-black text-[#1A2B27]">{selectedToilet.name}</h4>
+                             <span className="text-[10px] bg-black/5 px-2 py-0.5 rounded-md font-bold text-black/60">ID: {selectedToilet.id}</span>
                            </div>
-                           <p className="text-sm text-black/40 font-bold">{selectedToilet.roadAddress}</p>
+                           <p className="text-sm text-black/60 font-bold">{selectedToilet.roadAddress}</p>
                            <div className="flex items-center gap-2 mt-2">
                              <div className="flex gap-0.5 text-[#E8A838]">
                                <Star size={14} fill="currentColor" />
-                               <span className="text-xs font-black ml-1">{selectedToilet.rating || 0}</span>
+                               <span className="text-xs font-black ml-1 text-[#1A2B27]">{selectedToilet.rating || 0}</span>
                              </div>
                              <span className="text-[10px] text-black/20 font-black uppercase italic tracking-widest">Global Master Data</span>
                            </div>
@@ -733,11 +892,11 @@ const ToiletsView = () => {
                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                        <div className="p-4 rounded-2xl bg-black/[0.02] border">
                          <p className="text-[10px] font-black text-black/30 mb-1">개방 시간</p>
-                         <p className="text-xs font-black">{selectedToilet.openTime || '24시간'}</p>
+                          <p className="text-xs font-black text-[#1A2B27]">{selectedToilet.openTime || '24시간'}</p>
                        </div>
                        <div className="p-4 rounded-2xl bg-black/[0.02] border">
                          <p className="text-[10px] font-black text-black/30 mb-1">방문 횟수</p>
-                         <p className="text-xs font-black">{(selectedToilet.reviewCount || 0) * 12}회 (추산)</p>
+                          <p className="text-xs font-black text-[#1A2B27]">{(selectedToilet.reviewCount || 0) * 12}회 (추산)</p>
                        </div>
                        <div className="p-4 rounded-2xl bg-black/[0.02] border">
                          <p className="text-[10px] font-black text-black/30 mb-1">상태</p>
@@ -768,6 +927,12 @@ const CsView = () => {
   const [page, setPage] = useState(0);
   const [totalPages, setTotalPages] = useState(0);
   const [pendingCount, setPendingCount] = useState(0);
+  const [showInquiryModal, setShowInquiryModal] = useState(false);
+  const [selectedInquiry, setSelectedInquiry] = useState<AdminInquiryListResponse | null>(null);
+  const [inquiryDetail, setInquiryDetail] = useState<AdminInquiryDetailResponse | null>(null);
+  const [loadingDetail, setLoadingDetail] = useState(false);
+  const [answerText, setAnswerText] = useState('');
+  const [submittingAnswer, setSubmittingAnswer] = useState(false);
 
   const fetchInquiries = async () => {
     setLoading(true);
@@ -810,6 +975,45 @@ const CsView = () => {
     return `${diffDays}일 전`;
   };
 
+  const handleOpenInquiryDetail = async (inquiry: AdminInquiryListResponse) => {
+    setSelectedInquiry(inquiry);
+    setShowInquiryModal(true);
+    setLoadingDetail(true);
+    setAnswerText('');
+    try {
+      const detail = await api.get<AdminInquiryDetailResponse>(`/admin/inquiries/${inquiry.id}`);
+      setInquiryDetail(detail);
+      if (detail.answer) {
+        setAnswerText(detail.answer);
+      }
+    } catch (error) {
+      console.error('문의 상세 조회 실패:', error);
+      alert('문의 정보를 불러오는데 실패했습니다.');
+    } finally {
+      setLoadingDetail(false);
+    }
+  };
+
+  const handleSubmitAnswer = async () => {
+    if (!inquiryDetail || !answerText.trim()) {
+      alert('답변 내용을 입력해주세요.');
+      return;
+    }
+
+    setSubmittingAnswer(true);
+    try {
+      await api.post(`/admin/inquiries/${inquiryDetail.id}/answer`, { answer: answerText });
+      alert('답변이 등록되었습니다.');
+      setShowInquiryModal(false);
+      fetchInquiries(); // 목록 새로고침
+    } catch (error) {
+      console.error('답변 등록 실패:', error);
+      alert('답변 등록에 실패했습니다.');
+    } finally {
+      setSubmittingAnswer(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
        <div className="flex items-center justify-between mb-4">
@@ -823,7 +1027,7 @@ const CsView = () => {
                 className={`px-4 py-2 rounded-xl font-bold text-xs transition-all ${
                    filter === 'ALL'
                       ? 'bg-[#1B4332] text-white shadow-lg'
-                      : 'bg-white border hover:bg-black/5'
+                      : 'bg-white border border-gray-300 text-gray-700 hover:bg-black/5 hover:border-[#1B4332]/40'
                 }`}
              >
                 전체
@@ -833,7 +1037,7 @@ const CsView = () => {
                 className={`px-4 py-2 rounded-xl font-bold text-xs transition-all ${
                    filter === 'PENDING'
                       ? 'bg-red-500 text-white shadow-lg'
-                      : 'bg-white border hover:bg-black/5'
+                      : 'bg-white border border-gray-300 text-gray-700 hover:bg-red-50 hover:border-red-400'
                 }`}
              >
                 미답변 {pendingCount > 0 && `(${pendingCount})`}
@@ -843,7 +1047,7 @@ const CsView = () => {
                 className={`px-4 py-2 rounded-xl font-bold text-xs transition-all ${
                    filter === 'COMPLETED'
                       ? 'bg-green-600 text-white shadow-lg'
-                      : 'bg-white border hover:bg-black/5'
+                      : 'bg-white border border-gray-300 text-gray-700 hover:bg-green-50 hover:border-green-400'
                 }`}
              >
                 답변 완료
@@ -892,7 +1096,10 @@ const CsView = () => {
                                   </span>
                                </td>
                                <td className="px-8 py-5 text-right">
-                                  <button className="px-3 py-1.5 rounded-xl bg-[#1B4332] text-white text-xs font-black hover:bg-[#2D6A4F] transition-colors">
+                                  <button
+                                     onClick={() => handleOpenInquiryDetail(inq)}
+                                     className="px-3 py-1.5 rounded-xl bg-[#1B4332] text-white text-xs font-black hover:bg-[#2D6A4F] transition-colors"
+                                  >
                                      {inq.status === 'PENDING' ? '답변하기' : '상세보기'}
                                   </button>
                                </td>
@@ -927,6 +1134,113 @@ const CsView = () => {
              )}
           </>
        )}
+
+       {/* Inquiry Detail Modal */}
+       <AnimatePresence>
+         {showInquiryModal && selectedInquiry && (
+           <motion.div
+             initial={{ opacity: 0 }}
+             animate={{ opacity: 1 }}
+             exit={{ opacity: 0 }}
+             className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50"
+             onClick={() => setShowInquiryModal(false)}
+           >
+             <motion.div
+               initial={{ scale: 0.9, opacity: 0 }}
+               animate={{ scale: 1, opacity: 1 }}
+               exit={{ scale: 0.9, opacity: 0 }}
+               onClick={(e) => e.stopPropagation()}
+               className="bg-white rounded-3xl p-8 max-w-3xl w-full mx-4 shadow-2xl max-h-[90vh] overflow-y-auto"
+             >
+               <div className="flex items-center justify-between mb-6">
+                 <h3 className="text-2xl font-black text-[#1B4332]">문의 상세</h3>
+                 <button
+                   onClick={() => setShowInquiryModal(false)}
+                   className="p-2 rounded-xl hover:bg-black/5 text-black/40 hover:text-black/60 transition-colors"
+                 >
+                   <X size={20} />
+                 </button>
+               </div>
+
+               {loadingDetail ? (
+                 <div className="flex items-center justify-center py-20">
+                   <RefreshCw size={32} className="animate-spin text-[#1B4332]" />
+                 </div>
+               ) : inquiryDetail ? (
+                 <div className="space-y-6">
+                   {/* Inquiry Info */}
+                   <div className="grid grid-cols-2 gap-4">
+                     <div className="bg-black/[0.02] rounded-2xl p-4">
+                       <p className="text-xs font-black uppercase tracking-widest text-black/40 mb-2">문의자</p>
+                       <p className="text-sm font-bold text-black/80">{inquiryDetail.userName}</p>
+                       <p className="text-xs text-black/40 mt-1">{inquiryDetail.userEmail}</p>
+                     </div>
+                     <div className="bg-black/[0.02] rounded-2xl p-4">
+                       <p className="text-xs font-black uppercase tracking-widest text-black/40 mb-2">문의 유형</p>
+                       <p className="text-sm font-bold text-black/80">{inquiryDetail.type}</p>
+                     </div>
+                     <div className="bg-black/[0.02] rounded-2xl p-4">
+                       <p className="text-xs font-black uppercase tracking-widest text-black/40 mb-2">등록일</p>
+                       <p className="text-sm font-bold text-black/80">{new Date(inquiryDetail.createdAt).toLocaleString('ko-KR')}</p>
+                     </div>
+                     <div className="bg-black/[0.02] rounded-2xl p-4">
+                       <p className="text-xs font-black uppercase tracking-widest text-black/40 mb-2">상태</p>
+                       <span className={`inline-block text-xs font-black px-3 py-1.5 rounded-lg ${
+                         inquiryDetail.status === 'PENDING'
+                           ? 'bg-red-100 text-red-600'
+                           : 'bg-green-100 text-green-600'
+                       }`}>
+                         {inquiryDetail.status === 'PENDING' ? '미답변' : '답변 완료'}
+                       </span>
+                     </div>
+                   </div>
+
+                   {/* Inquiry Content */}
+                   <div className="bg-black/[0.02] rounded-2xl p-6">
+                     <p className="text-xs font-black uppercase tracking-widest text-black/40 mb-3">제목</p>
+                     <p className="text-base font-bold text-black mb-4">{inquiryDetail.title}</p>
+                     <p className="text-xs font-black uppercase tracking-widest text-black/40 mb-3">문의 내용</p>
+                     <p className="text-sm text-black/70 whitespace-pre-wrap leading-relaxed">{inquiryDetail.content}</p>
+                   </div>
+
+                   {/* Answer Section */}
+                   <div className="bg-black/[0.02] rounded-2xl p-6">
+                     <p className="text-xs font-black uppercase tracking-widest text-black/40 mb-3">답변</p>
+                     {inquiryDetail.status === 'PENDING' ? (
+                       <div className="space-y-4">
+                         <textarea
+                           value={answerText}
+                           onChange={(e) => setAnswerText(e.target.value)}
+                           placeholder="답변 내용을 입력하세요..."
+                           className="w-full h-40 px-4 py-3 rounded-2xl border bg-white text-sm text-black/80 focus:ring-2 ring-[#1B4332]/20 outline-none resize-none"
+                         />
+                         <button
+                           onClick={handleSubmitAnswer}
+                           disabled={submittingAnswer || !answerText.trim()}
+                           className="w-full py-3 bg-[#1B4332] text-white rounded-2xl font-black text-sm hover:bg-[#2D6A4F] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                         >
+                           {submittingAnswer ? '등록 중...' : '답변 등록'}
+                         </button>
+                       </div>
+                     ) : (
+                       <div className="space-y-3">
+                         <p className="text-sm text-black/70 whitespace-pre-wrap leading-relaxed bg-white rounded-xl p-4">
+                           {inquiryDetail.answer || '답변이 없습니다.'}
+                         </p>
+                         <p className="text-xs text-black/40">
+                           답변일: {new Date(inquiryDetail.updatedAt).toLocaleString('ko-KR')}
+                         </p>
+                       </div>
+                     )}
+                   </div>
+                 </div>
+               ) : (
+                 <p className="text-center text-black/40 py-10">문의 정보를 불러올 수 없습니다.</p>
+               )}
+             </motion.div>
+           </motion.div>
+         )}
+       </AnimatePresence>
     </div>
   );
 };
@@ -987,9 +1301,8 @@ const StoreView = ({ setActiveTab }: { setActiveTab: (tab: AdminTab) => void }) 
 
   const getItemTypeLabel = (type: ItemType) => {
     switch (type) {
-      case 'TITLE': return '칭호';
-      case 'AVATAR': return '아바타';
-      case 'EFFECT': return '이펙트';
+      case 'AVATAR_SKIN': return '아바타 스킨';
+      case 'MARKER_SKIN': return '마커 스킨';
       default: return type;
     }
   };
@@ -1003,7 +1316,7 @@ const StoreView = ({ setActiveTab }: { setActiveTab: (tab: AdminTab) => void }) 
                 <span className="font-black text-[#E8A838]">{totalElements}개</span>
              </GlassCard>
              <div className="flex gap-2">
-                {(['ALL', 'TITLE', 'AVATAR', 'EFFECT'] as const).map((type) => (
+                {(['ALL', 'AVATAR_SKIN', 'MARKER_SKIN'] as const).map((type) => (
                    <button
                       key={type}
                       onClick={() => setFilter(type)}
@@ -1111,87 +1424,186 @@ const StoreView = ({ setActiveTab }: { setActiveTab: (tab: AdminTab) => void }) 
 
 // ── Screen: System Settings ───────────────────────────────────────────
 const SystemView = () => {
+  const systemMetrics = [
+    { subject: '사용자 인터페이스', value: 120, fullMark: 150 },
+    { subject: '성능', value: 135, fullMark: 150 },
+    { subject: '보안', value: 128, fullMark: 150 },
+    { subject: '기능', value: 110, fullMark: 150 },
+    { subject: '사용 편의성', value: 125, fullMark: 150 },
+    { subject: '지원', value: 95, fullMark: 150 },
+  ];
+
+  const healthMetrics = [
+    { label: '가동 시간', value: '99.98%', color: '#1B4332', icon: <Activity size={18} /> },
+    { label: '응답 시간', value: '14ms', color: '#E8A838', icon: <Zap size={18} /> },
+    { label: '활성 사용자', value: '1,247', color: '#3B82F6', icon: <Users size={18} /> },
+    { label: '분당 요청', value: '8.5K', color: '#52b788', icon: <TrendingUp size={18} /> },
+  ];
+
   return (
-    <div className="space-y-6">
-       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div className="lg:col-span-2 space-y-6">
-             <GlassCard>
-                <h4 className="text-xl font-black mb-6 text-black">서버 리소스 인프라 필터</h4>
-                <div className="h-[240px] w-full">
-                   <ResponsiveContainer width="100%" height="100%">
-                      <BarChart data={[
-                         { name: 'Node 1', val: 78, color: '#1B4332' },
-                         { name: 'Node 2', val: 92, color: '#FF4B4B' },
-                         { name: 'Node 3', val: 45, color: '#E8A838' },
-                         { name: 'Redis', val: 88, color: '#3B82F6' },
-                         { name: 'PostGIS', val: 65, color: '#52b788' },
-                      ]}>
-                         <CartesianGrid strokeDasharray="3 3" vertical={false} strokeOpacity={0.05} />
-                         <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 10, fontStyle: 'italic', fontWeight: 'bold' }} />
-                         <Tooltip cursor={{ fill: 'transparent' }} content={({ active, payload }: any) => {
-                            if (active && payload && payload.length) {
-                               return (
-                                  <div className="bg-white p-3 rounded-xl border-4 border-black/5 shadow-2xl font-black text-xs text-black">
-                                     {payload[0].value}% 부하 발생 중
-                                  </div>
-                               );
-                            }
-                            return null;
-                         }} />
-                         <Bar dataKey="val" radius={[8, 8, 8, 8]} barSize={40}>
-                            {
-                               [1, 2, 3, 4, 5].map((_, i) => (
-                                  <Cell key={`cell-${i}`} fillOpacity={0.8} fill={['#1B4332', '#FF4B4B', '#E8A838', '#3B82F6', '#52b788'][i]} />
-                               ))
-                            }
-                         </Bar>
-                      </BarChart>
-                   </ResponsiveContainer>
-                </div>
-             </GlassCard>
+    <div className="space-y-4">
+      <div className="mb-4">
+        <h3 className="text-xl font-black text-black">시스템 성능 분석</h3>
+        <p className="text-xs text-black/70 font-bold mt-0.5">실시간 시스템 지표 모니터링</p>
+      </div>
 
-             <GlassCard>
-                <h4 className="text-xl font-black mb-6 text-black">보안 프로토콜 제어</h4>
-                <div className="divide-y" style={{ borderColor: COLORS.border }}>
-                   {[
-                      { label: '2단계 인증(MFA) 강제 적용', desc: '모든 관리자 로그인 시 모바일 인증 필수', active: true },
-                      { label: 'IP 화이트리스트 필터링', desc: '사내 지정 IP 대역 외 접근 전면 차단', active: false },
-                      { label: '데이터 자동 백업 주기', desc: '매일 새벽 04:00 증분 백업 실행 중', active: true },
-                   ].map((item, i) => (
-                      <div key={i} className="py-5 flex items-center justify-between">
-                         <div>
-                            <p className="font-black text-sm text-black">{item.label}</p>
-                            <p className="text-xs text-black/60 font-bold">{item.desc}</p>
-                         </div>
-                         <div className={`w-12 h-6 rounded-full transition-all relative ${item.active ? 'bg-[#1B4332]' : 'bg-black/10'}`}>
-                            <div className={`absolute top-1 w-4 h-4 rounded-full bg-white transition-all ${item.active ? 'right-1' : 'left-1'}`} />
-                         </div>
+      <div className="grid grid-cols-1 lg:grid-cols-5 gap-4">
+        {/* Radar Chart - Main Visual */}
+        <div className="lg:col-span-3">
+          <GlassCard className="h-full">
+            <div className="flex items-center justify-between mb-4">
+              <h4 className="text-base font-black text-black">시스템 성능 레이더</h4>
+              <div className="px-2.5 py-1 rounded-lg bg-green-100 text-green-700 text-xs font-black">
+                최적
+              </div>
+            </div>
+            <div className="h-[340px] w-full flex items-center justify-center">
+              <ResponsiveContainer width="100%" height="100%">
+                <RadarChart data={systemMetrics}>
+                  <PolarGrid stroke="#1B4332" strokeOpacity={0.12} />
+                  <PolarAngleAxis
+                    dataKey="subject"
+                    tick={{ fill: '#1A2B27', fontSize: 12, fontWeight: 'bold' }}
+                  />
+                  <PolarRadiusAxis
+                    angle={90}
+                    domain={[0, 150]}
+                    tick={{ fill: '#1A2B27', fontSize: 10 }}
+                  />
+                  <Radar
+                    name="시스템 지표"
+                    dataKey="value"
+                    stroke="#1B4332"
+                    fill="#1B4332"
+                    fillOpacity={0.6}
+                    strokeWidth={2}
+                  />
+                  <Tooltip
+                    content={({ active, payload }: any) => {
+                      if (active && payload && payload.length) {
+                        return (
+                          <div className="bg-white p-3 rounded-xl border shadow-xl">
+                            <p className="font-black text-sm text-[#1B4332]">
+                              {payload[0].payload.subject}
+                            </p>
+                            <p className="text-2xl font-black text-[#E8A838] mt-1">
+                              {payload[0].value}
+                              <span className="text-xs text-black/60 ml-1">
+                                / {payload[0].payload.fullMark}
+                              </span>
+                            </p>
+                          </div>
+                        );
+                      }
+                      return null;
+                    }}
+                  />
+                </RadarChart>
+              </ResponsiveContainer>
+            </div>
+          </GlassCard>
+        </div>
+
+        {/* Health Metrics - Side Panel */}
+        <div className="lg:col-span-2 space-y-4">
+          <GlassCard>
+            <div className="mb-4 p-3 rounded-xl bg-gradient-to-br from-[#1B4332] to-[#2D6A4F] inline-block">
+              <Shield size={24} className="text-white" />
+            </div>
+            <h4 className="text-base font-black mb-1.5 text-[#1B4332]">시스템 상태</h4>
+            <p className="text-xs text-black/70 font-bold mb-4">
+              모든 서비스가 정상 작동 중입니다
+            </p>
+            <div className="space-y-2.5">
+              {healthMetrics.map((metric, idx) => (
+                <div
+                  key={idx}
+                  className="p-3 rounded-lg bg-gradient-to-r from-black/[0.02] to-transparent border border-black/5 hover:border-[#1B4332]/20 transition-all"
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2.5">
+                      <div
+                        className="p-1.5 rounded-lg"
+                        style={{ backgroundColor: `${metric.color}15`, color: metric.color }}
+                      >
+                        {metric.icon}
                       </div>
-                   ))}
+                      <div>
+                        <p className="text-[10px] font-black uppercase text-black/50 tracking-wide">
+                          {metric.label}
+                        </p>
+                        <p className="text-lg font-black text-black mt-0.5">{metric.value}</p>
+                      </div>
+                    </div>
+                  </div>
                 </div>
-             </GlassCard>
-          </div>
+              ))}
+            </div>
+          </GlassCard>
 
-          <div className="space-y-6">
-             <GlassCard className="border shadow-[0_20px_50px_rgba(27,67,50,0.1)]">
-                <div className="mb-8 p-4 rounded-2xl bg-[#1B4332]/5 inline-block">
-                   <Shield size={32} className="text-[#E8A838]" />
+          <GlassCard>
+            <h4 className="text-sm font-black mb-3 text-black">서비스 상태</h4>
+            <div className="space-y-2">
+              {[
+                { label: '데이터베이스', status: '연결됨', color: 'green' },
+                { label: '레디스 캐시', status: '활성', color: 'green' },
+                { label: 'API 게이트웨이', status: '실행 중', color: 'green' },
+                { label: '파일 저장소', status: '사용 가능', color: 'green' },
+              ].map((item, i) => (
+                <div key={i} className="flex items-center justify-between py-1.5">
+                  <span className="text-xs font-bold text-black/70">{item.label}</span>
+                  <div className="flex items-center gap-2">
+                    <div className={`w-2 h-2 rounded-full bg-${item.color}-500 animate-pulse`} />
+                    <span className="text-xs font-black text-green-600">{item.status}</span>
+                  </div>
                 </div>
-                <h4 className="text-2xl font-black mb-2 tracking-tighter text-[#1B4332]">System Health</h4>
-                <p className="text-[#2D6A4F] text-sm font-bold mb-8">모든 서비스 엔진이 정상 범주 내에서 응답하고 있습니다.</p>
-                <div className="space-y-4">
-                   <div className="p-4 rounded-2xl bg-[#1B4332]/5 border border-[#1B4332]/10">
-                      <p className="text-[10px] font-black uppercase text-[#E8A838] mb-2 tracking-widest">Uptime</p>
-                      <p className="text-3xl font-black tracking-tighter text-[#1B4332]">99.98<span className="text-sm font-bold ml-1 text-[#2D6A4F]">%</span></p>
-                   </div>
-                   <div className="p-4 rounded-2xl bg-[#1B4332]/5 border border-[#1B4332]/10">
-                      <p className="text-[10px] font-black uppercase text-[#E8A838] mb-2 tracking-widest">Latent Response</p>
-                      <p className="text-3xl font-black tracking-tighter text-[#1B4332]">14<span className="text-sm font-bold ml-1 text-[#2D6A4F]">ms</span></p>
-                   </div>
-                </div>
-             </GlassCard>
+              ))}
+            </div>
+          </GlassCard>
+        </div>
+      </div>
+
+      {/* Additional Info Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <GlassCard className="border-l-4 border-l-[#1B4332]">
+          <div className="flex items-start gap-3">
+            <div className="p-2.5 rounded-xl bg-[#1B4332]/10">
+              <Activity size={22} className="text-[#1B4332]" />
+            </div>
+            <div>
+              <p className="text-[11px] font-black uppercase text-black/50 mb-0.5">CPU 사용률</p>
+              <p className="text-2xl font-black text-black">32.5%</p>
+              <p className="text-xs text-black/70 font-bold mt-0.5">4코어 평균</p>
+            </div>
           </div>
-       </div>
+        </GlassCard>
+
+        <GlassCard className="border-l-4 border-l-[#E8A838]">
+          <div className="flex items-start gap-3">
+            <div className="p-2.5 rounded-xl bg-[#E8A838]/10">
+              <Activity size={22} className="text-[#E8A838]" />
+            </div>
+            <div>
+              <p className="text-[11px] font-black uppercase text-black/50 mb-0.5">메모리</p>
+              <p className="text-2xl font-black text-black">8.2 GB</p>
+              <p className="text-xs text-black/70 font-bold mt-0.5">전체 16GB 중</p>
+            </div>
+          </div>
+        </GlassCard>
+
+        <GlassCard className="border-l-4 border-l-[#3B82F6]">
+          <div className="flex items-start gap-3">
+            <div className="p-2.5 rounded-xl bg-[#3B82F6]/10">
+              <Activity size={22} className="text-[#3B82F6]" />
+            </div>
+            <div>
+              <p className="text-[11px] font-black uppercase text-black/50 mb-0.5">디스크 I/O</p>
+              <p className="text-2xl font-black text-black">245 MB/s</p>
+              <p className="text-xs text-black/70 font-bold mt-0.5">읽기/쓰기 속도</p>
+            </div>
+          </div>
+        </GlassCard>
+      </div>
     </div>
   );
 };
@@ -1199,6 +1611,54 @@ const SystemView = () => {
 
 // ── Screen: Add Item Form ─────────────────────────────────────────────
 const AddItemView = ({ setActiveTab }: { setActiveTab: (tab: AdminTab) => void }) => {
+  const [itemName, setItemName] = useState('');
+  const [itemDescription, setItemDescription] = useState('');
+  const [itemType, setItemType] = useState<ItemType>('AVATAR_SKIN');
+  const [itemPrice, setItemPrice] = useState<number>(0);
+  const [itemImageUrl, setItemImageUrl] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const handleSubmit = async () => {
+    // 유효성 검사
+    if (!itemName.trim()) {
+      alert('아이템 명칭을 입력해주세요.');
+      return;
+    }
+    if (!itemDescription.trim()) {
+      alert('아이템 설명을 입력해주세요.');
+      return;
+    }
+    if (itemPrice < 0) {
+      alert('가격은 0 이상이어야 합니다.');
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      await api.post('/admin/shop/items', {
+        name: itemName,
+        description: itemDescription,
+        type: itemType,
+        price: itemPrice,
+        imageUrl: itemImageUrl || null
+      });
+      alert('아이템이 등록되었습니다.');
+      // 폼 초기화
+      setItemName('');
+      setItemDescription('');
+      setItemType('AVATAR_SKIN');
+      setItemPrice(0);
+      setItemImageUrl('');
+      // Store 탭으로 이동
+      setActiveTab('store');
+    } catch (error) {
+      console.error('아이템 등록 실패:', error);
+      alert('아이템 등록에 실패했습니다.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   return (
     <div className="max-w-4xl mx-auto space-y-6">
       <div className="flex items-center gap-4 mb-4">
@@ -1211,37 +1671,76 @@ const AddItemView = ({ setActiveTab }: { setActiveTab: (tab: AdminTab) => void }
         <div className="md:col-span-1">
           <GlassCard className="aspect-square flex flex-col items-center justify-center border-2 border-dashed border-black/10 bg-black/[0.01]">
             <ShoppingBag size={48} className="text-black/10 mb-4" />
-            <p className="text-xs font-black text-black/30">이미지 업로드 (PNG/GIF)</p>
+            <p className="text-xs font-black text-black/30 mb-3">이미지 URL (선택)</p>
+            <input
+              type="text"
+              value={itemImageUrl}
+              onChange={(e) => setItemImageUrl(e.target.value)}
+              className="w-full bg-white border border-black/10 px-4 py-2 rounded-xl text-xs font-bold text-black placeholder:text-black/40"
+              placeholder="https://..."
+            />
           </GlassCard>
         </div>
         <div className="md:col-span-2 space-y-6">
           <GlassCard>
             <div className="space-y-4">
               <div>
-                <label className="text-[10px] font-black uppercase text-black/40 mb-2 block">아이템 명칭</label>
-                <input className="w-full bg-black/[0.02] border border-black/5 px-5 py-4 rounded-2xl text-sm font-bold focus:ring-4 ring-[#1B4332]/10 outline-none transition-all text-black placeholder:text-black/40" placeholder="예: 황금 변기 칭호" />
+                <label className="text-[10px] font-black uppercase text-black/40 mb-2 block">아이템 명칭 *</label>
+                <input
+                  type="text"
+                  value={itemName}
+                  onChange={(e) => setItemName(e.target.value)}
+                  className="w-full bg-black/[0.02] border border-black/5 px-5 py-4 rounded-2xl text-sm font-bold focus:ring-4 ring-[#1B4332]/10 outline-none transition-all text-black placeholder:text-black/40"
+                  placeholder="예: 황금 변기 칭호"
+                />
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="text-[10px] font-black uppercase text-black/40 mb-2 block">가격 (POOP POINT)</label>
-                  <input className="w-full bg-black/[0.02] border border-black/5 px-5 py-4 rounded-2xl text-sm font-bold text-black placeholder:text-black/40" placeholder="5,000" />
+                  <label className="text-[10px] font-black uppercase text-black/40 mb-2 block">가격 (POOP POINT) *</label>
+                  <input
+                    type="number"
+                    value={itemPrice}
+                    onChange={(e) => setItemPrice(Number(e.target.value))}
+                    className="w-full bg-black/[0.02] border border-black/5 px-5 py-4 rounded-2xl text-sm font-bold text-black placeholder:text-black/40"
+                    placeholder="5000"
+                    min="0"
+                  />
                 </div>
                 <div>
-                  <label className="text-[10px] font-black uppercase text-black/40 mb-2 block">카테고리</label>
-                  <select className="w-full bg-black/[0.02] border border-black/5 px-5 py-4 rounded-2xl text-sm font-bold text-black">
-                    <option>칭호</option>
-                    <option>아바타 아이콘</option>
-                    <option>특수 이펙트</option>
+                  <label className="text-[10px] font-black uppercase text-black/40 mb-2 block">카테고리 *</label>
+                  <select
+                    value={itemType}
+                    onChange={(e) => setItemType(e.target.value as ItemType)}
+                    className="w-full bg-black/[0.02] border border-black/5 px-5 py-4 rounded-2xl text-sm font-bold text-black"
+                  >
+                    <option value="AVATAR_SKIN">아바타 스킨</option>
+                    <option value="MARKER_SKIN">마커 스킨</option>
                   </select>
                 </div>
               </div>
               <div>
-                <label className="text-[10px] font-black uppercase text-black/40 mb-2 block">아이템 설명</label>
-                <textarea className="w-full bg-black/[0.02] border border-black/5 px-5 py-4 rounded-2xl text-sm font-bold h-32 resize-none text-black placeholder:text-black/40" placeholder="아이템에 대한 상세 설명을 입력하세요..." />
+                <label className="text-[10px] font-black uppercase text-black/40 mb-2 block">아이템 설명 *</label>
+                <textarea
+                  value={itemDescription}
+                  onChange={(e) => setItemDescription(e.target.value)}
+                  className="w-full bg-black/[0.02] border border-black/5 px-5 py-4 rounded-2xl text-sm font-bold h-32 resize-none text-black placeholder:text-black/40"
+                  placeholder="아이템에 대한 상세 설명을 입력하세요..."
+                />
               </div>
               <div className="pt-4 flex gap-4">
-                <button className="flex-1 py-4 bg-[#1B4332] text-white rounded-2xl font-black shadow-xl shadow-green-900/20">등록 완료</button>
-                <button onClick={() => setActiveTab('store')} className="flex-1 py-4 bg-black/5 text-black/60 rounded-2xl font-black">취소</button>
+                <button
+                  onClick={handleSubmit}
+                  disabled={isSubmitting}
+                  className="flex-1 py-4 bg-[#1B4332] text-white rounded-2xl font-black shadow-xl shadow-green-900/20 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {isSubmitting ? '등록 중...' : '등록 완료'}
+                </button>
+                <button
+                  onClick={() => setActiveTab('store')}
+                  className="flex-1 py-4 bg-black/5 text-black/60 rounded-2xl font-black hover:bg-black/10 transition-colors"
+                >
+                  취소
+                </button>
               </div>
             </div>
           </GlassCard>
@@ -1310,9 +1809,14 @@ export function AdminPage() {
   const [currentTime, setCurrentTime] = useState(new Date());
   const [globalSearch, setGlobalSearch] = useState('');
 
+  // 권한 체크 로직 검증 및 로그
   if (loading) return <div className="h-screen flex items-center justify-center bg-[#f8faf9] text-[#1B4332] font-black tracking-widest text-xl">LOADING ENGINE...</div>;
-  if (!user || (user.role !== 'ROLE_ADMIN' && user.role !== 'ADMIN')) {
-    return <Navigate to="/404-not-found-unauthorized" replace />;
+
+  const isAdmin = user && (user.role === 'ROLE_ADMIN' || user.role === 'ADMIN');
+  
+  if (!isAdmin) {
+    console.warn('Unauthorized access to admin page. Redirecting to main.', user?.role);
+    return <Navigate to="/main" replace />;
   }
 
   useEffect(() => {
@@ -1437,12 +1941,12 @@ export function AdminPage() {
              <div className="flex items-center gap-6">
                 <div className="hidden md:flex items-center bg-black/[0.03] border px-4 py-2.5 rounded-2xl gap-2 focus-within:bg-white focus-within:ring-2 ring-[#1B4332]/20 transition-all z-30 relative" style={{ borderColor: COLORS.border }}>
                    <Search size={16} className="text-black/30" />
-                   <input 
-                     type="text" 
+                   <input
+                     type="text"
                      value={globalSearch}
                      onChange={(e) => setGlobalSearch(e.target.value)}
-                     placeholder="통합 검색 (유저/신고/상점)" 
-                     className="bg-transparent border-none outline-none text-xs font-bold w-56" 
+                     placeholder="통합 검색 (유저/신고/상점)"
+                     className="bg-transparent border-none outline-none text-xs font-bold w-56 text-black placeholder:text-black/30"
                    />
                 </div>
 

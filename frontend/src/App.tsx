@@ -17,10 +17,11 @@ import { AuthCallback } from './pages/AuthCallback';
 import { AdminPage } from './pages/AdminPage';
 import { SocialSignupPage } from './pages/SocialSignupPage';
 import { PremiumPage } from './pages/PremiumPage';
-import { AuthProvider } from './context/AuthContext';
+import { AuthProvider, useAuth } from './context/AuthContext';
 import { NotificationProvider } from './context/NotificationContext';
 import { NotificationSubscriber } from './components/NotificationSubscriber';
 import { ErrorBoundary } from './components/ErrorBoundary';
+import { Navigate } from 'react-router-dom';
 
 function LoginPage() {
   return (
@@ -28,6 +29,41 @@ function LoginPage() {
       <h1 className="text-2xl">로그인 페이지 (/login)</h1>
     </div>
   );
+}
+
+function AdminRoute({ children }: { children: React.ReactNode }) {
+  const { user, loading } = useAuth();
+
+  console.log('[AdminRoute] Debug:', {
+    loading,
+    user,
+    userRole: user?.role,
+    hasUser: !!user,
+    accessToken: !!localStorage.getItem('accessToken')
+  });
+
+  if (loading) {
+    return (
+      <div className="h-screen flex items-center justify-center bg-[#f8faf9] text-[#1B4332] font-black tracking-widest text-xl">
+        ADMIN GATEWAY LOADING...
+      </div>
+    );
+  }
+
+  const isAdmin = user && (user.role === 'ROLE_ADMIN' || user.role === 'ADMIN');
+
+  if (!isAdmin) {
+    console.error('[AdminRoute] ❌ Access denied. Redirecting to /main.', {
+      user,
+      userRole: user?.role,
+      expectedRoles: ['ROLE_ADMIN', 'ADMIN'],
+      hasToken: !!localStorage.getItem('accessToken')
+    });
+    return <Navigate to="/main" replace />;
+  }
+
+  console.log('[AdminRoute] ✅ Access granted. User is admin.');
+  return <>{children}</>;
 }
 
 function App() {
@@ -62,8 +98,15 @@ function App() {
                 <Route path="/auth/callback" element={<AuthCallback />} />
                 <Route path="/signup/social" element={<SocialSignupPage />} />
                 <Route path="/payment/success" element={<PaymentSuccessPage />} />
-                <Route path="/premium" element={<PremiumPage />} />
-                <Route path="/admin" element={<AdminPage />} />
+                <Route path="/premium" element={<PremiumPage openAuth={openAuth} />} />
+                <Route 
+                  path="/admin" 
+                  element={
+                    <AdminRoute>
+                      <AdminPage />
+                    </AdminRoute>
+                  } 
+                />
                 <Route path="*" element={<NotFoundPage />} />
               </Routes>
               <AuthModal 
