@@ -1102,6 +1102,9 @@ function ReportTab({ records = [] }: { records?: any[] }) {
   // 권한 확인 (PRO 또는 PREMIUM 멤버십 확인)
   const isPro = user?.isPro || false;
 
+  // 멤버십 이름 동적 표시
+  const membershipName = user?.subscription?.plan || 'PRO';
+
   const displayData = records.length > 0 
     ? records.slice(-7).map((r, i) => ({
         day: ['월','화','수','목','금','토','일'][new Date(r.createdAt).getDay()],
@@ -1195,7 +1198,7 @@ function ReportTab({ records = [] }: { records?: any[] }) {
                     </div>
                     <div>
                       <p className="text-white font-black text-base">7일 정밀 분석 리포트 해제</p>
-                      <p className="text-emerald-200/60 text-xs font-bold">PRO 멤버십으로 모든 통계를 한눈에 확인하세요</p>
+                      <p className="text-emerald-200/60 text-xs font-bold">{membershipName} 멤버십으로 모든 통계를 한눈에 확인하세요</p>
                     </div>
                   </div>
                   <ChevronRight className="text-emerald-300" size={20} />
@@ -1278,7 +1281,7 @@ function ReportTab({ records = [] }: { records?: any[] }) {
                   </h3>
                   <div className="px-4 py-1.5 rounded-full bg-amber-50 border border-amber-100 flex items-center gap-2 shadow-sm">
                     <Crown size={14} className="text-amber-500" />
-                    <span className="text-xs font-black text-amber-600">PRO MEMBERSHIP</span>
+                    <span className="text-xs font-black text-amber-600">{membershipName} MEMBERSHIP</span>
                   </div>
                 </div>
 

@@ -1,9 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { MapPin, Home } from 'lucide-react';
+import { Home, RefreshCcw, AlertCircle } from 'lucide-react';
 
-// ── FuzzyText (인라인 — 별도 파일로 분리해도 됩니다) ──────────────────
+// ── FuzzyText (NotFoundPage와 동일한 컴포넌트) ──────────────────
 interface FuzzyTextProps {
   text: string;
   fontSize?: number;
@@ -149,24 +149,28 @@ function FuzzyText({
   );
 }
 
-// ── 404 Page ──────────────────────────────────────────────────────────
-export function NotFoundPage() {
+// ── 500 Server Error Page ──────────────────────────────────────────────────────────
+export function ServerErrorPage() {
   const navigate = useNavigate();
+
+  const handleRefresh = () => {
+    window.location.reload();
+  };
 
   return (
     <div
       className="relative min-h-screen flex flex-col items-center justify-center overflow-hidden"
       style={{ background: '#0d1a14' }}
     >
-      {/* 배경 글로우 */}
+      {/* 배경 글로우 - 레드 계열 (에러 강조) */}
       <div
         className="absolute inset-0 pointer-events-none"
         style={{
-          background: 'radial-gradient(ellipse 50% 40% at 50% 50%, rgba(27,67,50,0.6) 0%, transparent 70%)',
+          background: 'radial-gradient(ellipse 55% 45% at 50% 50%, rgba(232,93,93,0.1) 0%, transparent 70%)',
         }}
       />
 
-      {/* 배경 워터마크 (선택 사항: 유지하되 이모지 없음) */}
+      {/* 배경 워터마크 */}
       <div
         className="absolute inset-0 flex items-center justify-center pointer-events-none select-none"
         style={{ opacity: 0.02 }}
@@ -180,25 +184,25 @@ export function NotFoundPage() {
             lineHeight: 1,
           }}
         >
-          404
+          500
         </span>
       </div>
 
       {/* 메인 콘텐츠 */}
       <div className="relative z-10 flex flex-col items-center text-center px-6">
 
-        {/* 404 — FuzzyText 글리치 */}
+        {/* 500 — FuzzyText 글리치 (에러 레드로 설정) */}
         <div style={{ marginBottom: '0px' }}>
           <FuzzyText
-            text="404"
+            text="500"
             fontFamily="SchoolSafetyNotification, sans-serif"
             fontSize={typeof window !== 'undefined' ? Math.min(160, window.innerWidth * 0.28) : 160}
             fontWeight={700}
             color="#E85D5D"
-            baseIntensity={0.06}
-            hoverIntensity={0.75}
+            baseIntensity={0.08}
+            hoverIntensity={0.8}
             enableHover
-            fuzzRange={36}
+            fuzzRange={40}
             align="center"
           />
         </div>
@@ -206,9 +210,9 @@ export function NotFoundPage() {
         {/* 서브 타이틀 — FuzzyText */}
         <div style={{ marginBottom: '8px' }}>
           <FuzzyText
-            text="페이지를 찾지 못했습니다"
+            text="서버에 예기치 못한 문제가 발생했습니다"
             fontFamily="SchoolSafetyNotification, sans-serif"
-            fontSize={typeof window !== 'undefined' ? Math.min(32, window.innerWidth * 0.055) : 32}
+            fontSize={typeof window !== 'undefined' ? Math.min(28, window.innerWidth * 0.05) : 28}
             fontWeight={700}
             color="#ffffff"
             baseIntensity={0.1}
@@ -225,15 +229,15 @@ export function NotFoundPage() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.4, duration: 0.7 }}
           style={{
-            fontSize: 'clamp(14px, 2vw, 17px)',
+            fontSize: 'clamp(14px, 2vw, 16px)',
             color: 'rgba(255,255,255,0.4)',
             lineHeight: 1.6,
-            maxWidth: '400px',
+            maxWidth: '450px',
             marginBottom: '32px',
           }}
         >
-          요청하신 페이지가 존재하지 않거나<br />
-          주소가 변경되었을 수 있습니다.
+          일시적인 서버 장애로 요청을 처리할 수 없습니다.<br />
+          잠시 후 다시 시도해 주시거나 홈으로 돌아가주세요.
         </motion.p>
 
         {/* 버튼들 */}
@@ -244,7 +248,7 @@ export function NotFoundPage() {
           className="flex flex-col sm:flex-row gap-4"
         >
           <button
-            onClick={() => navigate('/main')}
+            onClick={handleRefresh}
             className="flex items-center justify-center gap-2 px-10 py-4 rounded-full font-black text-sm transition-all hover:scale-105 active:scale-95"
             style={{
               background: 'linear-gradient(135deg, #1B4332 0%, #2D6A4F 100%)',
@@ -252,12 +256,12 @@ export function NotFoundPage() {
               boxShadow: '0 6px 24px rgba(27,67,50,0.4)',
             }}
           >
-            <Home size={18} />
-            홈으로 이동
+            <RefreshCcw size={18} />
+            페이지 새로고침
           </button>
 
           <button
-            onClick={() => navigate('/map')}
+            onClick={() => navigate('/main')}
             className="flex items-center justify-center gap-2 px-10 py-4 rounded-full font-black text-sm transition-all hover:scale-105 active:scale-95"
             style={{
               background: '#E8A838',
@@ -265,22 +269,23 @@ export function NotFoundPage() {
               boxShadow: '0 6px 24px rgba(232,168,56,0.35)',
             }}
           >
-            <MapPin size={18} />
-            화장실 찾기
+            <Home size={18} />
+            메인 페이지로
           </button>
         </motion.div>
 
-        {/* 이전 페이지 버튼 */}
-        <motion.button
+        {/* 하단 에러 코드 안내 */}
+        <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.8 }}
-          onClick={() => navigate(-1)}
-          className="mt-10 text-xs font-bold transition-all hover:text-white"
-          style={{ color: 'rgba(255,255,255,0.2)' }}
+          className="mt-12 flex items-center gap-2 px-4 py-2 rounded-xl bg-white/5 border border-white/10"
         >
-          이전 페이지로 돌아가기
-        </motion.button>
+          <AlertCircle size={14} style={{ color: '#E85D5D' }} />
+          <span className="text-[11px] font-bold" style={{ color: 'rgba(255,255,255,0.3)' }}>
+            Error Code: INTERNAL_SERVER_ERROR (500)
+          </span>
+        </motion.div>
       </div>
     </div>
   );

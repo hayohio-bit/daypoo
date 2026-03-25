@@ -17,6 +17,7 @@ import { AuthCallback } from './pages/AuthCallback';
 import { AdminPage } from './pages/AdminPage';
 import { SocialSignupPage } from './pages/SocialSignupPage';
 import { PremiumPage } from './pages/PremiumPage';
+import { ServerErrorPage } from './pages/ServerErrorPage';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { NotificationProvider } from './context/NotificationContext';
 import { NotificationSubscriber } from './components/NotificationSubscriber';
@@ -99,6 +100,7 @@ function App() {
                 <Route path="/signup/social" element={<SocialSignupPage />} />
                 <Route path="/payment/success" element={<PaymentSuccessPage />} />
                 <Route path="/premium" element={<PremiumPage openAuth={openAuth} />} />
+                <Route path="/500" element={<ServerErrorPage />} />
                 <Route 
                   path="/admin" 
                   element={
@@ -107,6 +109,7 @@ function App() {
                     </AdminRoute>
                   } 
                 />
+                <Route path="/404" element={<NotFoundPage />} />
                 <Route path="*" element={<NotFoundPage />} />
               </Routes>
               <AuthModal 

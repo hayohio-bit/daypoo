@@ -30,7 +30,11 @@
       "Bash(findstr:*)",
       "Bash(taskkill:*)",
       "Bash(find:*)",
-      "Bash(grep:*)"
+      "Bash(grep:*)",
+      "Bash(git -C \"d:\\\\poop-map\" log --oneline -20)"
+    ],
+    "additionalDirectories": [
+      "C:\\Users\\M\\.claude\\plans"
     ]
   }
 }
