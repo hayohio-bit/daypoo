@@ -16,9 +16,14 @@ import com.daypoo.api.repository.VisitLogRepository;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.time.LocalDateTime;
+import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Function;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.core.StringRedisTemplate;
@@ -121,6 +126,41 @@ public class ReportService {
     // 6. AI 호출 및 결과 수신
     HealthReportResponse response = aiClient.analyzeHealthReport(requestDto);
 
+    // stats 계산
+    Integer mostFrequentBristol =
+        computeMostFrequent(
+            records.stream()
+                .map(PooRecord::getBristolScale)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toList()));
+    String mostFrequentCondition =
+        computeMostFrequentTag(
+            records.stream()
+                .flatMap(
+                    r ->
+                        r.getConditionTags() != null
+                            ? Arrays.stream(r.getConditionTags().split(","))
+                            : Stream.empty())
+                .collect(Collectors.toList()));
+    String mostFrequentDiet =
+        computeMostFrequentTag(
+            records.stream()
+                .flatMap(
+                    r ->
+                        r.getDietTags() != null
+                            ? Arrays.stream(r.getDietTags().split(","))
+                            : Stream.empty())
+                .collect(Collectors.toList()));
+    long healthyCount =
+        records.stream()
+            .filter(
+                r ->
+                    r.getBristolScale() != null
+                        && r.getBristolScale() >= 3
+                        && r.getBristolScale() <= 4)
+            .count();
+    Integer healthyRatio = records.isEmpty() ? null : (int) (healthyCount * 100 / records.size());
+
     // AI 응답 확장 정보 채우기
     response =
         HealthReportResponse.builder()
@@ -133,6 +173,10 @@ public class ReportService {
             .periodStart(startTime)
             .periodEnd(endTime)
             .analyzedAt(LocalDateTime.now().toString())
+            .mostFrequentBristol(mostFrequentBristol)
+            .mostFrequentCondition(mostFrequentCondition)
+            .mostFrequentDiet(mostFrequentDiet)
+            .healthyRatio(healthyRatio)
             .build();
 
     // 7. DB 영구 저장 (Snapshot)
@@ -209,5 +253,21 @@ public class ReportService {
       case WEEKLY -> LocalDateTime.now().minusWeeks(1);
       case MONTHLY -> LocalDateTime.now().minusMonths(1);
     };
+  }
+
+  private <T> T computeMostFrequent(List<T> items) {
+    if (items == null || items.isEmpty()) return null;
+    return items.stream()
+        .collect(Collectors.groupingBy(Function.identity(), Collectors.counting()))
+        .entrySet()
+        .stream()
+        .max(Map.Entry.comparingByValue())
+        .map(Map.Entry::getKey)
+        .orElse(null);
+  }
+
+  private String computeMostFrequentTag(List<String> tags) {
+    Object frequent = computeMostFrequent(tags);
+    return frequent != null ? frequent.toString() : null;
   }
 }
