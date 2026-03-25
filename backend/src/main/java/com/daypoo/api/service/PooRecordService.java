@@ -16,7 +16,9 @@ import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -96,12 +98,6 @@ public class PooRecordService {
       throw new BusinessException(ErrorCode.STAY_TIME_NOT_MET);
     }
 
-    // 3. 레디스 Rate Limiter (어뷰징 체크)
-    boolean allowed = locationVerificationService.checkAndSetCooldown(user.getId(), toilet.getId());
-    if (!allowed) {
-      throw new BusinessException(ErrorCode.COOLDOWN_ACTIVE);
-    }
-
     // 4. AI 분석 또는 수동 입력값 결정
     Integer finalBristolScale = request.bristolScale();
     String finalColor = request.color();
@@ -157,6 +153,9 @@ public class PooRecordService {
             .regionName(regionName)
             .build();
 
+    // arrival 키 삭제 → 재인증 시 60초 타이머 리셋 허용
+    locationVerificationService.resetArrivalTime(user.getId(), toilet.getId());
+
     PooRecord savedRecord = recordRepository.save(record);
 
     // 7. 유저 보상 체계(TX)
@@ -197,6 +196,17 @@ public class PooRecordService {
     return recordRepository
         .findByUserOrderByCreatedAtDesc(user, pageable)
         .map(recordMapper::toResponse);
+  }
+
+  @Transactional(readOnly = true)
+  public Map<Long, Long> getMyVisitCounts(String email) {
+    User user = userService.getByEmail(email);
+    List<Object[]> rows = recordRepository.findVisitCountsByUser(user);
+    Map<Long, Long> result = new HashMap<>();
+    for (Object[] row : rows) {
+      result.put((Long) row[0], (Long) row[1]);
+    }
+    return result;
   }
 
   @Transactional(readOnly = true)

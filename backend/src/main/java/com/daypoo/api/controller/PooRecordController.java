@@ -12,6 +12,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import java.util.Map;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
@@ -80,6 +81,14 @@ public class PooRecordController {
       Authentication authentication, Pageable pageable) {
     String email = authentication.getName();
     return ResponseEntity.ok(recordService.getMyRecords(email, pageable));
+  }
+
+  @Operation(summary = "내 화장실별 인증 횟수 조회", description = "현재 로그인한 사용자의 화장실별 방문 인증 횟수를 반환합니다.")
+  @ApiResponse(responseCode = "200", description = "조회 성공")
+  @GetMapping("/my-visit-counts")
+  public ResponseEntity<Map<Long, Long>> getMyVisitCounts(Authentication authentication) {
+    String email = authentication.getName();
+    return ResponseEntity.ok(recordService.getMyVisitCounts(email));
   }
 
   @Operation(summary = "배변 기록 상세 조회", description = "특정 배변 기록의 상세 정보를 조회합니다.")

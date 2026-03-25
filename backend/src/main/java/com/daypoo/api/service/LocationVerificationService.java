@@ -18,10 +18,6 @@ public class LocationVerificationService {
   // 허용 제한 거리: 150미터 (GPS 음영 지역 및 오차 고려 - A안 반영)
   private static final double ALLOWED_RADIUS_METERS = 150.0;
 
-  // 어뷰징(도배) 방지 제한 시간: 3시간 (3시간 내 중복 화장실 인증 금지 등)
-  // 여기서는 간단히 한 번 인증하면 3시간 동안 동일 화장실 인증 불가
-  private static final Duration SUBMIT_COOLDOWN = Duration.ofHours(3);
-
   /** 유저의 위치가 화장실 좌표랑 허용 범위(50m) 안에 있는지 체크 */
   public boolean isWithinAllowedDistance(Long toiletId, double currentLat, double currentLon) {
     Double distance = toiletRepository.getDistanceToToilet(toiletId, currentLat, currentLon);
@@ -32,17 +28,6 @@ public class LocationVerificationService {
 
     log.info("Calculated distance to toilet {} is {} meters.", toiletId, distance);
     return distance <= ALLOWED_RADIUS_METERS;
-  }
-
-  /** 짧은 시간 동안 반복적인 인증 방어 (Redis 활용) */
-  public boolean checkAndSetCooldown(Long userId, Long toiletId) {
-    String key = "daypoo:record:cooldown:user:" + userId + ":toilet:" + toiletId;
-
-    Boolean isFirstOrExpired =
-        redisTemplate.opsForValue().setIfAbsent(key, "recorded", SUBMIT_COOLDOWN);
-
-    // setIfAbsent는 키가 없어서 세팅이 성공하면 true 반환
-    return Boolean.TRUE.equals(isFirstOrExpired);
   }
 
   /** 화장실 도착 시간 기록 및 최초 시간 반환 (Fast Check-in 용) */
@@ -64,6 +49,12 @@ public class LocationVerificationService {
       }
       return currentTime; // 만약의 Fallback
     }
+  }
+
+  /** 인증 완료 후 arrival 키 삭제 → 재인증 시 60초 타이머 리셋 허용 */
+  public void resetArrivalTime(Long userId, Long toiletId) {
+    String key = "daypoo:record:arrival:user:" + userId + ":toilet:" + toiletId;
+    redisTemplate.delete(key);
   }
 
   /** 최소 체류 시간(1분)이 지났는지 확인 */
