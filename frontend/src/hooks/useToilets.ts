@@ -50,9 +50,10 @@ interface UseToiletsOptions {
     neLng: number;
   } | null;
   level?: number;
+  visitedIds?: Set<string>; // 방문한 화장실 ID Set
 }
 
-export function useToilets({ lat, lng, radius = 1000, bounds, level }: UseToiletsOptions) {
+export function useToilets({ lat, lng, radius = 1000, bounds, level, visitedIds }: UseToiletsOptions) {
   const [toilets, setToilets] = useState<ToiletData[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -99,7 +100,7 @@ export function useToilets({ lat, lng, radius = 1000, bounds, level }: UseToilet
         lng: item.longitude,
         openTime: item.openHours,
         isOpen24h: item.is24h,
-        isVisited: false,
+        isVisited: visitedIds?.has(String(item.id)) ?? false, // visitedIds로부터 방문 여부 설정
         isFavorite: false,
         isMixedGender: item.isMixedGender || false,
         hasDiaperTable: item.hasDiaperTable || false,

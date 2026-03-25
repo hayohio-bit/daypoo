@@ -1,4 +1,4 @@
-import { useRef, useState, useCallback, useEffect } from 'react';
+import { useRef, useState, useCallback, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { LocateFixed } from 'lucide-react';
 import { Navbar } from '../components/Navbar';
@@ -27,12 +27,20 @@ export function MapPage({ openAuth }: { openAuth: (mode: 'login' | 'signup') => 
   const [checkInTime, setCheckInTime] = useState<number | null>(null);
   const [visitCounts, setVisitCounts] = useState<Record<string, number>>({});
 
+  // visitCounts로부터 visitedIds Set 생성 (메모이제이션)
+  const visitedIds = useMemo(() => {
+    return new Set(
+      Object.keys(visitCounts).filter(id => visitCounts[id] > 0)
+    );
+  }, [visitCounts]);
+
   // 데이터 훅
-  const { toilets, toggleFavorite, markVisited, refetch } = useToilets({ 
-    lat: 37.5172, 
-    lng: 127.0473, 
+  const { toilets, toggleFavorite, markVisited, refetch } = useToilets({
+    lat: 37.5172,
+    lng: 127.0473,
     bounds,
-    level: mapLevel
+    level: mapLevel,
+    visitedIds, // 방문한 화장실 ID 전달
   });
 
   const handleAutoCheckIn = useCallback((remainedSeconds: number) => {

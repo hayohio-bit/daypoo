@@ -75,8 +75,7 @@ const GlassCard = ({ children, className = '', glowColor = 'rgba(27,67,50,0.05)'
   </motion.div>
 );
 
-const StatWidget = ({ title, value, trend, isUp, icon: Icon, color, sparkData, dataKey = 'v' }: any) => {
-  const safeColorId = color.replace('#', '');
+const StatWidget = ({ title, value, trend, isUp, icon: Icon, color, progress = 0, badge }: any) => {
   return (
     <GlassCard 
       glowColor={`${color}15`}
@@ -86,35 +85,42 @@ const StatWidget = ({ title, value, trend, isUp, icon: Icon, color, sparkData, d
         <div className="p-3.5 rounded-2xl transition-all duration-500 group-hover:scale-110 group-hover:rotate-6" style={{ background: `${color}10`, color }}>
           <Icon size={24} />
         </div>
-        <div className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-[10px] font-black tracking-tight ${isUp ? 'bg-emerald-50 text-emerald-600' : 'bg-rose-50 text-rose-600'}`}>
-          {isUp ? <TrendingUp size={12} /> : <TrendingUp size={12} className="rotate-180" />}
-          {trend}
+        <div className="flex flex-col items-end gap-2">
+          {badge && (
+             <span className="px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-tighter bg-black text-white">{badge}</span>
+          )}
+          <div className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-[10px] font-black tracking-tight ${isUp ? 'bg-emerald-50 text-emerald-600' : 'bg-rose-50 text-rose-600'}`}>
+            {isUp ? <TrendingUp size={12} /> : <TrendingUp size={12} className="rotate-180" />}
+            {trend}
+          </div>
         </div>
       </div>
       <div className="flex flex-col mb-6">
         <span className="text-[11px] font-black uppercase tracking-[0.2em] mb-1.5" style={{ color: COLORS.textSecondary }}>{title}</span>
         <span className="text-4xl font-black text-black tracking-tighter" style={{ letterSpacing: '-0.05em' }}>{value}</span>
       </div>
-      <div className="h-16 w-full -mx-1 opacity-40 group-hover:opacity-100 transition-opacity duration-700">
-        <ResponsiveContainer width="100%" height="100%">
-          <AreaChart data={sparkData}>
-            <defs>
-              <linearGradient id={`gradient-${safeColorId}`} x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor={color} stopOpacity={0.4}/>
-                <stop offset="95%" stopColor={color} stopOpacity={0}/>
-              </linearGradient>
-            </defs>
-            <Area 
-              type="monotone" 
-              dataKey={dataKey} 
-              stroke={color} 
-              strokeWidth={3} 
-              fill={`url(#gradient-${safeColorId})`} 
-              isAnimationActive={true}
-              animationDuration={2000}
-            />
-          </AreaChart>
-        </ResponsiveContainer>
+      
+      {/* 🚀 Gauge Bar Implementation */}
+      <div className="mt-2">
+        <div className="flex justify-between items-center mb-2">
+          <span className="text-[9px] font-black opacity-40 uppercase tracking-widest">Efficiency Index</span>
+          <span className="text-[10px] font-black" style={{ color }}>{progress}%</span>
+        </div>
+        <div className="h-2 w-full bg-black/5 rounded-full overflow-hidden">
+          <motion.div 
+            initial={{ width: 0 }}
+            animate={{ width: `${progress}%` }}
+            transition={{ duration: 1.5, ease: [0.33, 1, 0.68, 1] }}
+            className="h-full rounded-full relative"
+            style={{ backgroundColor: color }}
+          >
+             <motion.div 
+               animate={{ opacity: [0.4, 0.8, 0.4] }}
+               transition={{ duration: 2, repeat: Infinity }}
+               className="absolute inset-0 bg-white/20"
+             />
+          </motion.div>
+        </div>
       </div>
     </GlassCard>
   );
@@ -191,7 +197,7 @@ const DashboardView = ({ stats, loading, setActiveTab }: { stats: AdminStatsResp
              isUp 
              color={COLORS.info} 
              icon={Activity} 
-             sparkData={usersSpark}
+             progress={Math.min(100, Math.floor((liveUsers / 500) * 100))}
              badge="Live"
            />
         </div>
@@ -203,7 +209,7 @@ const DashboardView = ({ stats, loading, setActiveTab }: { stats: AdminStatsResp
              isUp 
              color={COLORS.primary} 
              icon={Users} 
-             sparkData={usersSpark} 
+             progress={78} 
            />
         </div>
         <div onClick={() => setActiveTab('toilets')}>
@@ -214,7 +220,7 @@ const DashboardView = ({ stats, loading, setActiveTab }: { stats: AdminStatsResp
              isUp 
              color={COLORS.accent} 
              icon={MapPin} 
-             sparkData={toiletSpark} 
+             progress={64} 
            />
         </div>
         <div onClick={() => setActiveTab('cs')}>
@@ -225,7 +231,7 @@ const DashboardView = ({ stats, loading, setActiveTab }: { stats: AdminStatsResp
              isUp={false} 
              color={COLORS.error} 
              icon={MessageSquare} 
-             sparkData={inquiriesSpark} 
+             progress={Math.max(10, Math.min(100, (stats?.pendingInquiries || 0) * 10))} 
              badge={stats?.pendingInquiries && stats.pendingInquiries > 0 ? "Urgent" : undefined}
            />
         </div>
@@ -319,22 +325,22 @@ const DashboardView = ({ stats, loading, setActiveTab }: { stats: AdminStatsResp
             </div>
           </GlassCard>
 
-          <GlassCard className="bg-[#1B4332] border-none text-white relative overflow-hidden group">
+          <GlassCard className="bg-white border border-black/5 relative overflow-hidden group">
              <div className="relative z-10">
                 <div className="flex items-center justify-between mb-4">
-                   <div className="p-2 rounded-xl bg-white/10"><Shield size={20} /></div>
-                   <span className="text-[10px] font-bold text-white/50 uppercase tracking-tighter">Engine Healthy</span>
+                   <div className="p-2 rounded-xl bg-[#1B4332]/10 text-[#1B4332]"><Shield size={20} /></div>
+                   <span className="text-[10px] font-black text-black/30 uppercase tracking-widest">Engine Healthy</span>
                 </div>
-                <h4 className="text-lg font-black mb-1">시스템 최적화</h4>
-                <p className="text-xs font-bold text-white/60 mb-6">리소스 사용량 82% 임계치 접근</p>
+                <h4 className="text-lg font-black mb-1 text-black">시스템 최적화</h4>
+                <p className="text-xs font-bold text-black/50 mb-6">리소스 사용량 82% 임계치 접근</p>
                 <button 
                   onClick={() => setActiveTab('system')}
-                  className="w-full py-3 bg-white text-[#1B4332] rounded-xl text-[11px] font-black transition-all hover:bg-[#E8A838] hover:text-white"
+                  className="w-full py-3 bg-[#1B4332] text-white rounded-xl text-[11px] font-black transition-all hover:bg-[#E8A838] shadow-lg shadow-green-900/20"
                 >
                   엔진 가속 실행
                 </button>
              </div>
-             <Zap className="absolute -right-8 -bottom-8 w-32 h-32 opacity-10 group-hover:scale-110 transition-transform duration-700" />
+             <Zap className="absolute -right-8 -bottom-8 w-32 h-32 opacity-[0.03] group-hover:scale-110 transition-transform duration-700 pointer-events-none" />
           </GlassCard>
         </div>
       </div>
@@ -474,6 +480,38 @@ const UsersView = () => {
     } catch (error) {
       console.error('역할 변경 실패:', error);
       alert('역할 변경에 실패했습니다.');
+    }
+  };
+
+  const handleDeleteUser = async (userId: number, userEmail: string) => {
+    const confirmed = confirm(
+      `정말로 이 사용자를 삭제하시겠습니까?\n\n` +
+      `이메일: ${userEmail}\n\n` +
+      `⚠️ 경고: 이 작업은 되돌릴 수 없으며, 사용자의 모든 데이터가 영구적으로 삭제됩니다.`
+    );
+
+    if (!confirmed) return;
+
+    try {
+      await api.delete(`/admin/users/${userId}`);
+      alert('사용자가 성공적으로 삭제되었습니다.');
+      setShowUserModal(false);
+      fetchUsers(); // 목록 새로고침
+    } catch (error: any) {
+      console.error('사용자 삭제 실패 상세:', error);
+      
+      // 🚀 구체적인 에러 메시지 처리
+      let errorMsg = '사용자 삭제에 실패했습니다.';
+      
+      if (error.status === 500) {
+        errorMsg = '서버 내부 오류가 발생했습니다.\n\n해당 사용자의 활동 내역(리뷰, 방문 기록 등)이 DB 제약 조건으로 인해 삭제되지 않을 수 있습니다. 관리자에게 문의하세요.';
+      } else if (error.response?.data?.message) {
+        errorMsg = error.response.data.message;
+      } else if (error.message) {
+        errorMsg = error.message;
+      }
+      
+      alert(`삭제 실패: ${errorMsg}`);
     }
   };
 
@@ -703,6 +741,28 @@ const UsersView = () => {
                           className="px-4 py-2 rounded-xl bg-red-100 text-red-600 text-xs font-black hover:bg-red-200 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
                         >
                           ADMIN으로 변경
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* User Delete */}
+                  <div className="bg-red-50 border-2 border-red-200 rounded-2xl p-6">
+                    <div className="flex items-start gap-4">
+                      <div className="p-2 rounded-xl bg-red-100">
+                        <Trash2 size={20} className="text-red-600" />
+                      </div>
+                      <div className="flex-1">
+                        <p className="text-sm font-black text-red-900 mb-1">위험 구역</p>
+                        <p className="text-xs text-red-700 mb-4">
+                          사용자를 영구적으로 삭제합니다. 이 작업은 되돌릴 수 없습니다.
+                        </p>
+                        <button
+                          onClick={() => handleDeleteUser(userDetail.id, userDetail.email)}
+                          className="px-4 py-2 rounded-xl bg-red-600 text-white text-xs font-black hover:bg-red-700 transition-colors flex items-center gap-2"
+                        >
+                          <Trash2 size={14} />
+                          회원 탈퇴시키기
                         </button>
                       </div>
                     </div>
