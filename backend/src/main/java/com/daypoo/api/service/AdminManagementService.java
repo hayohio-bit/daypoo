@@ -107,6 +107,23 @@ public class AdminManagementService {
     user.updateRole(role);
   }
 
+  @Transactional
+  public void deleteUser(Long userId, String currentAdminEmail) {
+    User user =
+        userRepository
+            .findById(userId)
+            .orElseThrow(() -> new BusinessException(ErrorCode.ADMIN_USER_NOT_FOUND));
+
+    // 본인 삭제 방지
+    if (user.getEmail().equals(currentAdminEmail)) {
+      throw new BusinessException(ErrorCode.ADMIN_CANNOT_DELETE_SELF);
+    }
+
+    // 물리적 삭제 (CASCADE 설정에 따라 관련 데이터도 함께 삭제됨)
+    userRepository.delete(user);
+    log.info("Admin deleted user: userId={}, email={}", userId, user.getEmail());
+  }
+
   // --- 화장실 관리 ---
 
   @Transactional(readOnly = true)
