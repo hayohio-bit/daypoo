@@ -113,10 +113,7 @@ public class User extends BaseTimeEntity {
 
   /** 현재 활성 구독 조회 */
   public Subscription getActiveSubscription() {
-    return subscriptions.stream()
-        .filter(Subscription::isActive)
-        .findFirst()
-        .orElse(null);
+    return subscriptions.stream().filter(Subscription::isActive).findFirst().orElse(null);
   }
 
   /** PRO 멤버십 여부 확인 */

@@ -61,8 +61,7 @@ public class PaymentService {
     try {
       HttpHeaders headers = new HttpHeaders();
       String encodedKey =
-          Base64.getEncoder()
-              .encodeToString((secretKey + ":").getBytes(StandardCharsets.UTF_8));
+          Base64.getEncoder().encodeToString((secretKey + ":").getBytes(StandardCharsets.UTF_8));
       headers.set("Authorization", "Basic " + encodedKey);
       headers.setContentType(MediaType.APPLICATION_JSON);
 
@@ -76,14 +75,15 @@ public class PaymentService {
       restTemplate.postForEntity(TOSS_CONFIRM_URL, request, JsonNode.class);
 
       // 결제 내역 저장
-      Payment savedPayment = paymentRepository.save(
-          Payment.builder()
-              .email(email)
-              .user(user)
-              .orderId(orderId)
-              .amount(amount)
-              .paymentKey(paymentKey)
-              .build());
+      Payment savedPayment =
+          paymentRepository.save(
+              Payment.builder()
+                  .email(email)
+                  .user(user)
+                  .orderId(orderId)
+                  .amount(amount)
+                  .paymentKey(paymentKey)
+                  .build());
 
       handleMembershipOrPoints(user, savedPayment);
       log.info("✅ Payment confirmed, recorded, and membership/points updated for user: {}", email);
@@ -112,7 +112,7 @@ public class PaymentService {
   private void handleMembershipOrPoints(User user, Payment payment) {
     String orderId = payment.getOrderId();
     Long amount = payment.getAmount();
-    
+
     // orderId 또는 amount로 구독 플랜 판단
     SubscriptionPlan plan = determinePlanFromOrderId(orderId, amount);
 
@@ -137,9 +137,7 @@ public class PaymentService {
     }
   }
 
-  /**
-   * orderId 또는 amount로 구독 플랜 판단
-   */
+  /** orderId 또는 amount로 구독 플랜 판단 */
   private SubscriptionPlan determinePlanFromOrderId(String orderId, Long amount) {
     if (orderId != null) {
       if (orderId.toUpperCase().contains("PRO")) {

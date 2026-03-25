@@ -27,7 +27,7 @@ public class Subscription extends BaseTimeEntity {
 
   @Column(nullable = false)
   @Enumerated(EnumType.STRING)
-  private SubscriptionPlan plan;  // BASIC, PRO, PREMIUM
+  private SubscriptionPlan plan; // BASIC, PRO, PREMIUM
 
   @Column(name = "start_date", nullable = false)
   private LocalDateTime startDate;
@@ -37,11 +37,11 @@ public class Subscription extends BaseTimeEntity {
 
   @Column(nullable = false)
   @Enumerated(EnumType.STRING)
-  private SubscriptionStatus status;  // ACTIVE, CANCELLED, EXPIRED
+  private SubscriptionStatus status; // ACTIVE, CANCELLED, EXPIRED
 
   @Column(name = "billing_cycle")
   @Enumerated(EnumType.STRING)
-  private BillingCycle billingCycle;  // MONTHLY, YEARLY
+  private BillingCycle billingCycle; // MONTHLY, YEARLY
 
   @Column(name = "is_auto_renewal", nullable = false)
   private boolean isAutoRenewal = true;

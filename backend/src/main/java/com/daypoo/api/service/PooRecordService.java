@@ -9,6 +9,7 @@ import com.daypoo.api.entity.Toilet;
 import com.daypoo.api.entity.User;
 import com.daypoo.api.entity.VisitLog;
 import com.daypoo.api.entity.enums.VisitEventType;
+import com.daypoo.api.event.PooRecordCreatedEvent;
 import com.daypoo.api.global.exception.BusinessException;
 import com.daypoo.api.global.exception.ErrorCode;
 import com.daypoo.api.mapper.PooRecordMapper;
@@ -25,10 +26,11 @@ import java.util.List;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.dao.DataAccessException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
-import org.springframework.dao.DataAccessException;
 import org.springframework.transaction.annotation.Transactional;
 
 @Slf4j
@@ -41,12 +43,10 @@ public class PooRecordService {
   private final UserService userService;
   private final LocationVerificationService locationVerificationService;
   private final GeocodingService geocodingService;
-  private final TitleAchievementService titleAchievementService;
+  private final ApplicationEventPublisher eventPublisher;
   private final PooRecordMapper recordMapper;
   private final VisitLogRepository visitLogRepository;
   private final AiClient aiClient;
-
-  private final RankingService rankingService;
 
   // 보상 설정
   private static final int REWARD_EXP = 10;
@@ -60,9 +60,19 @@ public class PooRecordService {
     // 위치 검증 (확대된 150m 반경 사용)
     Double distance = locationVerificationService.getDistanceToToilet(toiletId, lat, lon);
     boolean isNear = distance != null && distance <= 150.0;
-    
+
     if (!isNear) {
-      logVisit(user, toiletId, VisitEventType.VERIFICATION_FAILED, null, null, lat, lon, distance, null, "OUT_OF_RANGE");
+      logVisit(
+          user,
+          toiletId,
+          VisitEventType.VERIFICATION_FAILED,
+          null,
+          null,
+          lat,
+          lon,
+          distance,
+          null,
+          "OUT_OF_RANGE");
       throw new BusinessException(ErrorCode.OUT_OF_RANGE);
     }
 
@@ -78,7 +88,17 @@ public class PooRecordService {
     LocalDateTime firstArrivalTime =
         LocalDateTime.ofInstant(Instant.ofEpochMilli(arrivalTimeMillis), ZoneId.systemDefault());
 
-    logVisit(user, toiletId, VisitEventType.CHECK_IN, firstArrivalTime, null, lat, lon, distance, null, null);
+    logVisit(
+        user,
+        toiletId,
+        VisitEventType.CHECK_IN,
+        firstArrivalTime,
+        null,
+        lat,
+        lon,
+        distance,
+        null,
+        null);
 
     return new PooCheckInResponse(toiletId, firstArrivalTime, elapsedSeconds, remainedSeconds);
   }
@@ -105,31 +125,47 @@ public class PooRecordService {
     locationVerificationService.resetArrivalTime(user.getId(), toilet.getId());
 
     // 6. 기록 저장
-    PooRecord saved = recordRepository.save(
-        PooRecord.builder()
-            .user(user)
-            .toilet(toilet)
-            .bristolScale(attrs.bristolScale())
-            .color(attrs.color())
-            .conditionTags(String.join(",", attrs.conditionTags()))
-            .dietTags(String.join(",", attrs.dietTags()))
-            .warningTags(String.join(",", attrs.warningTags()))
-            .regionName(regionName)
-            .build());
+    PooRecord saved =
+        recordRepository.save(
+            PooRecord.builder()
+                .user(user)
+                .toilet(toilet)
+                .bristolScale(attrs.bristolScale())
+                .color(attrs.color())
+                .conditionTags(String.join(",", attrs.conditionTags()))
+                .dietTags(String.join(",", attrs.dietTags()))
+                .warningTags(String.join(",", attrs.warningTags()))
+                .regionName(regionName)
+                .build());
 
-    // 7. 보상 · 랭킹 · 칭호 처리
-    applyPostSaveEffects(user, regionName);
+    // 7. 보상 · 랭킹 · 칭호 비동기 처리 이벤트 발행
+    eventPublisher.publishEvent(
+        new PooRecordCreatedEvent(user.getEmail(), regionName, REWARD_EXP, REWARD_POINTS));
 
     // 8. Visit Log 기록 완료
-    long arrivalTimeMillis = locationVerificationService.getOrSetArrivalTime(user.getId(), toilet.getId());
-    LocalDateTime arrivalAt = LocalDateTime.ofInstant(Instant.ofEpochMilli(arrivalTimeMillis), ZoneId.systemDefault());
-    
-    logVisit(user, toilet.getId(), VisitEventType.RECORD_CREATED, arrivalAt, LocalDateTime.now(), 
-        request.latitude(), request.longitude(), null, saved, null);
+    long arrivalTimeMillis =
+        locationVerificationService.getOrSetArrivalTime(user.getId(), toilet.getId());
+    LocalDateTime arrivalAt =
+        LocalDateTime.ofInstant(Instant.ofEpochMilli(arrivalTimeMillis), ZoneId.systemDefault());
+
+    logVisit(
+        user,
+        toilet.getId(),
+        VisitEventType.RECORD_CREATED,
+        arrivalAt,
+        LocalDateTime.now(),
+        request.latitude(),
+        request.longitude(),
+        null,
+        saved,
+        null);
 
     log.info(
         "User {} earned {} EXP and {} Points for recording toilet {}.",
-        email, REWARD_EXP, REWARD_POINTS, toilet.getId());
+        email,
+        REWARD_EXP,
+        REWARD_POINTS,
+        toilet.getId());
 
     return recordMapper.toResponse(saved);
   }
@@ -137,35 +173,68 @@ public class PooRecordService {
   private void validateLocationAndTime(User user, Toilet toilet, double lat, double lon) {
     Double distance = locationVerificationService.getDistanceToToilet(toilet.getId(), lat, lon);
     if (distance == null || distance > 150.0) {
-      logVisit(user, toilet.getId(), VisitEventType.VERIFICATION_FAILED, null, null, lat, lon, distance, null, "OUT_OF_RANGE");
+      logVisit(
+          user,
+          toilet.getId(),
+          VisitEventType.VERIFICATION_FAILED,
+          null,
+          null,
+          lat,
+          lon,
+          distance,
+          null,
+          "OUT_OF_RANGE");
       throw new BusinessException(ErrorCode.OUT_OF_RANGE);
     }
     if (!locationVerificationService.hasStayedLongEnough(user.getId(), toilet.getId())) {
-      logVisit(user, toilet.getId(), VisitEventType.VERIFICATION_FAILED, null, null, lat, lon, distance, null, "STAY_TIME_NOT_MET");
+      logVisit(
+          user,
+          toilet.getId(),
+          VisitEventType.VERIFICATION_FAILED,
+          null,
+          null,
+          lat,
+          lon,
+          distance,
+          null,
+          "STAY_TIME_NOT_MET");
       throw new BusinessException(ErrorCode.STAY_TIME_NOT_MET);
     }
   }
 
-  private void logVisit(User user, Long toiletId, VisitEventType eventType, LocalDateTime arrivalAt, 
-                        LocalDateTime completedAt, double lat, double lon, Double distance, PooRecord record, String failureReason) {
+  private void logVisit(
+      User user,
+      Long toiletId,
+      VisitEventType eventType,
+      LocalDateTime arrivalAt,
+      LocalDateTime completedAt,
+      double lat,
+      double lon,
+      Double distance,
+      PooRecord record,
+      String failureReason) {
     try {
       Toilet toilet = toiletRepository.findById(toiletId).orElse(null);
       if (toilet == null) return;
 
-      VisitLog visitLog = VisitLog.builder()
-          .user(user)
-          .toilet(toilet)
-          .eventType(eventType)
-          .arrivalAt(arrivalAt)
-          .completedAt(completedAt)
-          .userLatitude(lat)
-          .userLongitude(lon)
-          .distanceMeters(distance)
-          .pooRecord(record)
-          .failureReason(failureReason)
-          .dwellSeconds(arrivalAt != null && completedAt != null ? (int) java.time.Duration.between(arrivalAt, completedAt).toSeconds() : null)
-          .build();
-          
+      VisitLog visitLog =
+          VisitLog.builder()
+              .user(user)
+              .toilet(toilet)
+              .eventType(eventType)
+              .arrivalAt(arrivalAt)
+              .completedAt(completedAt)
+              .userLatitude(lat)
+              .userLongitude(lon)
+              .distanceMeters(distance)
+              .pooRecord(record)
+              .failureReason(failureReason)
+              .dwellSeconds(
+                  arrivalAt != null && completedAt != null
+                      ? (int) java.time.Duration.between(arrivalAt, completedAt).toSeconds()
+                      : null)
+              .build();
+
       visitLogRepository.save(visitLog);
     } catch (DataAccessException e) {
       log.error("Failed to log visit: {}", e.getMessage());
@@ -178,14 +247,25 @@ public class PooRecordService {
     if (hasImage) {
       AiAnalysisResponse ai = aiClient.analyzePoopImage(request.imageBase64());
       List<String> warnings = ai.warningTags() != null ? ai.warningTags() : Collections.emptyList();
-      log.info("AI Analysis: Bristol {}, Color {}, Warnings: {}", ai.bristolScale(), ai.color(), warnings);
-      return new PoopAttributes(ai.bristolScale(), ai.color(), Collections.emptyList(), Collections.emptyList(), warnings);
+      log.info(
+          "AI Analysis: Bristol {}, Color {}, Warnings: {}",
+          ai.bristolScale(),
+          ai.color(),
+          warnings);
+      return new PoopAttributes(
+          ai.bristolScale(),
+          ai.color(),
+          Collections.emptyList(),
+          Collections.emptyList(),
+          warnings);
     }
 
     Integer bristolScale = request.bristolScale();
     String color = request.color();
-    List<String> conditionTags = request.conditionTags() != null ? request.conditionTags() : Collections.emptyList();
-    List<String> dietTags = request.dietTags() != null ? request.dietTags() : Collections.emptyList();
+    List<String> conditionTags =
+        request.conditionTags() != null ? request.conditionTags() : Collections.emptyList();
+    List<String> dietTags =
+        request.dietTags() != null ? request.dietTags() : Collections.emptyList();
 
     if (bristolScale == null || color == null || color.isEmpty()) {
       throw new BusinessException(ErrorCode.INVALID_INPUT_VALUE);
@@ -193,14 +273,8 @@ public class PooRecordService {
     if (conditionTags.isEmpty() || dietTags.isEmpty()) {
       throw new BusinessException(ErrorCode.INVALID_INPUT_VALUE);
     }
-    return new PoopAttributes(bristolScale, color, conditionTags, dietTags, Collections.emptyList());
-  }
-
-  private void applyPostSaveEffects(User user, String regionName) {
-    user.addExpAndPoints(REWARD_EXP, REWARD_POINTS);
-    rankingService.updateGlobalRank(user);
-    rankingService.updateRegionRank(user, regionName, 5.0);
-    titleAchievementService.checkAndGrantTitles(user);
+    return new PoopAttributes(
+        bristolScale, color, conditionTags, dietTags, Collections.emptyList());
   }
 
   private record PoopAttributes(

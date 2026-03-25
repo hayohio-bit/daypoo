@@ -1,5 +1,32 @@
 # Backend Modification History
 
+## [2026-03-25 17:50:00] 백엔드 성능 최적화 및 안정성 강화 (Phase 1-7 완료)
+- **작업 내용:** `dazzling-sauteeing-peach.md` 계획을 바탕으로 백엔드 전반의 성능 병목을 해결하고, 동시성 이슈 방지 및 모니터링 기반을 구축하였습니다.
+- **상세 변경 내역:**
+  - **동시성 제어 (B2)**: `inventories` 테이블에 `(user_id, item_id)` 유니크 제약 조건을 추가(`V19__add_unique_to_inventories.sql`)하고, `ShopService`에서 중복 구매 시 발생하는 `DataIntegrityViolationException`을 `ALREADY_OWNED_ITEM` 비즈니스 예외로 처리하여 Race Condition을 방지했습니다.
+  - **비동기 처리 도입 (B1, B5, B7)**: 
+    - `AsyncConfig.java`를 통해 전용 스레드풀(`ThreadPoolTaskExecutor`, core=5, max=20)을 설정했습니다.
+    - 포기록 생성(`PooRecordService`) 및 화장실 리뷰 작성(`ToiletReviewService`) 후속 로직(보상, 랭킹, AI 요약)을 Spring Event(`PooRecordCreatedEvent`, `ToiletReviewCreatedEvent`) 기반 비동기 리스너로 분리하여 응답 속도를 최적화했습니다.
+  - **쿼리 및 조회 최적화 (B3, B4, B10)**:
+    - 상점 아이템 장착 상태 필터링 시 메모리 스트림 대신 `JOIN FETCH`가 포함된 SQL 쿼리를 사용하도록 개선했습니다.
+    - 화장실 리뷰 통계(개수 및 평점)를 단일 쿼리로 통합 조회하도록 최적화했습니다.
+    - `toilet_reviews` 및 `inventories` 테이블에 조회 성능 향상을 위한 복합 인덱스(`V20__add_performance_indices.sql`)를 추가했습니다.
+  - **보안 및 로깅 (B6, B8, B9)**:
+    - SSE 알림 서비스(`NotificationService`)의 Emitter 제거 로직을 통합하고, 활성 연결 수 모니터링 로깅을 강화했습니다.
+    - `ServiceLoggingAspect`의 로깅 레벨을 `DEBUG`로 조정하여 운영 환경의 로그 부하를 최소화했습니다.
+    - AI 서비스(FastAPI)의 `CORS_ORIGINS` 설정을 강화하여 무분별한 CORS 허용(`*`)을 제거했습니다.
+  - **인프라 및 CI/CD (I1, I2, I3)**:
+    - `application.yml`에 Redis 비밀번호 설정 지원 및 Actuator/Prometheus 메트릭 노출 설정을 추가했습니다.
+    - GitHub Actions 워크플로우(`.github/workflows/backend-ci.yml`)를 구축하여 빌드 및 테스트 자동화(Postgres/Redis 컨테이너 포함)를 구현했습니다.
+- **결과/영향:** 백엔드 응답 속도가 크게 향상되었으며, 데이터 무결성 보장 및 운영 가시성이 확보되었습니다.
+
+
+## [2026-03-25 17:15:00] 데이터베이스 스키마 수정 (V17): 누락된 `updated_at` 컬럼 추가
+- **작업 내용:** 최근 추가된 `visit_logs` 및 `health_report_snapshots` 테이블에 공통 필드인 `updated_at`이 누락되어 서버 기동 시 하이버네이트 검증(Validate)에 실패하는 문제를 해결했습니다.
+- **상세 변경 내역:**
+  - **`V17__add_missing_updated_at.sql`**: `ALTER TABLE`을 통해 두 테이블에 `updated_at` 컬럼을 추가하는 마이그레이션 스크립트를 작성하여 스키마 일관성을 확보했습니다.
+- **결과/영향:** 서버가 정상적으로 기동되며, 방문 인증 및 AI 리포트 스냅샷 저장 기능이 설계대로 작동함을 확인했습니다.
+
 ## [2026-03-25 17:00:00] 구독 해지 및 관리 기능 백엔드 리팩토링
 - **작업 내용:** 사용자가 직접 멤버십을 관리할 수 있도록 구독 취소 및 자동 갱신 제어 API를 추가하고, 예외 처리를 공통 비즈니스 예외로 통일하였습니다.
 - **상세 변경 내역:**

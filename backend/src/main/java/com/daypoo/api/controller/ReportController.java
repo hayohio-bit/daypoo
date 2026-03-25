@@ -25,7 +25,9 @@ public class ReportController {
   private final UserService userService;
 
   /** AI 건강 리포트 조회/생성 */
-  @Operation(summary = "AI 리포트 생성/조회", description = "타입별(DAILY, WEEKLY, MONTHLY) AI 건강 분석 리포트를 생성하거나 조회합니다.")
+  @Operation(
+      summary = "AI 리포트 생성/조회",
+      description = "타입별(DAILY, WEEKLY, MONTHLY) AI 건강 분석 리포트를 생성하거나 조회합니다.")
   @GetMapping("/{type}")
   public ResponseEntity<HealthReportResponse> getReport(
       @AuthenticationPrincipal String email, @PathVariable ReportType type) {
@@ -45,8 +47,7 @@ public class ReportController {
   /** 건강 점수 트렌드 조회 (PRO/PREMIUM 전용 권장) */
   @Operation(summary = "건강 점수 트렌드 조회", description = "최근 생성된 리포트들의 건강 점수 추이를 조회합니다.")
   @GetMapping("/trend")
-  public ResponseEntity<List<Integer>> getHealthTrend(
-      @AuthenticationPrincipal String email) {
+  public ResponseEntity<List<Integer>> getHealthTrend(@AuthenticationPrincipal String email) {
     User user = userService.getByEmail(email);
     return ResponseEntity.ok(reportService.getHealthTrend(user));
   }

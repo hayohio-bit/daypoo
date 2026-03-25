@@ -35,6 +35,7 @@ spring:
     redis:
       host: ${REDIS_HOST}
       port: ${REDIS_PORT}
+      password: ${REDIS_PASSWORD:}
 
   # Authentication configuration
   security:
@@ -112,6 +113,17 @@ logging:
   level:
     root: INFO
     com.daypoo: INFO
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+  endpoint:
+    health:
+      show-details: always
+    prometheus:
+      enabled: true
 
 springdoc:
   swagger-ui:

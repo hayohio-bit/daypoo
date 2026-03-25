@@ -68,9 +68,10 @@ public class ReportService {
     LocalDateTime todayStart = endTime.toLocalDate().atStartOfDay();
     LocalDateTime tomorrowStart = todayStart.plusDays(1);
 
-    var snapshot = snapshotRepository.findFirstByUserAndReportTypeAndCreatedAtBetweenOrderByCreatedAtDesc(
-        user, type, todayStart, tomorrowStart);
-    
+    var snapshot =
+        snapshotRepository.findFirstByUserAndReportTypeAndCreatedAtBetweenOrderByCreatedAtDesc(
+            user, type, todayStart, tomorrowStart);
+
     if (snapshot.isPresent()) {
       log.info("Returning DB snapshot {} report for user {}", type, user.getId());
       HealthReportSnapshot s = snapshot.get();
@@ -119,19 +120,20 @@ public class ReportService {
 
     // 6. AI 호출 및 결과 수신
     HealthReportResponse response = aiClient.analyzeHealthReport(requestDto);
-    
+
     // AI 응답 확장 정보 채우기
-    response = HealthReportResponse.builder()
-        .reportType(response.reportType())
-        .healthScore(response.healthScore())
-        .summary(response.summary())
-        .solution(response.solution())
-        .insights(response.insights())
-        .recordCount(records.size())
-        .periodStart(startTime)
-        .periodEnd(endTime)
-        .analyzedAt(LocalDateTime.now().toString())
-        .build();
+    response =
+        HealthReportResponse.builder()
+            .reportType(response.reportType())
+            .healthScore(response.healthScore())
+            .summary(response.summary())
+            .solution(response.solution())
+            .insights(response.insights())
+            .recordCount(records.size())
+            .periodStart(startTime)
+            .periodEnd(endTime)
+            .analyzedAt(LocalDateTime.now().toString())
+            .build();
 
     // 7. DB 영구 저장 (Snapshot)
     saveSnapshot(user, type, response);
@@ -184,17 +186,18 @@ public class ReportService {
 
   private void saveSnapshot(User user, ReportType type, HealthReportResponse response) {
     try {
-      snapshotRepository.save(HealthReportSnapshot.builder()
-          .user(user)
-          .reportType(type)
-          .healthScore(response.healthScore())
-          .summary(response.summary())
-          .solution(response.solution())
-          .insights(response.insights() != null ? String.join(",", response.insights()) : null)
-          .recordCount(response.recordCount())
-          .periodStart(response.periodStart())
-          .periodEnd(response.periodEnd())
-          .build());
+      snapshotRepository.save(
+          HealthReportSnapshot.builder()
+              .user(user)
+              .reportType(type)
+              .healthScore(response.healthScore())
+              .summary(response.summary())
+              .solution(response.solution())
+              .insights(response.insights() != null ? String.join(",", response.insights()) : null)
+              .recordCount(response.recordCount())
+              .periodStart(response.periodStart())
+              .periodEnd(response.periodEnd())
+              .build());
     } catch (Exception e) {
       log.error("Failed to save report snapshot: {}", e.getMessage());
     }

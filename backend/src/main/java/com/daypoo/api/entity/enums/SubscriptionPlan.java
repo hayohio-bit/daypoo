@@ -1,9 +1,9 @@
 package com.daypoo.api.entity.enums;
 
 public enum SubscriptionPlan {
-  BASIC(0, "무료 플랜"),           // 기본 무료
-  PRO(4900, "PRO 플랜"),           // 7일/30일 리포트
-  PREMIUM(9900, "PREMIUM 플랜");    // AI 맞춤 식단 조언 포함
+  BASIC(0, "무료 플랜"), // 기본 무료
+  PRO(4900, "PRO 플랜"), // 7일/30일 리포트
+  PREMIUM(9900, "PREMIUM 플랜"); // AI 맞춤 식단 조언 포함
 
   private final long monthlyPrice;
   private final String displayName;
@@ -28,6 +28,6 @@ public enum SubscriptionPlan {
         return plan;
       }
     }
-    return BASIC;  // 기본값
+    return BASIC; // 기본값
   }
 }

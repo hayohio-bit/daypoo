@@ -22,7 +22,7 @@ public record SubscriptionResponse(
 
   public static SubscriptionResponse from(Subscription subscription) {
     if (subscription == null) return null;
-    
+
     Long daysRemaining = null;
     if (subscription.getEndDate() != null) {
       daysRemaining =

@@ -5,7 +5,6 @@ import com.daypoo.api.dto.SystemLogResponse;
 import com.daypoo.api.entity.Inquiry;
 import com.daypoo.api.entity.Payment;
 import com.daypoo.api.entity.enums.InquiryStatus;
-import com.daypoo.api.entity.enums.InquiryType;
 import com.daypoo.api.repository.InquiryRepository;
 import com.daypoo.api.repository.PaymentRepository;
 import com.daypoo.api.repository.ToiletRepository;
@@ -150,9 +149,9 @@ public class AdminService {
                 .build());
       }
     }
-    
+
     generateInquiryTestData(user);
-    
+
     log.info("Successfully generated test data.");
   }
 
@@ -168,20 +167,22 @@ public class AdminService {
       "포인트 적립이 안 됐어요",
       "아이템 사용법을 모르겠어요"
     };
-    
-    com.daypoo.api.entity.enums.InquiryType[] types = com.daypoo.api.entity.enums.InquiryType.values();
-    
+
+    com.daypoo.api.entity.enums.InquiryType[] types =
+        com.daypoo.api.entity.enums.InquiryType.values();
+
     LocalDateTime now = LocalDateTime.now();
     for (int i = 1; i <= 30; i++) {
-      Inquiry inquiry = Inquiry.builder()
+      Inquiry inquiry =
+          Inquiry.builder()
               .user(user)
               .type(types[i % types.length])
               .title(titles[i % titles.length] + " (" + i + ")")
               .content("이것은 테스트를 위한 " + i + "번째 문의 내용입니다. 상세한 처리를 부탁드립니다.")
               .build();
-      
+
       // 생성 시간을 1초씩 다르게 설정 (정렬 충돌 방지)
-      // BaseTimeEntity의 수동 설정을 위해 리플렉션이나 다른 방법을 쓰지 않고, 
+      // BaseTimeEntity의 수동 설정을 위해 리플렉션이나 다른 방법을 쓰지 않고,
       // 단순히 save 후 flush를 보장하기 위해 saveAndFlush 사용
       inquiryRepository.save(inquiry);
     }

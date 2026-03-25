@@ -4,6 +4,7 @@ import com.daypoo.api.dto.*;
 import com.daypoo.api.entity.Toilet;
 import com.daypoo.api.entity.ToiletReview;
 import com.daypoo.api.entity.User;
+import com.daypoo.api.event.ToiletReviewCreatedEvent;
 import com.daypoo.api.global.exception.BusinessException;
 import com.daypoo.api.global.exception.ErrorCode;
 import com.daypoo.api.repository.ToiletRepository;
@@ -13,6 +14,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -27,7 +29,7 @@ public class ToiletReviewService {
   private final ToiletReviewRepository toiletReviewRepository;
   private final ToiletRepository toiletRepository;
   private final UserRepository userRepository;
-  private final AiClient aiClient;
+  private final ApplicationEventPublisher eventPublisher;
 
   @Transactional
   public ToiletReviewResponse createReview(
@@ -58,9 +60,9 @@ public class ToiletReviewService {
     // 화장실 통계 업데이트
     updateToiletStats(toilet);
 
-    // 리뷰가 5개 이상이면 AI 요약 생성 시도
+    // 리뷰가 5개 이상이면 AI 요약 생성 비동기 처리 이벤트 발행
     if (toilet.getReviewCount() >= 5) {
-      generateAiSummary(toilet);
+      eventPublisher.publishEvent(new ToiletReviewCreatedEvent(toilet.getId()));
     }
 
     return ToiletReviewResponse.from(savedReview);
@@ -114,31 +116,12 @@ public class ToiletReviewService {
   }
 
   private void updateToiletStats(Toilet toilet) {
-    long count = toiletReviewRepository.countByToiletId(toilet.getId());
-    Double avg = toiletReviewRepository.calculateAvgRatingByToiletId(toilet.getId());
-    toilet.updateReviewStats(avg != null ? avg : 0.0, (int) count);
-    toiletRepository.save(toilet);
-  }
-
-  @Transactional
-  public void generateAiSummary(Toilet toilet) {
-    try {
-      List<String> lastReviews =
-          toiletReviewRepository.findTop5ByToiletIdOrderByCreatedAtDesc(toilet.getId()).stream()
-              .map(ToiletReview::getComment)
-              .collect(Collectors.toList());
-
-      AiReviewSummaryRequest request =
-          new AiReviewSummaryRequest(toilet.getId(), toilet.getName(), lastReviews);
-
-      AiReviewSummaryResponse response = aiClient.summarizeReviews(request);
-      if (response != null && response.summary() != null) {
-        toilet.updateAiSummary(response.summary());
-        toiletRepository.save(toilet);
-      }
-    } catch (Exception e) {
-      log.error("AI 요약 생성 중 오류 발생 (화장실 ID: {}): {}", toilet.getId(), e.getMessage());
-      // AI 기능은 부가 서비스이므로 실패해도 메인 로직에는 영향 주지 않음
+    Object[] stats = toiletReviewRepository.getReviewStatsByToiletId(toilet.getId());
+    if (stats != null && stats.length > 0) {
+      long count = (Long) stats[0];
+      Double avg = (Double) stats[1];
+      toilet.updateReviewStats(avg != null ? avg : 0.0, (int) count);
+      toiletRepository.save(toilet);
     }
   }
 }

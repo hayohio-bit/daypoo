@@ -14,11 +14,11 @@ public class ServiceLoggingAspect {
   @Around("execution(* com.daypoo.api.service.*.*(..))")
   public Object logServiceMethod(ProceedingJoinPoint joinPoint) throws Throwable {
     String method = joinPoint.getSignature().toShortString();
-    log.info("[SERVICE] Start: {}", method);
+    log.debug("[SERVICE] Start: {}", method);
     long start = System.currentTimeMillis();
     try {
       Object result = joinPoint.proceed();
-      log.info("[SERVICE] End: {} ({}ms)", method, System.currentTimeMillis() - start);
+      log.debug("[SERVICE] End: {} ({}ms)", method, System.currentTimeMillis() - start);
       return result;
     } catch (Exception e) {
       log.error("[SERVICE] Error: {} - {}", method, e.getMessage());

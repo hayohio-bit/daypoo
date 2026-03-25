@@ -1,28 +1,51 @@
-# 백엔드 구독 관리 리팩토링 계획
+# DayPoo 백엔드 성능 및 구조 개선 계획 (dazzling-sauteeing-peach.md 참조)
 
-## 1. 개요
-사용자가 PRO/PREMIUM 멤버십을 직접 관리(취소, 자동 갱신 설정)할 수 있도록 백엔드 API를 확장하고 관련 코드를 리팩토링합니다. `docs/Reference/구독해지플랜.md`를 바탕으로 진행합니다.
+사용자가 제공한 `dazzling-sauteeing-peach.md` 내용을 바탕으로 백엔드(및 AI 서비스) 개선 항목만 발췌하여 순차적으로 진행합니다.
 
-## 2. 주요 변경 사항
+## 🛠 작업 목록
 
-### 2.1 백엔드 (API 확장 및 리팩토링)
-- **Controller 수정**: `SubscriptionController.java`
-    - `POST /api/v1/subscriptions/cancel`: 구독 취소 엔드포인트 추가
-    - `PATCH /api/v1/subscriptions/auto-renewal`: 자동 갱신 토글 엔드포인트 추가
-    - 기존 `getMySubscription` 메서드에서 `IllegalArgumentException` 대신 `BusinessException(ErrorCode.SUBSCRIPTION_NOT_FOUND)`를 사용하도록 리팩토링 (일관성 유지)
+### Phase 1: 긴급 버그 및 정합성 수정 (B2)
+1.  **[B2] ShopService 구매 로직 Race Condition 수정**
+    -   `inventories` 테이블에 `(user_id, item_id)` 유니크 제약 조건 추가 (Flyway V991__add_unique_to_inventories.sql)
+    -   `ShopService.purchaseItem()`에서 `DataIntegrityViolationException` 처리로 정합성 보장
 
-### 2.2 프론트엔드
-- **주의**: 전역 규칙(`FRONTEND DIRECTORY RESTRICTION`)에 따라 `frontend/` 폴더 내의 파일은 직접 수정하지 않습니다.
-- 프론트엔드 작업은 백엔드 API 배포 후 별도로 진행되거나 사용자가 직접 수행해야 합니다.
+### Phase 2: 비동기 처리 및 성능 최적화 (B1, B7)
+2.  **[B1, B7] PooRecordService 비동기화 및 전용 스레드풀 설정**
+    -   `AsyncConfig.java` 생성: `ThreadPoolTaskExecutor` 설정 (core=5, max=20, queue=100)
+    -   `PooRecordService.createRecord()` 내 AI 분석, Geocoding, 랭킹, 칭호 처리를 별도 `@Async` 메서드(`applyPostSaveEffects`)로 분리
 
-## 3. 작업 단계
-1. **브랜치 생성**: `feature/subscription-cancellation` (✅ 완료)
-2. **코드 수정**: `SubscriptionController.java`에 신규 엔드포인트 추가 및 기존 로직 개선 (✅ 완료)
-3. **로깅**: `docs/backend-modification-history.md`에 변경 사항 기록 (✅ 완료)
-4. **검증**: 컴파일 성공 확인 (✅ 완료)
+### Phase 3: 데이터 조회 및 필터링 최적화 (B3, B4)
+3.  **[B3] ShopService 장착 상태 필터링 최적화**
+    -   `findAllByUser()` 후 스트림 필터링 대신 JPA 쿼리(JPQL/QueryDSL)를 사용하여 SQL 레벨에서 처리 (ex: `findByUserAndIsEquippedTrue`)
+4.  **[B4] ToiletReviewService 통계 쿼리 통합**
+    -   리뷰 개수(COUNT)와 평점 평균(AVG)을 각각 조회하는 대신 단일 쿼리로 통합 조회
 
-## 4. 기대 결과
-- 사용자가 고객센터 문의 없이 대시보드/설정 페이지에서 직접 구독을 취소하거나 자동 갱신을 끌 수 있는 인터페이스 제공 가능
-- 백엔드 예외 처리의 일관성 확보
+### Phase 4: AI 연동 및 보안 강화 (B5, B9)
+5.  **[B5] ToiletReviewService AI 요약 비동기화**
+    -   리뷰 5개 이상 시 호출되는 AI 요약 로직을 `@Async`로 전환하여 응답 지연 방지
+6.  **[B9] AI 서비스(FastAPI) CORS 정책 강화**
+    -   `ai-service/main.py`의 `allow_origins=["*"]`를 특정 도메인으로 제한 (보안 강화)
 
-이 계획에 대해 승인해 주시면 작업을 시작하겠습니다.
+### Phase 5: DB 인덱스 및 로깅 최적화 (B10, B6, B8)
+7.  **[B10] 성능 향상을 위한 DB 인덱스 추가**
+    -   `toilet_reviews`, `inventories` 등 자주 조회되는 복합 조건 컬럼에 대한 인덱스 추가 기여
+8.  **[B6] SSE 통계 및 알림 (분산 환경 고려)**
+    -   `NotificationService`의 `ConcurrentHashMap` 기반 관리 구조에 대한 메모리 누수 방지 로직 및 로깅 강화 (필요시 Redis 전환 기반 준비)
+9.  **[B8] ServiceLoggingAspect 로깅 레벨 조정**
+    -   모든 서비스 메서드 `INFO` 로깅을 `DEBUG`로 전환하거나 조건부 로깅으로 변경하여 로그 부하 감소
+
+### Phase 6: 인프라 및 모니터링 강화 (I2, I3)
+10. **[I2] Redis 보안 및 영속성 설정**
+    -   Redis 비밀번호 설정 및 데이터 영속성(AOF/RDB) 설정 검토
+11. **[I3] Actuator 및 모니터링 환경 설정**
+    -   Spring Boot Actuator 노출 및 Prometheus 연동 설정
+
+---
+
+## 🚀 실행 전략 (Phase 1부터 시작)
+
+1.  새로운 작업 브랜치(`improvement/backend-optimization`) 생성
+2.  항목별 순차 구현 및 단위 테스트
+3.  `docs/backend-modification-history.md`에 변경 사항 기록
+
+[✅ 규칙을 잘 수행했습니다.]

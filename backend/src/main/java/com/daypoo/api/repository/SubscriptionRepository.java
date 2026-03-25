@@ -27,10 +27,7 @@ public interface SubscriptionRepository extends JpaRepository<Subscription, Long
       @Param("now") LocalDateTime now);
 
   /** 만료된 구독 조회 (배치 작업용) */
-  @Query(
-      "SELECT s FROM Subscription s "
-          + "WHERE s.status = 'ACTIVE' "
-          + "AND s.endDate < :now")
+  @Query("SELECT s FROM Subscription s " + "WHERE s.status = 'ACTIVE' " + "AND s.endDate < :now")
   List<Subscription> findExpiredSubscriptions(@Param("now") LocalDateTime now);
 
   /** 자동 갱신 대상 구독 조회 (배치 작업용) */

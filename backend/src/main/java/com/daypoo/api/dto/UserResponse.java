@@ -1,8 +1,7 @@
 package com.daypoo.api.dto;
 
-import com.daypoo.api.entity.User;
 import com.daypoo.api.entity.Subscription;
-import java.time.LocalDateTime;
+import com.daypoo.api.entity.User;
 import lombok.Builder;
 
 @Builder
@@ -29,8 +28,7 @@ public record UserResponse(
     return UserResponse.from(user, equippedTitleName, user.getActiveSubscription());
   }
 
-  public static UserResponse from(
-      User user, String equippedTitleName, Subscription subscription) {
+  public static UserResponse from(User user, String equippedTitleName, Subscription subscription) {
 
     return UserResponse.builder()
         .id(user.getId())

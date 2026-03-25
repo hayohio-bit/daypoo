@@ -3,14 +3,14 @@ package com.daypoo.api.controller;
 import com.daypoo.api.dto.SubscriptionResponse;
 import com.daypoo.api.entity.Subscription;
 import com.daypoo.api.entity.User;
+import com.daypoo.api.global.exception.BusinessException;
+import com.daypoo.api.global.exception.ErrorCode;
 import com.daypoo.api.service.SubscriptionService;
 import com.daypoo.api.service.UserService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
-import com.daypoo.api.global.exception.BusinessException;
-import com.daypoo.api.global.exception.ErrorCode;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
@@ -39,9 +39,7 @@ public class SubscriptionController {
   }
 
   /** 구독 취소 */
-  @Operation(
-      summary = "구독 취소",
-      description = "현재 구독을 취소합니다. 만료일까지는 사용 가능합니다.")
+  @Operation(summary = "구독 취소", description = "현재 구독을 취소합니다. 만료일까지는 사용 가능합니다.")
   @PostMapping("/cancel")
   public ResponseEntity<String> cancelSubscription(@AuthenticationPrincipal String email) {
     User user = userService.getByEmail(email);
@@ -56,8 +54,7 @@ public class SubscriptionController {
       @AuthenticationPrincipal String email, @RequestParam boolean enable) {
     User user = userService.getByEmail(email);
     subscriptionService.toggleAutoRenewal(user, enable);
-    return ResponseEntity.ok(
-        enable ? "자동 갱신이 활성화되었습니다." : "자동 갱신이 비활성화되었습니다.");
+    return ResponseEntity.ok(enable ? "자동 갱신이 활성화되었습니다." : "자동 갱신이 비활성화되었습니다.");
   }
 
   /** 구독 히스토리 조회 */
@@ -68,7 +65,6 @@ public class SubscriptionController {
     User user = userService.getByEmail(email);
     List<Subscription> history = subscriptionService.getSubscriptionHistory(user);
 
-    return ResponseEntity.ok(
-        history.stream().map(SubscriptionResponse::from).toList());
+    return ResponseEntity.ok(history.stream().map(SubscriptionResponse::from).toList());
   }
 }

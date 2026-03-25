@@ -59,10 +59,7 @@ public class PublicDataSyncService {
     this.webClient = WebClient.builder().baseUrl(apiUrl).build();
   }
 
-  /**
-   * 매일 새벽 3시에 공공데이터 전체 동기화를 실행합니다.
-   * 서버 시작 시에는 toilet 데이터가 없는 경우에만 소규모 동기화를 수행합니다.
-   */
+  /** 매일 새벽 3시에 공공데이터 전체 동기화를 실행합니다. 서버 시작 시에는 toilet 데이터가 없는 경우에만 소규모 동기화를 수행합니다. */
   @org.springframework.scheduling.annotation.Scheduled(cron = "0 0 3 * * *")
   public void scheduledSync() {
     log.info("🕒 [Scheduled] Starting daily public data sync...");
@@ -80,7 +77,9 @@ public class PublicDataSyncService {
 
     log.info(
         "🚀 Starting public data sync using Virtual Threads (pages: {}-{}, concurrent: {})...",
-        startPage, endPage, MAX_CONCURRENT_REQUESTS);
+        startPage,
+        endPage,
+        MAX_CONCURRENT_REQUESTS);
 
     TransactionTemplate transactionTemplate = new TransactionTemplate(transactionManager);
 
@@ -96,12 +95,15 @@ public class PublicDataSyncService {
                   try {
                     semaphore.acquire();
                     // findAllMngNos() 전체 로딩 대신 페이지별 IN 쿼리로 중복 체크
-                    int saved = syncToiletDataWithInQuery(currentPage, BATCH_SIZE, transactionTemplate);
+                    int saved =
+                        syncToiletDataWithInQuery(currentPage, BATCH_SIZE, transactionTemplate);
                     totalSavedCount.addAndGet(saved);
                     if (currentPage % 10 == 0) {
                       log.info(
                           "📈 Progress: {}/{} pages processed. Total new: {}",
-                          currentPage, endPage, totalSavedCount.get());
+                          currentPage,
+                          endPage,
+                          totalSavedCount.get());
                     }
                   } catch (Exception e) {
                     log.error("⚠️ Error processing page {}: {}", currentPage, e.getMessage());

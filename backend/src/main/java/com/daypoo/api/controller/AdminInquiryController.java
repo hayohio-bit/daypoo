@@ -29,7 +29,11 @@ public class AdminInquiryController {
   @GetMapping
   public ResponseEntity<Page<AdminInquiryListResponse>> getInquiries(
       @RequestParam(required = false) InquiryStatus status,
-      @PageableDefault(size = 20, sort = "createdAt", direction = org.springframework.data.domain.Sort.Direction.DESC) Pageable pageable) {
+      @PageableDefault(
+              size = 20,
+              sort = "createdAt",
+              direction = org.springframework.data.domain.Sort.Direction.DESC)
+          Pageable pageable) {
     return ResponseEntity.ok(adminManagementService.getInquiries(status, pageable));
   }
 

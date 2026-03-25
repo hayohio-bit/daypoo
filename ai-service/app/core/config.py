@@ -12,6 +12,9 @@ class Settings(BaseSettings):
     # Redis Configuration
     REDIS_HOST: str = "localhost"
     REDIS_PORT: int = 6379
+
+    # CORS Configuration
+    CORS_ORIGINS: list[str] = ["http://localhost:3000", "http://localhost:5173", "http://localhost:8080"]
     
     class Config:
         env_file = ".env"

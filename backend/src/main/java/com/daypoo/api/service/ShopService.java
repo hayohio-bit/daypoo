@@ -56,10 +56,15 @@ public class ShopService {
     }
 
     user.deductPoints(item.getPrice());
-    userRepository.save(user);
+    // userRepository.save(user); // 더티 체킹에 의해 자동 반영됨
 
-    Inventory inventory = Inventory.builder().user(user).item(item).isEquipped(false).build();
-    inventoryRepository.save(inventory);
+    try {
+      Inventory inventory = Inventory.builder().user(user).item(item).isEquipped(false).build();
+      inventoryRepository.save(inventory);
+      inventoryRepository.flush(); // 즉시 쿼리 실행하여 유니크 제약 위배 확인
+    } catch (org.springframework.dao.DataIntegrityViolationException e) {
+      throw new BusinessException(ErrorCode.ALREADY_OWNED_ITEM);
+    }
   }
 
   /** 유저 인벤토리 조회 */
@@ -93,9 +98,8 @@ public class ShopService {
     // 같은 타입의 다른 장착된 아이템이 있다면 해제 (아바타/마커 스킨은 하나만 장착 가능)
     if (!inventory.isEquipped()) {
       List<Inventory> sameTypeItems =
-          inventoryRepository.findAllByUser(user).stream()
-              .filter(i -> i.isEquipped() && i.getItem().getType() == inventory.getItem().getType())
-              .collect(Collectors.toList());
+          inventoryRepository.findAllByUserAndIsEquippedTrueAndItemType(
+              user, inventory.getItem().getType());
       sameTypeItems.forEach(Inventory::unequip);
       inventory.equip();
     } else {

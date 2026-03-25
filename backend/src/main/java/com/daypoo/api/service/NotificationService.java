@@ -58,15 +58,20 @@ public class NotificationService {
   public SseEmitter subscribe(Long userId) {
     SseEmitter emitter = new SseEmitter(60L * 1000 * 60); // 1시간 타임아웃
     localEmitters.put(userId, emitter);
+    log.info(
+        "New SSE subscription for user: {}. Total active emitters: {}",
+        userId,
+        localEmitters.size());
 
-    emitter.onCompletion(() -> localEmitters.remove(userId));
-    emitter.onTimeout(() -> localEmitters.remove(userId));
+    emitter.onCompletion(() -> removeEmitter(userId, "completion"));
+    emitter.onTimeout(() -> removeEmitter(userId, "timeout"));
+    emitter.onError((e) -> removeEmitter(userId, "error: " + e.getMessage()));
 
     // 연결 시 더미 이벤트 전송 (연결 확인용)
     try {
       emitter.send(SseEmitter.event().name("connect").data("connected!"));
     } catch (IOException e) {
-      localEmitters.remove(userId);
+      removeEmitter(userId, "initial send failure");
     }
 
     return emitter;
@@ -111,13 +116,24 @@ public class NotificationService {
 
   /** 로컬 메모리의 Emitter를 통해 실시간 전송 */
   private void sendToLocal(Long userId, NotificationResponse response) {
-    if (localEmitters.containsKey(userId)) {
-      SseEmitter emitter = localEmitters.get(userId);
+    SseEmitter emitter = localEmitters.get(userId);
+    if (emitter != null) {
       try {
         emitter.send(SseEmitter.event().name("notification").data(response));
-      } catch (IOException e) {
-        localEmitters.remove(userId);
+        log.debug("Notification sent to local user: {}", userId);
+      } catch (Exception e) {
+        removeEmitter(userId, "send failure: " + e.getMessage());
       }
+    }
+  }
+
+  private void removeEmitter(Long userId, String reason) {
+    if (localEmitters.remove(userId) != null) {
+      log.info(
+          "SSE emitter removed for user: {} (Reason: {}). Remaining emitters: {}",
+          userId,
+          reason,
+          localEmitters.size());
     }
   }
 

@@ -61,8 +61,7 @@ public class SubscriptionService {
             .build();
 
     subscriptionRepository.save(subscription);
-    log.info(
-        "새 구독 생성: userId={}, plan={}, endDate={}", user.getId(), plan, endDate);
+    log.info("새 구독 생성: userId={}, plan={}, endDate={}", user.getId(), plan, endDate);
 
     return subscription;
   }
@@ -110,10 +109,7 @@ public class SubscriptionService {
       subscription.disableAutoRenewal();
     }
 
-    log.info(
-        "자동 갱신 변경: userId={}, autoRenewal={}",
-        user.getId(),
-        subscription.isAutoRenewal());
+    log.info("자동 갱신 변경: userId={}, autoRenewal={}", user.getId(), subscription.isAutoRenewal());
   }
 
   /**
@@ -123,8 +119,7 @@ public class SubscriptionService {
    * @param payment 새 결제 정보
    */
   public void renewSubscription(Subscription subscription, Payment payment) {
-    LocalDateTime newEndDate =
-        subscription.getBillingCycle().calculateEndDate(LocalDateTime.now());
+    LocalDateTime newEndDate = subscription.getBillingCycle().calculateEndDate(LocalDateTime.now());
     subscription.renew(newEndDate, payment);
 
     log.info(

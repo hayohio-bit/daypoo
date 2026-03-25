@@ -9,8 +9,9 @@ import java.util.Optional;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface HealthReportSnapshotRepository extends JpaRepository<HealthReportSnapshot, Long> {
-  Optional<HealthReportSnapshot> findFirstByUserAndReportTypeAndCreatedAtBetweenOrderByCreatedAtDesc(
-      User user, ReportType reportType, LocalDateTime from, LocalDateTime to);
+  Optional<HealthReportSnapshot>
+      findFirstByUserAndReportTypeAndCreatedAtBetweenOrderByCreatedAtDesc(
+          User user, ReportType reportType, LocalDateTime from, LocalDateTime to);
 
   List<HealthReportSnapshot> findByUserOrderByCreatedAtDesc(User user);
 }
