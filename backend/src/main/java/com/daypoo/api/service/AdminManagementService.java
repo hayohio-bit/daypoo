@@ -30,6 +30,7 @@ public class AdminManagementService {
   private final ItemRepository itemRepository;
   private final InventoryRepository inventoryRepository;
   private final PaymentRepository paymentRepository;
+  private final PooRecordRepository pooRecordRepository;
 
   // --- 유저 관리 ---
 
@@ -61,7 +62,7 @@ public class AdminManagementService {
                     .role(user.getRole())
                     .level(user.getLevel())
                     .points(user.getPoints())
-                    .recordCount(user.getRecords().size())
+                    .recordCount((int) pooRecordRepository.countByUserId(user.getId()))
                     .createdAt(user.getCreatedAt())
                     .build());
   }

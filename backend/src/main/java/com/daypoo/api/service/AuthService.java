@@ -41,6 +41,7 @@ public class AuthService {
   private final PaymentRepository paymentRepository;
   private final InquiryRepository inquiryRepository;
   private final ToiletReviewRepository toiletReviewRepository;
+  private final TitleRepository titleRepository;
 
   @Transactional
   public TokenResponse socialSignUp(SocialSignUpRequest request) {
@@ -88,7 +89,17 @@ public class AuthService {
             .findByEmail(email)
             .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
 
-    return UserResponse.from(user);
+    String titleName = null;
+    Long equippedTitleId = user.getEquippedTitleId();
+    if (equippedTitleId != null) {
+      titleName =
+          titleRepository
+              .findById(equippedTitleId)
+              .map(com.daypoo.api.entity.Title::getName)
+              .orElse(null);
+    }
+
+    return UserResponse.from(user, titleName);
   }
 
   @Transactional

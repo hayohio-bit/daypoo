@@ -124,6 +124,9 @@ public class ShopService {
                     .requirementDescription(
                         title.getAchievementType() + ": " + title.getAchievementThreshold())
                     .isOwned(ownedTitleIds.contains(title.getId()))
+                    .isEquipped(
+                        user.getEquippedTitleId() != null
+                            && user.getEquippedTitleId().equals(title.getId()))
                     .build())
         .collect(Collectors.toList());
   }
@@ -138,6 +141,12 @@ public class ShopService {
       throw new IllegalStateException("보유하지 않은 칭호입니다.");
     }
     user.equipTitle(titleId);
+    userRepository.save(user);
+  }
+
+  /** 칭호 해제 */
+  public void unequipTitle(User user) {
+    user.equipTitle(null);
     userRepository.save(user);
   }
 }

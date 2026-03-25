@@ -13,8 +13,14 @@ public record UserResponse(
     int level,
     long exp,
     long points,
+    Long equippedTitleId,
+    String equippedTitleName,
     LocalDateTime createdAt) {
   public static UserResponse from(User user) {
+    return UserResponse.from(user, null);
+  }
+
+  public static UserResponse from(User user, String equippedTitleName) {
     return UserResponse.builder()
         .id(user.getId())
         .email(user.getEmail())
@@ -23,6 +29,8 @@ public record UserResponse(
         .level(user.getLevel())
         .exp(user.getExp())
         .points(user.getPoints())
+        .equippedTitleId(user.getEquippedTitleId())
+        .equippedTitleName(equippedTitleName)
         .createdAt(user.getCreatedAt())
         .build();
   }

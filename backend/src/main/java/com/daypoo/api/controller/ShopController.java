@@ -59,12 +59,19 @@ public class ShopController {
     return ResponseEntity.ok(shopService.getAllTitles(user));
   }
 
-  /** 칭호 장착 */
   @PostMapping("/titles/{titleId}/equip")
   public ResponseEntity<Void> equipTitle(
       @AuthenticationPrincipal String email, @PathVariable Long titleId) {
     User user = userService.getByEmail(email);
     shopService.equipTitle(user, titleId);
+    return ResponseEntity.ok().build();
+  }
+
+  /** 칭호 해제 */
+  @DeleteMapping("/titles/equip")
+  public ResponseEntity<Void> unequipTitle(@AuthenticationPrincipal String email) {
+    User user = userService.getByEmail(email);
+    shopService.unequipTitle(user);
     return ResponseEntity.ok().build();
   }
 }
