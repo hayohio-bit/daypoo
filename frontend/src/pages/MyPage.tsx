@@ -12,6 +12,7 @@ import { loadTossPayments } from '@tosspayments/payment-sdk';
 import { api } from '../services/apiClient';
 import { useAuth } from '../context/AuthContext';
 import { MyPageSkeleton } from '../components/LoadingSkeleton';
+import WaveButtonComponent from '../components/WaveButton';
 
 // ── 타입 ──────────────────────────────────────────────────────────────
 type TabKey = 'home' | 'collection' | 'report' | 'settings';
@@ -20,7 +21,7 @@ interface UserProfile {
   email: string;
   nickname: string;
   points?: number;
-  birthDate?: string;
+  birthDate?: string | null;
   createdAt?: string;
   role?: string;
 }
@@ -601,12 +602,13 @@ function TabBar({ active, onChange }: { active: TabKey; onChange: (k: TabKey) =>
 }
 
 // ── 홈 탭 ─────────────────────────────────────────────────────────────
-function HomeTab({ equipped, setEquipped, user, avatarItems, initialShopTab = 'inventory' }: {
+function HomeTab({ equipped, setEquipped, user, avatarItems, initialShopTab = 'inventory', refreshUser }: {
   equipped: AvatarItem | null;
   setEquipped: (i: AvatarItem) => void;
   user: UserProfile | null;
   avatarItems: AvatarItem[];
   initialShopTab?: 'inventory' | 'shop';
+  refreshUser: () => Promise<void>;
 }) {
   const [shopTab, setShopTab] = useState<'inventory' | 'shop'>(initialShopTab);
   const [preview, setPreview] = useState<AvatarItem | null>(null);
@@ -684,15 +686,50 @@ function HomeTab({ equipped, setEquipped, user, avatarItems, initialShopTab = 'i
     }
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!preview) return;
+
     if (preview.owned) {
+      // 이미 소유한 아이템 → 장착만
       setEquipped(preview);
       setSaved(true);
       setTimeout(() => setSaved(false), 2000);
       setPreview(null);
     } else {
-      setShowPaymentModal(true);
+      // 미소유 아이템 → 구매 시도
+      const userPoints = user?.points ?? 0;
+      const itemPrice = preview.price ?? 0;
+
+      if (userPoints >= itemPrice) {
+        // 포인트 충분 → 구매 API 호출
+        try {
+          await api.post('/shop/purchase', { itemId: preview.id });
+          alert('아이템을 구매했습니다!');
+
+          // 사용자 정보 새로고침 (포인트 업데이트)
+          await refreshUser();
+
+          // 아이템 목록 새로고침 (owned 상태 업데이트)
+          // TODO: 아이템 목록을 API에서 가져오는 경우 여기서 새로고침
+
+          // 구매한 아이템을 owned로 변경
+          setAvatarItems(prev => prev.map(item =>
+            item.id === preview.id ? { ...item, owned: true } : item
+          ));
+
+          // 자동 장착
+          setEquipped(preview);
+          setSaved(true);
+          setTimeout(() => setSaved(false), 2000);
+          setPreview(null);
+        } catch (err: any) {
+          console.error('아이템 구매 실패:', err);
+          alert(err.message || '아이템 구매에 실패했습니다.');
+        }
+      } else {
+        // 포인트 부족 → 충전 모달 표시
+        setShowPaymentModal(true);
+      }
     }
   };
 
@@ -770,24 +807,19 @@ function HomeTab({ equipped, setEquipped, user, avatarItems, initialShopTab = 'i
             <motion.div
               initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 15 }}
               className="flex gap-4 px-10 pb-10 pt-4">
-              <motion.button whileHover={{ scale: 1.01 }} whileTap={{ scale: 0.99 }}
+              <WaveButtonComponent
                 onClick={handleSave}
-                className="flex-1 flex items-center justify-center gap-3 py-5 rounded-[24px] font-black text-xl shadow-2xl transition-shadow"
-                style={{
-                  background: preview.owned
-                    ? 'linear-gradient(135deg, #1B4332 0%, #2D6A4F 100%)'
-                    : 'linear-gradient(135deg, #E8A838 0%, #FFB627 100%)',
-                  color: preview.owned ? '#ffffff' : '#1A2B27',
-                  boxShadow: preview.owned 
-                    ? '0 20px 40px rgba(27,67,50,0.25)' 
-                    : '0 20px 40px rgba(232,168,56,0.25)',
-                }}>
+                variant={preview.owned ? 'primary' : 'accent'}
+                size="xl"
+                className="flex-1 shadow-2xl"
+                icon={saved || preview.owned ? <Check size={24} /> : <ShoppingBag size={24} />}
+              >
                 {saved
-                  ? <><Check size={24} /> 저장 완료!</>
+                  ? '저장 완료!'
                   : preview.owned
-                  ? <><Check size={24} /> 장착 완료 (저장)</>
-                  : <><ShoppingBag size={24} /> {preview.price?.toLocaleString()}P 충전 후 구매하기</>}
-              </motion.button>
+                  ? '장착 완료 (저장)'
+                  : `${preview.price?.toLocaleString()}P 충전 후 구매하기`}
+              </WaveButtonComponent>
             </motion.div>
           )}
         </AnimatePresence>
@@ -1479,9 +1511,10 @@ function SettingsTab({ user, refreshUser, logout, deleteMe }: {
 }) {
   const ref = useRef(null);
   const inView = useInView(ref, { once: true, margin: '-40px' });
-  const [modalType, setModalType] = useState<'nickname' | 'password' | 'withdraw' | null>(null);
+  const [modalType, setModalType] = useState<'nickname' | 'password' | 'withdraw' | 'cancelSubscription' | null>(null);
   const [inputValue, setInputValue] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [subscriptionInfo, setSubscriptionInfo] = useState<any>(null);
   const navigate = useNavigate();
 
   const handleLogout = async () => {
@@ -1553,6 +1586,34 @@ function SettingsTab({ user, refreshUser, logout, deleteMe }: {
     }
   };
 
+  const loadSubscriptionInfo = async () => {
+    try {
+      const data = await api.get('/subscriptions/me');
+      setSubscriptionInfo(data);
+    } catch (err: any) {
+      console.error('구독 정보 조회 실패:', err);
+      alert('구독 정보를 불러올 수 없습니다.');
+    }
+  };
+
+  const handleCancelSubscription = async () => {
+    if (!confirm('정말로 구독을 해지하시겠습니까?\n\n해지 후에도 만료일까지는 서비스를 이용하실 수 있습니다.')) return;
+
+    setIsSubmitting(true);
+    try {
+      await api.post('/subscriptions/cancel');
+      alert('구독이 해지되었습니다. 만료일까지 서비스를 이용하실 수 있습니다.');
+      setModalType(null);
+      await refreshUser();
+      await loadSubscriptionInfo();
+    } catch (err: any) {
+      console.error('구독 해지 에러:', err);
+      alert(err.message || '구독 해지에 실패했습니다.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   const sections = [
     {
       title: '기본 정보',
@@ -1565,18 +1626,28 @@ function SettingsTab({ user, refreshUser, logout, deleteMe }: {
     {
       title: '멤버십 및 계정',
       items: [
-        { 
-          label: '멤버십 등급', 
-          value: user?.role === 'PRO' ? 'PRO 프리미엄 멤버십' : 'FREE 일반 회원', 
-          icon: <Trophy size={18} />, 
-          action: '관리', 
-          onClick: () => {
-            if (user?.role !== 'PRO' && user?.role !== 'PREMIUM') {
+        {
+          label: '멤버십 등급',
+          value: (() => {
+            if (!user) return 'FREE 일반 회원';
+            if (user.isPro && user.subscription) {
+              const plan = user.subscription.plan;
+              if (plan === 'PRO') return 'PRO 멤버십';
+              if (plan === 'PREMIUM') return 'PREMIUM 멤버십';
+              return `${plan} 멤버십`;
+            }
+            return 'FREE 일반 회원';
+          })(),
+          icon: <Trophy size={18} />,
+          action: '관리',
+          onClick: async () => {
+            if (!user?.isPro || !user?.subscription) {
               navigate('/premium');
             } else {
-              alert('현재 멤버십을 이용 중입니다. 관리 기능은 준비 중입니다.');
+              await loadSubscriptionInfo();
+              setModalType('cancelSubscription');
             }
-          } 
+          }
         },
         { label: '계정 생성일', value: user?.createdAt ? (user.createdAt as string).split('T')[0] : '-', icon: <Calendar size={18} />, action: null },
       ]
@@ -1649,45 +1720,135 @@ function SettingsTab({ user, refreshUser, logout, deleteMe }: {
               onClick={() => setModalType(null)} className="absolute inset-0 bg-black/60 backdrop-blur-md" />
             <motion.div initial={{ scale: 0.95, opacity: 0, y: 20 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.95, opacity: 0, y: 10 }}
               className="relative w-full max-w-sm bg-white rounded-[40px] p-10 shadow-3xl border border-white">
-              <div className={`w-16 h-16 rounded-2xl flex items-center justify-center mb-6 ${modalType === 'withdraw' ? 'bg-red-50 text-red-500' : 'bg-emerald-50 text-emerald-600'}`}>
-                {modalType === 'nickname' ? <Activity size={28} /> : modalType === 'password' ? <Lock size={28} /> : <Trash2 size={28} />}
-              </div>
-              <h3 className="text-2xl font-black text-[#1A2B27] mb-2">
-                {modalType === 'nickname' ? '새로운 닉네임' : modalType === 'password' ? '비밀번호 재설정' : '계정 삭제'}
-              </h3>
-              <p className="text-xs font-medium text-gray-400 mb-8 leading-relaxed">
-                {modalType === 'nickname' ? '부르고 싶은 멋진 닉네임을 입력해주세요.' : 
-                 modalType === 'password' ? '보안을 위해 강력한 비밀번호를 설정하세요.' : 
-                 '탈퇴를 진행하시려면 본인 확인을 위해 현재 비밀번호를 입력해주세요.'}
-              </p>
-              
-              <input
-                type={modalType === 'nickname' ? 'text' : 'password'}
-                value={inputValue}
-                onChange={(e) => setInputValue(e.target.value)}
-                placeholder={modalType === 'nickname' ? '닉네임 입력' : '비밀번호 입력'}
-                className="w-full p-5 bg-gray-50 border border-gray-100 rounded-[20px] mb-8 outline-none focus:border-emerald-500/30 font-black text-lg text-[#1A2B27] placeholder:text-gray-400"
-              />
-              
-              <div className="flex gap-3">
-                <button 
-                  onClick={() => setModalType(null)} 
-                  className="flex-1 py-4 text-gray-400 font-bold hover:bg-gray-50 rounded-2xl transition-colors"
-                >
-                  취소
-                </button>
-                <button 
-                  onClick={
-                    modalType === 'nickname' ? handleNicknameChange : 
-                    modalType === 'password' ? handlePasswordChange : 
-                    handleWithdraw
-                  }
-                  disabled={isSubmitting}
-                  className="flex-1 py-4 bg-[#1B4332] text-white font-black rounded-[20px] shadow-xl shadow-emerald-900/20 disabled:opacity-50"
-                >
-                  {isSubmitting ? '처리 중...' : '확인'}
-                </button>
-              </div>
+
+              {modalType === 'cancelSubscription' ? (
+                /* 구독 해지 모달 */
+                <>
+                  <div className="w-16 h-16 rounded-2xl flex items-center justify-center mb-6 bg-amber-50 text-amber-600">
+                    <Crown size={28} />
+                  </div>
+                  <h3 className="text-2xl font-black text-[#1A2B27] mb-2">
+                    멤버십 구독 관리
+                  </h3>
+
+                  {subscriptionInfo ? (
+                    <div className="space-y-6 mb-8">
+                      <div className="bg-gray-50 rounded-2xl p-6 space-y-3">
+                        <div className="flex justify-between items-center">
+                          <span className="text-xs font-bold text-gray-400">구독 플랜</span>
+                          <span className={`font-black text-lg ${
+                            subscriptionInfo.plan === 'PREMIUM' ? 'text-[#1B4332]' : 'text-[#E8A838]'
+                          }`}>
+                            {subscriptionInfo.plan} 멤버십
+                          </span>
+                        </div>
+                        <div className="flex justify-between items-center">
+                          <span className="text-xs font-bold text-gray-400">구독 상태</span>
+                          <span className={`font-black text-sm ${
+                            subscriptionInfo.status === 'ACTIVE' ? 'text-emerald-600' : 'text-gray-400'
+                          }`}>
+                            {subscriptionInfo.status === 'ACTIVE' ? '활성' :
+                             subscriptionInfo.status === 'CANCELLED' ? '해지됨' : '만료'}
+                          </span>
+                        </div>
+                        <div className="flex justify-between items-center">
+                          <span className="text-xs font-bold text-gray-400">만료일</span>
+                          <span className="font-black text-sm text-[#1A2B27]">
+                            {subscriptionInfo.endDate ? new Date(subscriptionInfo.endDate).toLocaleDateString('ko-KR') : '-'}
+                          </span>
+                        </div>
+                        {subscriptionInfo.daysRemaining !== null && (
+                          <div className="flex justify-between items-center">
+                            <span className="text-xs font-bold text-gray-400">남은 기간</span>
+                            <span className="font-black text-sm text-emerald-600">
+                              {subscriptionInfo.daysRemaining}일
+                            </span>
+                          </div>
+                        )}
+                        <div className="flex justify-between items-center">
+                          <span className="text-xs font-bold text-gray-400">자동 갱신</span>
+                          <span className={`font-black text-sm ${
+                            subscriptionInfo.isAutoRenewal ? 'text-emerald-600' : 'text-gray-400'
+                          }`}>
+                            {subscriptionInfo.isAutoRenewal ? 'ON' : 'OFF'}
+                          </span>
+                        </div>
+                      </div>
+
+                      {subscriptionInfo.status === 'ACTIVE' && (
+                        <p className="text-xs font-medium text-gray-400 leading-relaxed">
+                          구독을 해지하시면 만료일까지 서비스를 이용하실 수 있습니다.
+                        </p>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="py-8 text-center">
+                      <p className="text-sm text-gray-400">구독 정보를 불러오는 중...</p>
+                    </div>
+                  )}
+
+                  <div className="flex gap-3">
+                    <button
+                      onClick={() => setModalType(null)}
+                      className="flex-1 py-4 text-gray-400 font-bold hover:bg-gray-50 rounded-2xl transition-colors"
+                    >
+                      닫기
+                    </button>
+                    {subscriptionInfo?.status === 'ACTIVE' && (
+                      <button
+                        onClick={handleCancelSubscription}
+                        disabled={isSubmitting}
+                        className="flex-1 py-4 bg-red-500 text-white font-black rounded-[20px] shadow-xl shadow-red-900/20 disabled:opacity-50 hover:bg-red-600 transition-colors"
+                      >
+                        {isSubmitting ? '처리 중...' : '구독 해지'}
+                      </button>
+                    )}
+                  </div>
+                </>
+              ) : (
+                /* 기존 모달 (닉네임/비밀번호/탈퇴) */
+                <>
+                  <div className={`w-16 h-16 rounded-2xl flex items-center justify-center mb-6 ${modalType === 'withdraw' ? 'bg-red-50 text-red-500' : 'bg-emerald-50 text-emerald-600'}`}>
+                    {modalType === 'nickname' ? <Activity size={28} /> : modalType === 'password' ? <Lock size={28} /> : <Trash2 size={28} />}
+                  </div>
+                  <h3 className="text-2xl font-black text-[#1A2B27] mb-2">
+                    {modalType === 'nickname' ? '새로운 닉네임' : modalType === 'password' ? '비밀번호 재설정' : '계정 삭제'}
+                  </h3>
+                  <p className="text-xs font-medium text-gray-400 mb-8 leading-relaxed">
+                    {modalType === 'nickname' ? '부르고 싶은 멋진 닉네임을 입력해주세요.' :
+                     modalType === 'password' ? '보안을 위해 강력한 비밀번호를 설정하세요.' :
+                     '탈퇴를 진행하시려면 본인 확인을 위해 현재 비밀번호를 입력해주세요.'}
+                  </p>
+
+                  <input
+                    type={modalType === 'nickname' ? 'text' : 'password'}
+                    value={inputValue}
+                    onChange={(e) => setInputValue(e.target.value)}
+                    placeholder={modalType === 'nickname' ? '닉네임 입력' : '비밀번호 입력'}
+                    className="w-full p-5 bg-gray-50 border border-gray-100 rounded-[20px] mb-8 outline-none focus:border-emerald-500/30 font-black text-lg text-[#1A2B27] placeholder:text-gray-400"
+                  />
+
+                  <div className="flex gap-3">
+                    <button
+                      onClick={() => setModalType(null)}
+                      className="flex-1 py-4 text-gray-400 font-bold hover:bg-gray-50 rounded-2xl transition-colors"
+                    >
+                      취소
+                    </button>
+                    <button
+                      onClick={
+                        modalType === 'nickname' ? handleNicknameChange :
+                        modalType === 'password' ? handlePasswordChange :
+                        handleWithdraw
+                      }
+                      disabled={isSubmitting}
+                      className="flex-1 py-4 bg-[#1B4332] text-white font-black rounded-[20px] shadow-xl shadow-emerald-900/20 disabled:opacity-50"
+                    >
+                      {isSubmitting ? '처리 중...' : '확인'}
+                    </button>
+                  </div>
+                </>
+              )}
             </motion.div>
           </div>
         )}
@@ -1781,12 +1942,13 @@ export function MyPage({ openAuth }: { openAuth: (mode: 'login' | 'signup') => v
             initial="enter" animate="center" exit="exit"
             transition={{ duration: 0.32, ease: [0.16, 1, 0.3, 1] }}>
             {activeTab === 'home'       && (
-              <HomeTab 
-                equipped={equipped} 
-                setEquipped={setEquipped} 
-                user={user} 
-                avatarItems={avatarItems} 
+              <HomeTab
+                equipped={equipped}
+                setEquipped={setEquipped}
+                user={user}
+                avatarItems={avatarItems}
                 initialShopTab={new URLSearchParams(location.search).get('sub') === 'shop' ? 'shop' : 'inventory'}
+                refreshUser={refreshUser}
               />
             )}
             {activeTab === 'collection' && <CollectionTab titles={titles} setTitles={setTitles} />}

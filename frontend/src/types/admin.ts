@@ -2,7 +2,7 @@
 
 export type Role = 'ROLE_USER' | 'ROLE_ADMIN';
 export type InquiryStatus = 'PENDING' | 'COMPLETED';
-export type ItemType = 'AVATAR_SKIN' | 'MARKER_SKIN';
+export type ItemType = 'AVATAR_SKIN' | 'MARKER_SKIN' | 'TITLE' | 'AVATAR' | 'EFFECT';
 
 // ========== User Management ==========
 export interface AdminUserListResponse {

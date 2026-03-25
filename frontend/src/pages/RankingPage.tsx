@@ -8,6 +8,7 @@ import { useRankings } from '../hooks/useRankings';
 
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import WaveButtonComponent from '../components/WaveButton';
 
 // ── 타입 ──────────────────────────────────────────────────────────────
 type TabKey = 'total' | 'local' | 'health';
@@ -183,19 +184,15 @@ function ItemPopup({ user, onClose, openAuth }: { user: RankUser; onClose: () =>
             </div>
 
             {/* 하단 유도 버튼 */}
-            <motion.button
-              whileHover={{ scale: 1.02, y: -2 }}
-              whileTap={{ scale: 0.98 }}
+            <WaveButtonComponent
               onClick={goToShop}
-              className="w-full py-5 rounded-[24px] font-black text-[#1A2B27] text-base flex items-center justify-center gap-3 shadow-2xl transition-all"
-              style={{
-                background: 'linear-gradient(135deg, #FFD045 0%, #E8A838 100%)',
-                boxShadow: '0 12px 32px rgba(232,168,56,0.3)',
-              }}
+              variant="accent"
+              size="lg"
+              className="w-full shadow-2xl"
+              icon={<ShoppingBag size={20} />}
             >
-              <ShoppingBag size={20} />
               상점 가서 이 아이템 보기
-            </motion.button>
+            </WaveButtonComponent>
             <p className="text-center text-[10px] text-gray-300 font-bold mt-4 tracking-tight">
               나만의 스타일로 랭킹 페이지를 꾸며보세요!
             </p>
@@ -427,13 +424,14 @@ function MyRankBar({ data }: { data: any }) {
         </div>
       </div>
 
-      <button
+      <WaveButtonComponent
         onClick={() => navigate('/map')}
-        className="w-full md:w-auto px-12 py-4.5 rounded-2xl font-black text-lg flex-shrink-0 transition-all hover:scale-105 active:scale-95 shadow-[0_15px_35px_-10px_rgba(232,168,56,0.4)] bg-[#E8A838] text-[#1B4332] z-10 relative overflow-hidden group/btn"
+        variant="accent"
+        size="lg"
+        className="w-full md:w-auto shadow-2xl"
       >
-        <span className="relative z-10">지금 바로 도전하기 →</span>
-        <div className="absolute inset-0 bg-white/20 translate-y-full group-hover/btn:translate-y-0 transition-transform duration-300" />
-      </button>
+        지금 바로 도전하기 →
+      </WaveButtonComponent>
     </motion.div>
   );
 }

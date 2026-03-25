@@ -15,6 +15,7 @@ import {
   Trash2,
   Database
 } from 'lucide-react';
+import WaveButtonComponent from '../components/WaveButton';
 import {
   AreaChart, Area, PieChart, Pie, Cell,
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
@@ -27,6 +28,7 @@ import {
   AdminUserListResponse,
   AdminUserDetailResponse,
   AdminInquiryListResponse,
+  AdminInquiryDetailResponse,
   AdminToiletListResponse,
   PageResponse,
   Role,
@@ -73,32 +75,50 @@ const GlassCard = ({ children, className = '', glowColor = 'rgba(27,67,50,0.05)'
   </motion.div>
 );
 
-const StatWidget = ({ title, value, trend, isUp, icon: Icon, color }: any) => (
-  <GlassCard glowColor={`${color}15`}>
-    <div className="flex justify-between items-start mb-4">
-      <div className="p-3 rounded-[18px]" style={{ background: `${color}12`, color }}>
-        <Icon size={22} />
+const StatWidget = ({ title, value, trend, isUp, icon: Icon, color, sparkData, dataKey = 'v' }: any) => {
+  const safeColorId = color.replace('#', '');
+  return (
+    <GlassCard 
+      glowColor={`${color}15`}
+      className="group transition-all duration-500 hover:border-black/5 hover:-translate-y-1.5"
+    >
+      <div className="flex justify-between items-start mb-6">
+        <div className="p-3.5 rounded-2xl transition-all duration-500 group-hover:scale-110 group-hover:rotate-6" style={{ background: `${color}10`, color }}>
+          <Icon size={24} />
+        </div>
+        <div className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-[10px] font-black tracking-tight ${isUp ? 'bg-emerald-50 text-emerald-600' : 'bg-rose-50 text-rose-600'}`}>
+          {isUp ? <TrendingUp size={12} /> : <TrendingUp size={12} className="rotate-180" />}
+          {trend}
+        </div>
       </div>
-      <div className={`flex items-center gap-1 text-xs font-bold px-2 py-1 rounded-full ${isUp ? 'bg-green-50 text-green-600' : 'bg-red-50 text-red-600'}`}>
-        <TrendingUp size={12} className={isUp ? '' : 'rotate-180'} />
-        {trend}
+      <div className="flex flex-col mb-6">
+        <span className="text-[11px] font-black uppercase tracking-[0.2em] mb-1.5" style={{ color: COLORS.textSecondary }}>{title}</span>
+        <span className="text-4xl font-black text-black tracking-tighter" style={{ letterSpacing: '-0.05em' }}>{value}</span>
       </div>
-    </div>
-    <div className="flex flex-col">
-      <span className="text-xs font-black uppercase tracking-widest mb-1" style={{ color: COLORS.textSecondary }}>{title}</span>
-      <span className="text-3xl font-black" style={{ color: COLORS.textPrimary, letterSpacing: '-0.04em' }}>{value}</span>
-    </div>
-    <div className="mt-4 h-1.5 w-full bg-black/5 rounded-full overflow-hidden">
-      <motion.div 
-        initial={{ width: 0 }} 
-        animate={{ width: '70%' }} 
-        transition={{ duration: 1, ease: 'easeInOut' }}
-        className="h-full rounded-full" 
-        style={{ background: color }} 
-      />
-    </div>
-  </GlassCard>
-);
+      <div className="h-16 w-full -mx-1 opacity-40 group-hover:opacity-100 transition-opacity duration-700">
+        <ResponsiveContainer width="100%" height="100%">
+          <AreaChart data={sparkData}>
+            <defs>
+              <linearGradient id={`gradient-${safeColorId}`} x1="0" y1="0" x2="0" y2="1">
+                <stop offset="5%" stopColor={color} stopOpacity={0.4}/>
+                <stop offset="95%" stopColor={color} stopOpacity={0}/>
+              </linearGradient>
+            </defs>
+            <Area 
+              type="monotone" 
+              dataKey={dataKey} 
+              stroke={color} 
+              strokeWidth={3} 
+              fill={`url(#gradient-${safeColorId})`} 
+              isAnimationActive={true}
+              animationDuration={2000}
+            />
+          </AreaChart>
+        </ResponsiveContainer>
+      </div>
+    </GlassCard>
+  );
+};
 
 const CustomTooltip = ({ active, payload, label }: any) => {
   if (active && payload && payload.length) {
@@ -147,6 +167,11 @@ const DashboardView = ({ stats, loading, setActiveTab }: { stats: AdminStatsResp
 
   const totalUsersCount = stats?.totalUsers || 0;
 
+  const usersSpark = (stats?.weeklyTrend || []).map(d => ({ v: d.users }));
+  const salesSpark = (stats?.weeklyTrend || []).map(d => ({ v: d.sales }));
+  const inquiriesSpark = (stats?.weeklyTrend || []).map(d => ({ v: d.inquiries }));
+  const toiletSpark = [12, 15, 18, 22, 25, 28, 32].map(v => ({ v })); // Mock trend
+
   if (loading) return (
     <div className="flex flex-col items-center justify-center py-40 gap-4">
       <RefreshCw size={40} className="animate-spin text-[#1B4332] opacity-20" />
@@ -155,158 +180,223 @@ const DashboardView = ({ stats, loading, setActiveTab }: { stats: AdminStatsResp
   );
 
   return (
-    <div className="space-y-6">
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
-        <div className="cursor-pointer" onClick={() => setActiveTab('users')}>
-          <StatWidget title="현재 접속자" value={liveUsers} trend="+12.5%" isUp color={COLORS.primary} icon={Activity} />
+    <div className="space-y-6 pb-20">
+      {/* 🍱 Bento Grid: Top Section (KPIs) */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div className="md:col-span-2 lg:col-span-1" onClick={() => setActiveTab('users')}>
+           <StatWidget 
+             title="현재 접속자" 
+             value={liveUsers} 
+             trend="+12%" 
+             isUp 
+             color={COLORS.info} 
+             icon={Activity} 
+             sparkData={usersSpark}
+             badge="Live"
+           />
         </div>
-        <div className="cursor-pointer" onClick={() => setActiveTab('users')}>
-          <StatWidget title="누적 가입자" value={(stats?.totalUsers || 0).toLocaleString()} trend="+4.3%" isUp color={COLORS.accent} icon={Users} />
+        <div onClick={() => setActiveTab('users')}>
+           <StatWidget 
+             title="누적 사용자" 
+             value={(stats?.totalUsers || 0).toLocaleString()} 
+             trend="+4.3%" 
+             isUp 
+             color={COLORS.primary} 
+             icon={Users} 
+             sparkData={usersSpark} 
+           />
         </div>
-        <div className="cursor-pointer" onClick={() => setActiveTab('toilets')}>
-          <StatWidget title="누적 화장실" value={(stats?.totalToilets || 0).toLocaleString()} trend="+5.2%" isUp color={COLORS.secondary} icon={MapPin} />
+        <div onClick={() => setActiveTab('toilets')}>
+           <StatWidget 
+             title="관리 화장실" 
+             value={(stats?.totalToilets || 0).toLocaleString()} 
+             trend="+12" 
+             isUp 
+             color={COLORS.accent} 
+             icon={MapPin} 
+             sparkData={toiletSpark} 
+           />
         </div>
-        <div className="cursor-pointer" onClick={() => setActiveTab('cs')}>
-          <StatWidget title="미답변 문의" value={`${stats?.pendingInquiries || 0}건`} trend="-2%" isUp={false} color={COLORS.error} icon={AlertTriangle} />
+        <div onClick={() => setActiveTab('cs')}>
+           <StatWidget 
+             title="미답변 문의" 
+             value={`${stats?.pendingInquiries || 0}`} 
+             trend="-5%" 
+             isUp={false} 
+             color={COLORS.error} 
+             icon={MessageSquare} 
+             sparkData={inquiriesSpark} 
+             badge={stats?.pendingInquiries && stats.pendingInquiries > 0 ? "Urgent" : undefined}
+           />
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <GlassCard className="lg:col-span-2">
+      {/* 📊 Bento Grid: Main Analytics Section */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        {/* Main Growth Chart */}
+        <GlassCard className="lg:col-span-8 group">
           <div className="flex items-center justify-between mb-8">
             <div>
-              <h3 className="text-xl font-black text-black" style={{ letterSpacing: '-0.03em' }}>성장 지표 시각화</h3>
-              <p className="text-sm font-bold text-black/50">가입 유저 및 상점 매출 추세</p>
+              <h3 className="text-xl font-black text-black">핵심 성장 지표</h3>
+              <p className="text-xs font-bold text-black/40 uppercase tracking-widest mt-1">Growth & Revenue Analytics</p>
+            </div>
+            <div className="flex gap-2">
+               <button className="px-3 py-1.5 rounded-lg bg-black/5 text-[10px] font-black hover:bg-black/10 transition-colors">7D</button>
+               <button className="px-3 py-1.5 rounded-lg text-[10px] font-black text-black/40 hover:bg-black/5 transition-colors">30D</button>
             </div>
           </div>
-          <div className="h-[320px] w-full">
+          <div className="h-[380px] w-full">
             <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={trendData}>
+              <AreaChart data={trendData} margin={{ top: 20, right: 20, left: -20, bottom: 0 }}>
                 <defs>
                   <linearGradient id="colorUsers" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor={COLORS.primary} stopOpacity={0.25}/>
+                    <stop offset="5%" stopColor={COLORS.primary} stopOpacity={0.2}/>
                     <stop offset="95%" stopColor={COLORS.primary} stopOpacity={0}/>
                   </linearGradient>
                   <linearGradient id="colorSales" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor={COLORS.accent} stopOpacity={0.3}/>
+                    <stop offset="5%" stopColor={COLORS.accent} stopOpacity={0.25}/>
                     <stop offset="95%" stopColor={COLORS.accent} stopOpacity={0}/>
                   </linearGradient>
                 </defs>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(0,0,0,0.05)" />
-                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 11, fontWeight: 700, fill: '#333' }} dy={10} />
-                <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 11, fontWeight: 700, fill: '#333' }} />
-                <Tooltip content={<CustomTooltip />} />
-                <Area type="monotone" dataKey="users" name="신규 방문" stroke={COLORS.primary} strokeWidth={3} fillOpacity={1} fill="url(#colorUsers)" />
-                <Area type="monotone" dataKey="sales" name="매출 건수" stroke={COLORS.accent} strokeWidth={3} fillOpacity={1} fill="url(#colorSales)" />
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(0,0,0,0.03)" />
+                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 10, fontWeight: 900, fill: 'rgba(0,0,0,0.2)' }} dy={10} />
+                <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fontWeight: 900, fill: 'rgba(0,0,0,0.2)' }} />
+                <Tooltip content={<CustomTooltip />} cursor={{ stroke: 'rgba(0,0,0,0.05)', strokeWidth: 2 }} />
+                <Area 
+                  type="monotone" 
+                  dataKey="users" 
+                  name="신규 방문" 
+                  stroke={COLORS.primary} 
+                  strokeWidth={4} 
+                  fill="url(#colorUsers)" 
+                  animationDuration={2500} 
+                  activeDot={{ r: 6, strokeWidth: 0, fill: COLORS.primary }}
+                />
+                <Area 
+                  type="monotone" 
+                  dataKey="sales" 
+                  name="유료 결제" 
+                  stroke={COLORS.accent} 
+                  strokeWidth={4} 
+                  fill="url(#colorSales)" 
+                  animationDuration={2500} 
+                  activeDot={{ r: 6, strokeWidth: 0, fill: COLORS.accent }}
+                />
               </AreaChart>
             </ResponsiveContainer>
           </div>
         </GlassCard>
 
-        <GlassCard>
-           <h3 className="text-xl font-black mb-1 text-black" style={{ letterSpacing: '-0.03em' }}>멤버십 세그먼트</h3>
-           <p className="text-sm mb-6 font-bold text-black/50">사용자 티어 분포 비율</p>
-           <div className="h-[220px] w-full relative">
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie data={pieData} innerRadius={60} outerRadius={80} paddingAngle={8} dataKey="value" stroke="none">
-                    {pieData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={entry.color} />
-                    ))}
-                  </Pie>
-                  <Tooltip />
-                </PieChart>
-              </ResponsiveContainer>
-              <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-                 <span className="text-[10px] font-black uppercase text-black/40">총 유저</span>
-                 <span className="text-2xl font-black text-black">{(totalUsersCount / 1000).toFixed(1)}K</span>
-              </div>
-           </div>
-           <div className="mt-6 space-y-3">
-              {pieData.map((item) => (
-                <div key={item.name} className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <div className="w-2.5 h-2.5 rounded-full" style={{ background: item.color }} />
-                    <span className="text-xs font-bold text-black/70">{item.name}</span>
-                  </div>
-                  <span className="text-sm font-black text-black">{totalUsersCount > 0 ? ((item.value / totalUsersCount) * 100).toFixed(0) : 0}%</span>
+        {/* Membership Segment & Service Health */}
+        <div className="lg:col-span-4 space-y-6">
+          <GlassCard className="h-fit">
+            <h3 className="text-lg font-black text-black mb-1">사용자 분포</h3>
+            <p className="text-[10px] font-black text-black/30 uppercase tracking-widest mb-6">User Segments</p>
+            <div className="h-[200px] w-full relative">
+               <ResponsiveContainer width="100%" height="100%">
+                 <PieChart>
+                   <Pie data={pieData} innerRadius={65} outerRadius={85} paddingAngle={10} dataKey="value" stroke="none">
+                     {pieData.map((entry, index) => <Cell key={index} fill={entry.color} />)}
+                   </Pie>
+                   <Tooltip />
+                 </PieChart>
+               </ResponsiveContainer>
+               <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+                  <span className="text-[10px] font-black text-black/30 uppercase">Total</span>
+                  <span className="text-2xl font-black text-black">{(totalUsersCount / 1000).toFixed(1)}K</span>
+               </div>
+            </div>
+            <div className="mt-6 grid grid-cols-1 gap-2">
+               {pieData.map((item) => (
+                 <div key={item.name} className="flex items-center justify-between p-2.5 rounded-xl hover:bg-black/5 transition-colors">
+                   <div className="flex items-center gap-3">
+                     <div className="w-2.5 h-2.5 rounded-full" style={{ background: item.color }} />
+                     <span className="text-xs font-black text-black/60">{item.name}</span>
+                   </div>
+                   <span className="text-xs font-black text-black">{totalUsersCount > 0 ? ((item.value / totalUsersCount) * 100).toFixed(0) : 0}%</span>
+                 </div>
+               ))}
+            </div>
+          </GlassCard>
+
+          <GlassCard className="bg-[#1B4332] border-none text-white relative overflow-hidden group">
+             <div className="relative z-10">
+                <div className="flex items-center justify-between mb-4">
+                   <div className="p-2 rounded-xl bg-white/10"><Shield size={20} /></div>
+                   <span className="text-[10px] font-bold text-white/50 uppercase tracking-tighter">Engine Healthy</span>
                 </div>
-              ))}
-           </div>
-        </GlassCard>
+                <h4 className="text-lg font-black mb-1">시스템 최적화</h4>
+                <p className="text-xs font-bold text-white/60 mb-6">리소스 사용량 82% 임계치 접근</p>
+                <button 
+                  onClick={() => setActiveTab('system')}
+                  className="w-full py-3 bg-white text-[#1B4332] rounded-xl text-[11px] font-black transition-all hover:bg-[#E8A838] hover:text-white"
+                >
+                  엔진 가속 실행
+                </button>
+             </div>
+             <Zap className="absolute -right-8 -bottom-8 w-32 h-32 opacity-10 group-hover:scale-110 transition-transform duration-700" />
+          </GlassCard>
+        </div>
       </div>
 
-      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-        <GlassCard>
+      {/* 🚀 Bento Grid: Bottom Section (Logs & Quick Actions) */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {/* Real-time Logs List */}
+        <GlassCard className="lg:col-span-2">
           <div className="flex items-center justify-between mb-6">
-            <h3 className="text-xl font-black text-black">실시간 시스템 로그</h3>
-            <button 
-              onClick={() => setActiveTab('logs')}
-              className="text-xs font-bold text-[#1B4332] hover:underline flex items-center gap-1"
-            >
-              전체 보기 <ChevronRight size={14} />
-            </button>
+            <div>
+              <h3 className="text-lg font-black text-black">시스템 타임라인</h3>
+              <p className="text-[10px] font-black text-black/30 uppercase tracking-widest">Real-time Events</p>
+            </div>
+            <button onClick={() => setActiveTab('logs')} className="p-2 rounded-xl hover:bg-black/5 text-black/30 transition-all"><ChevronRight size={20} /></button>
           </div>
-          <div className="space-y-4">
-            {[
-              { id: 1, type: '보안', msg: '신규 관리자 "DayPoo_Admin" IP 접속 허용', time: '방금 전', color: COLORS.primary, icon: Shield },
-              { id: 2, type: '결제', msg: '프리미엄 상점 황금 변기 아이템 결제 건수 증가', time: '5분 전', color: COLORS.accent, icon: ShoppingBag },
-              { id: 3, type: '경고', msg: '마포구 인근 공중화장실 데이터 동기화 지연', time: '14분 전', color: COLORS.error, icon: AlertTriangle },
-              { id: 4, type: '시스템', msg: '자동화 백업 및 AI 추천 로그 캐시 초기화 완료', time: '45분 전', color: COLORS.info, icon: RefreshCw },
-            ].map((log) => (
-              <div key={log.id} className="flex items-start gap-4 p-4 rounded-2xl bg-black/[0.02] border border-black/[0.03] transition-colors hover:bg-black/[0.04]">
-                <div className="p-2.5 rounded-xl border" style={{ borderColor: `${log.color}20`, color: log.color, background: `${log.color}08` }}>
-                  <log.icon size={16} />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex justify-between items-center mb-0.5">
-                    <span className="text-[10px] font-black tracking-widest uppercase" style={{ color: log.color }}>{log.type}</span>
-                    <span className="text-[10px] text-black/30 font-bold">{log.time}</span>
-                  </div>
-                  <p className="text-sm font-bold text-black/80 truncate">{log.msg}</p>
-                </div>
-              </div>
-            ))}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+             {[
+               { id: 1, type: 'Security', msg: '신규 관리자 "admin2" 접속 허용', time: '방금 전', color: COLORS.primary, icon: Shield },
+               { id: 2, type: 'Payment', msg: '프리미엄 멤버십 자동 갱신 (14건)', time: '5분 전', color: COLORS.accent, icon: ShoppingBag },
+               { id: 3, type: 'Warning', msg: '화장실 데이터 동기화 지연 감지', time: '12분 전', color: COLORS.error, icon: AlertTriangle },
+               { id: 4, type: 'System', msg: 'AI 분석 모델 성능 업데이트 완료', time: '42분 전', color: COLORS.info, icon: Zap },
+             ].map((log) => (
+               <div key={log.id} className="flex items-start gap-4 p-4 rounded-2xl bg-black/[0.02] border border-black/5 hover:border-black/10 transition-all">
+                 <div className="p-2.5 rounded-xl" style={{ backgroundColor: `${log.color}10`, color: log.color }}><log.icon size={18} /></div>
+                 <div className="flex-1 min-w-0">
+                    <div className="flex justify-between items-center mb-0.5">
+                       <span className="text-[9px] font-black tracking-widest uppercase" style={{ color: log.color }}>{log.type}</span>
+                       <span className="text-[9px] text-black/30 font-bold">{log.time}</span>
+                    </div>
+                    <p className="text-[13px] font-bold text-black/80 truncate">{log.msg}</p>
+                 </div>
+               </div>
+             ))}
           </div>
         </GlassCard>
 
-        <div className="grid grid-cols-2 gap-6">
-           <GlassCard 
+        {/* Quick Actions Grid */}
+        <div className="grid grid-cols-2 gap-4">
+           <div 
              onClick={() => setActiveTab('add-item')}
-             className="flex flex-col items-center justify-center text-center group cursor-pointer" glowColor={`${COLORS.primary}20`}
+             className="relative overflow-hidden rounded-[24px] p-6 bg-white border border-black/5 flex flex-col items-center justify-center text-center cursor-pointer hover:border-[#1B4332]/30 group transition-all"
            >
-              <div className="w-16 h-16 rounded-3xl bg-[#1B4332]/10 text-[#1B4332] flex items-center justify-center mb-4 transition-transform group-hover:scale-110 group-hover:rotate-6">
-                 <Plus size={32} />
-              </div>
-              <h4 className="font-black text-lg text-black">상점 아이템 추가</h4>
-              <p className="text-xs text-black/50 font-bold mt-1 leading-tight">새로운 칭호나 아바타를<br/>단독 카탈로그에 등록하세요</p>
-           </GlassCard>
-           
-           <GlassCard 
+              <div className="w-12 h-12 rounded-2xl bg-[#1B4332]/5 text-[#1B4332] flex items-center justify-center mb-3 group-hover:scale-110 transition-transform"><Plus size={24} /></div>
+              <span className="text-sm font-black text-black">아이템 등록</span>
+           </div>
+           <div 
              onClick={() => setActiveTab('toilets')}
-             className="flex flex-col items-center justify-center text-center group cursor-pointer" glowColor={`${COLORS.error}20`}
+             className="relative overflow-hidden rounded-[24px] p-6 bg-white border border-black/5 flex flex-col items-center justify-center text-center cursor-pointer hover:border-[#E8A838]/30 group transition-all"
            >
-              <div className="w-16 h-16 rounded-3xl bg-[#FF4B4B]/10 text-[#FF4B4B] flex items-center justify-center mb-4 transition-transform group-hover:scale-110 group-hover:-rotate-6">
-                 <AlertTriangle size={32} />
+              <div className="w-12 h-12 rounded-2xl bg-[#E8A838]/5 text-[#E8A838] flex items-center justify-center mb-3 group-hover:scale-110 transition-transform"><MapPin size={24} /></div>
+              <span className="text-sm font-black text-black">맵 관제</span>
+           </div>
+           <div 
+             onClick={() => setActiveTab('cs')}
+             className="col-span-2 relative overflow-hidden rounded-[24px] p-6 bg-white border border-black/5 flex items-center gap-6 cursor-pointer hover:border-blue-500/30 group transition-all"
+           >
+              <div className="w-14 h-14 rounded-2xl bg-blue-50 text-blue-500 flex items-center justify-center group-hover:rotate-12 transition-transform"><MessageSquare size={28} /></div>
+              <div className="text-left">
+                 <h4 className="text-base font-black text-black">고객 지원 센터</h4>
+                 <p className="text-xs font-bold text-black/40">미해결 티켓: {stats?.pendingInquiries || 0}건</p>
               </div>
-              <h4 className="font-black text-lg text-black">신고 현황 확인</h4>
-              <p className="text-xs text-black/50 font-bold mt-1 leading-tight">대기 중인 12건의<br/>화장실 신고를 긴급 처리하세요</p>
-           </GlassCard>
-
-           <div className="col-span-2 p-6 rounded-[24px] bg-gradient-to-br from-[#1B4332] to-[#2D6A4F] text-white overflow-hidden relative shadow-xl shadow-green-900/30">
-              <div className="relative z-10">
-                <h4 className="text-xl font-black mb-1">시스템 최적화 점검</h4>
-                <p className="text-sm text-white font-bold mb-6">현재 리소스 캐싱 사용률이 높습니다.<br/>정리하여 퍼포먼스를 극대화하세요.</p>
-                <motion.button 
-                  whileHover={{ scale: 1.05 }} 
-                  whileTap={{ scale: 0.95 }}
-                  onClick={() => setActiveTab('system')}
-                  className="px-6 py-3 rounded-2xl bg-white text-[#1B4332] font-black text-xs shadow-xl"
-                >
-                  지금 즉시 최적화 실행
-                </motion.button>
-              </div>
-              <Zap className="absolute -right-8 -bottom-8 w-48 h-48 opacity-10 rotate-12" />
+              <ChevronRight size={20} className="ml-auto text-black/10 group-hover:text-black/30 transition-all" />
            </div>
         </div>
       </div>
@@ -822,28 +912,16 @@ const ToiletsView = () => {
 
                 {/* Top Action Buttons */}
                 <div className="absolute top-6 left-1/2 transform -translate-x-1/2 flex gap-3 z-10">
-                  <button
+                  <WaveButtonComponent
                     onClick={handleSyncToilets}
                     disabled={syncing}
-                    className="px-6 py-3 rounded-2xl border-2 text-xs font-black transition-all shadow-xl backdrop-blur-md disabled:opacity-50 disabled:cursor-not-allowed"
-                    style={{
-                      borderColor: syncing ? '#E8A838' : '#1B4332',
-                      backgroundColor: syncing ? '#FFF3E0' : '#1B4332',
-                      color: syncing ? '#E8A838' : 'white'
-                    }}
+                    variant={syncing ? 'accent' : 'primary'}
+                    size="md"
+                    className="shadow-xl backdrop-blur-md"
+                    icon={syncing ? <RefreshCw size={14} className="animate-spin" /> : <Database size={14} />}
                   >
-                    {syncing ? (
-                      <span className="flex items-center gap-2">
-                        <RefreshCw size={14} className="animate-spin" />
-                        동기화 중...
-                      </span>
-                    ) : (
-                      <span className="flex items-center gap-2">
-                        <Database size={14} />
-                        공공데이터 동기화
-                      </span>
-                    )}
-                  </button>
+                    {syncing ? '동기화 중...' : '공공데이터 동기화'}
+                  </WaveButtonComponent>
                   <button
                     onClick={() => alert('전체 화장실 목록 기능은 준비 중입니다.')}
                     className="px-6 py-3 rounded-2xl border-2 bg-white/90 backdrop-blur-md border-black/10 text-xs font-black text-black/60 hover:bg-white hover:border-[#1B4332]/30 hover:text-[#1B4332] transition-all shadow-xl"
@@ -960,7 +1038,7 @@ const ToiletsView = () => {
 };
 
 // ── Screen: Customer Service ──────────────────────────────────────────
-const CsView = ({ stats }: { stats: AdminStatsResponse | null }) => {
+const CsView = ({ stats, onStatsRefresh }: { stats: AdminStatsResponse | null, onStatsRefresh: () => void }) => {
   const [inquiries, setInquiries] = useState<AdminInquiryListResponse[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<InquiryStatus | 'ALL'>('ALL');
@@ -1019,6 +1097,7 @@ const CsView = ({ stats }: { stats: AdminStatsResponse | null }) => {
       await api.post('/admin/inquiries/generate-test-data');
       alert('30개의 테스트 문의 데이터가 생성되었습니다.');
       fetchInquiries(); // 목록 새로고침
+      onStatsRefresh(); // 상단 KPI 통계 새로고침
     } catch (error: any) {
       console.error('테스트 데이터 생성 실패:', error);
       const errorMessage = error.message || '데이터 생성 중 오류가 발생했습니다.';
@@ -1077,6 +1156,7 @@ const CsView = ({ stats }: { stats: AdminStatsResponse | null }) => {
       alert('답변이 등록되었습니다.');
       setShowInquiryModal(false);
       fetchInquiries(); // 목록 새로고침
+      onStatsRefresh(); // 상단 KPI 통계 새로고침
     } catch (error) {
       console.error('답변 등록 실패:', error);
       alert('답변 등록에 실패했습니다.');
@@ -1093,14 +1173,16 @@ const CsView = ({ stats }: { stats: AdminStatsResponse | null }) => {
                 <h3 className="text-2xl font-black text-black">고객 지원 센터</h3>
                 <p className="text-sm text-black/60 font-bold">1:1 문의 관리 및 답변</p>
              </div>
-             <button
+             <WaveButtonComponent
                 onClick={handleGenerateTestData}
                 disabled={generatingData}
-                className="flex items-center gap-2 px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white rounded-xl font-black text-xs shadow-lg transition-all disabled:opacity-50"
+                variant="accent"
+                size="sm"
+                className="shadow-lg"
+                icon={generatingData ? <RefreshCw size={14} className="animate-spin" /> : <Plus size={14} />}
              >
-                {generatingData ? <RefreshCw size={14} className="animate-spin" /> : <Plus size={14} />}
                 {generatingData ? '데이터 생성 중...' : '테스트 데이터 30개 생성'}
-             </button>
+             </WaveButtonComponent>
           </div>
           <div className="flex gap-2">
              <button
@@ -1394,6 +1476,8 @@ const StoreView = ({ setActiveTab }: { setActiveTab: (tab: AdminTab) => void }) 
       case 'TITLE': return '#E8A838';
       case 'AVATAR': return '#3B82F6';
       case 'EFFECT': return '#52b788';
+      case 'AVATAR_SKIN': return '#8B5CF6';
+      case 'MARKER_SKIN': return '#F59E0B';
       default: return '#1B4332';
     }
   };
@@ -1949,10 +2033,18 @@ export function AdminPage() {
   // 권한 체크 로직 검증 및 로그
   if (authLoading) return <div className="h-screen flex items-center justify-center bg-[#f8faf9] text-[#1B4332] font-black tracking-widest text-xl">LOADING ENGINE...</div>;
 
-  const isAdmin = user && (user.role === 'ROLE_ADMIN' || user.role === 'ADMIN');
+  const isAdmin = user && (
+    (typeof user.role === 'string' && user.role.toUpperCase().includes('ADMIN')) ||
+    (Array.isArray(user.role) && user.role.some((r: string) => r.toUpperCase().includes('ADMIN')))
+  );
   
   if (!isAdmin) {
-    console.warn('Unauthorized access to admin page. Redirecting to main.', user?.role);
+    console.group('🚫 Unauthorized Access Blocked');
+    console.warn('Page: AdminPage');
+    console.warn('User ID:', user?.id);
+    console.warn('User Role:', user?.role);
+    console.warn('User Data:', user);
+    console.groupEnd();
     return <Navigate to="/main" replace />;
   }
 
@@ -2145,7 +2237,7 @@ export function AdminPage() {
                   {activeTab === 'dashboard' && <DashboardView stats={stats} loading={statsLoading} setActiveTab={setActiveTab} />}
                   {activeTab === 'users' && <UsersView />}
                   {activeTab === 'toilets' && <ToiletsView />}
-                  {activeTab === 'cs' && <CsView stats={stats} />}
+                  {activeTab === 'cs' && <CsView stats={stats} onStatsRefresh={fetchStats} />}
                   {activeTab === 'store' && <StoreView setActiveTab={setActiveTab} />}
                   {activeTab === 'system' && <SystemView />}
                   {activeTab === 'add-item' && <AddItemView setActiveTab={setActiveTab} />}
