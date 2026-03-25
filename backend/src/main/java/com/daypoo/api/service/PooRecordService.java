@@ -15,6 +15,7 @@ import com.daypoo.api.repository.ToiletRepository;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
+import com.daypoo.api.repository.VisitCountProjection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -74,110 +75,94 @@ public class PooRecordService {
 
   @Transactional
   public PooRecordResponse createRecord(String email, PooRecordCreateRequest request) {
-
     // 1. 엔티티 검증
     User user = userService.getByEmail(email);
-
     Toilet toilet =
         toiletRepository
             .findById(request.toiletId())
             .orElseThrow(() -> new BusinessException(ErrorCode.ENTITY_NOT_FOUND));
 
-    // 2. 물리적 위치 반경 검증
-    boolean isNear =
-        locationVerificationService.isWithinAllowedDistance(
-            request.toiletId(), request.latitude(), request.longitude());
-    if (!isNear) {
-      throw new BusinessException(ErrorCode.OUT_OF_RANGE);
-    }
+    // 2. 위치 및 체류 시간 검증
+    validateLocationAndTime(user, request.toiletId(), request.latitude(), request.longitude());
 
-    // 2.2 체류 시간 검증
-    boolean stayedEnough =
-        locationVerificationService.hasStayedLongEnough(user.getId(), toilet.getId());
-    if (!stayedEnough) {
-      throw new BusinessException(ErrorCode.STAY_TIME_NOT_MET);
-    }
+    // 3. AI 분석 or 수동 입력값 결정
+    PoopAttributes attrs = resolvePoopAttributes(request);
 
-    // 4. AI 분석 또는 수동 입력값 결정
-    Integer finalBristolScale = request.bristolScale();
-    String finalColor = request.color();
-    List<String> aiWarningTags = Collections.emptyList();
-
-    // AI 이미지가 있으면 분석 결과를 우선 적용 (수동 입력이 없더라도 통과 가능)
-    if (request.imageBase64() != null && !request.imageBase64().isEmpty()) {
-      AiAnalysisResponse aiResult = aiClient.analyzePoopImage(request.imageBase64());
-      finalBristolScale = aiResult.bristolScale();
-      finalColor = aiResult.color();
-      aiWarningTags =
-          aiResult.warningTags() != null ? aiResult.warningTags() : Collections.emptyList();
-      log.info(
-          "AI Analysis result applied: Bristol {}, Color {}, Warnings: {}",
-          finalBristolScale,
-          finalColor,
-          aiWarningTags);
-    }
-
-    // 최종 검증: AI 결과도 없고 수동 입력도 없는 경우 에러 처리
-    if (finalBristolScale == null || finalColor == null || finalColor.isEmpty()) {
-      throw new BusinessException(ErrorCode.INVALID_INPUT_VALUE);
-    }
-
-    // 5. 정확한 행정동 명칭 추출 (Reverse Geocoding)
+    // 4. Reverse Geocoding
     String regionName = geocodingService.reverseGeocode(request.latitude(), request.longitude());
 
-    // 6. 기록 생성 및 태그 검증 (수동 입력 시 필수값 체크)
-    boolean isManual = request.imageBase64() == null || request.imageBase64().isEmpty();
+    // 5. arrival 키 삭제 → 재인증 시 60초 타이머 리셋 허용
+    locationVerificationService.resetArrivalTime(user.getId(), toilet.getId());
 
-    List<String> conditionTags =
-        request.conditionTags() != null ? request.conditionTags() : Collections.emptyList();
-    List<String> dietTags =
-        request.dietTags() != null ? request.dietTags() : Collections.emptyList();
-
-    // 수동 입력 사용자인데 키워드(태그)가 하나도 없으면 에러 (브리스톨/색상은 위에서 이미 체크됨)
-    if (isManual && (conditionTags.isEmpty() || dietTags.isEmpty())) {
-      throw new BusinessException(ErrorCode.INVALID_INPUT_VALUE);
-    }
-
-    List<String> safeConditionTags = conditionTags;
-    List<String> safeDietTags = dietTags;
-
-    PooRecord record =
+    // 6. 기록 저장
+    PooRecord saved = recordRepository.save(
         PooRecord.builder()
             .user(user)
             .toilet(toilet)
-            .bristolScale(finalBristolScale)
-            .color(finalColor)
-            .conditionTags(String.join(",", safeConditionTags))
-            .dietTags(String.join(",", safeDietTags))
-            .warningTags(String.join(",", aiWarningTags))
+            .bristolScale(attrs.bristolScale())
+            .color(attrs.color())
+            .conditionTags(String.join(",", attrs.conditionTags()))
+            .dietTags(String.join(",", attrs.dietTags()))
+            .warningTags(String.join(",", attrs.warningTags()))
             .regionName(regionName)
-            .build();
+            .build());
 
-    // arrival 키 삭제 → 재인증 시 60초 타이머 리셋 허용
-    locationVerificationService.resetArrivalTime(user.getId(), toilet.getId());
-
-    PooRecord savedRecord = recordRepository.save(record);
-
-    // 7. 유저 보상 체계(TX)
-    user.addExpAndPoints(REWARD_EXP, REWARD_POINTS);
-
-    // 8. 실시간 랭킹 업데이트
-    rankingService.updateGlobalRank(user);
-    rankingService.updateRegionRank(user, regionName, 5.0);
-
-    // 9. 업적/칭호 달성 검사 (Epic 2)
-    titleAchievementService.checkAndGrantTitles(user);
+    // 7. 보상 · 랭킹 · 칭호 처리
+    applyPostSaveEffects(user, regionName);
 
     log.info(
-        "User {} earned {} EXP and {} Points for recording toilet {}. Global/Region rank updated.",
-        email,
-        REWARD_EXP,
-        REWARD_POINTS,
-        toilet.getId());
+        "User {} earned {} EXP and {} Points for recording toilet {}.",
+        email, REWARD_EXP, REWARD_POINTS, toilet.getId());
 
-    // 8. Response 조합
-    return recordMapper.toResponse(savedRecord);
+    return recordMapper.toResponse(saved);
   }
+
+  private void validateLocationAndTime(User user, Long toiletId, double lat, double lon) {
+    if (!locationVerificationService.isWithinAllowedDistance(toiletId, lat, lon)) {
+      throw new BusinessException(ErrorCode.OUT_OF_RANGE);
+    }
+    if (!locationVerificationService.hasStayedLongEnough(user.getId(), toiletId)) {
+      throw new BusinessException(ErrorCode.STAY_TIME_NOT_MET);
+    }
+  }
+
+  private PoopAttributes resolvePoopAttributes(PooRecordCreateRequest request) {
+    boolean hasImage = request.imageBase64() != null && !request.imageBase64().isEmpty();
+
+    if (hasImage) {
+      AiAnalysisResponse ai = aiClient.analyzePoopImage(request.imageBase64());
+      List<String> warnings = ai.warningTags() != null ? ai.warningTags() : Collections.emptyList();
+      log.info("AI Analysis: Bristol {}, Color {}, Warnings: {}", ai.bristolScale(), ai.color(), warnings);
+      return new PoopAttributes(ai.bristolScale(), ai.color(), Collections.emptyList(), Collections.emptyList(), warnings);
+    }
+
+    Integer bristolScale = request.bristolScale();
+    String color = request.color();
+    List<String> conditionTags = request.conditionTags() != null ? request.conditionTags() : Collections.emptyList();
+    List<String> dietTags = request.dietTags() != null ? request.dietTags() : Collections.emptyList();
+
+    if (bristolScale == null || color == null || color.isEmpty()) {
+      throw new BusinessException(ErrorCode.INVALID_INPUT_VALUE);
+    }
+    if (conditionTags.isEmpty() || dietTags.isEmpty()) {
+      throw new BusinessException(ErrorCode.INVALID_INPUT_VALUE);
+    }
+    return new PoopAttributes(bristolScale, color, conditionTags, dietTags, Collections.emptyList());
+  }
+
+  private void applyPostSaveEffects(User user, String regionName) {
+    user.addExpAndPoints(REWARD_EXP, REWARD_POINTS);
+    rankingService.updateGlobalRank(user);
+    rankingService.updateRegionRank(user, regionName, 5.0);
+    titleAchievementService.checkAndGrantTitles(user);
+  }
+
+  private record PoopAttributes(
+      Integer bristolScale,
+      String color,
+      List<String> conditionTags,
+      List<String> dietTags,
+      List<String> warningTags) {}
 
   /** AI 이미지 분석만 수행 (기록 저장 안 함) 프론트엔드 분석 미리보기 UX 지원용 */
   @Transactional(readOnly = true)
@@ -201,10 +186,10 @@ public class PooRecordService {
   @Transactional(readOnly = true)
   public Map<Long, Long> getMyVisitCounts(String email) {
     User user = userService.getByEmail(email);
-    List<Object[]> rows = recordRepository.findVisitCountsByUser(user);
+    List<VisitCountProjection> rows = recordRepository.findVisitCountsByUser(user);
     Map<Long, Long> result = new HashMap<>();
-    for (Object[] row : rows) {
-      result.put((Long) row[0], (Long) row[1]);
+    for (VisitCountProjection row : rows) {
+      result.put(row.getToiletId(), row.getVisitCount());
     }
     return result;
   }

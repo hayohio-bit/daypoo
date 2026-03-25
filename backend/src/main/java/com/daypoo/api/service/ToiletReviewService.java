@@ -16,7 +16,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
-import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -41,10 +40,6 @@ public class ToiletReviewService {
         toiletRepository
             .findById(toiletId)
             .orElseThrow(() -> new BusinessException(ErrorCode.TOILET_NOT_FOUND));
-
-    if (user == null || toilet == null) {
-      throw new BusinessException(ErrorCode.INTERNAL_SERVER_ERROR);
-    }
 
     String emojiTags =
         request.getEmojiTags() != null ? String.join(",", request.getEmojiTags()) : "";
@@ -81,17 +76,12 @@ public class ToiletReviewService {
   @Transactional(readOnly = true)
   public ToiletReviewPageResponse getReviewsWithPaging(
       Long toiletId, int page, int size, String sort) {
-    Sort sortOrder =
-        sort.equalsIgnoreCase("oldest")
-            ? Sort.by("createdAt").ascending()
-            : Sort.by("createdAt").descending();
-    Pageable pageable = PageRequest.of(page, size, sortOrder);
+    Pageable pageable = PageRequest.of(page, size);
 
     Page<ToiletReview> reviewPage =
-        toiletReviewRepository.findByToiletIdOrderByCreatedAtDesc(toiletId, pageable);
-    if (sort.equalsIgnoreCase("oldest")) {
-      reviewPage = toiletReviewRepository.findByToiletIdOrderByCreatedAtAsc(toiletId, pageable);
-    }
+        sort.equalsIgnoreCase("oldest")
+            ? toiletReviewRepository.findByToiletIdOrderByCreatedAtAsc(toiletId, pageable)
+            : toiletReviewRepository.findByToiletIdOrderByCreatedAtDesc(toiletId, pageable);
 
     List<ToiletReviewResponse> contents =
         reviewPage.getContent().stream()

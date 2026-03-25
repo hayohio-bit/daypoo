@@ -1,5 +1,19 @@
 # Backend Modification History
 
+## [2026-03-25 14:45:00] 칭호 시스템 확장 및 유저 정보 응답 고도화
+- **작업 내용:** 칭호 해제 기능을 추가하고, API 응답 시 현재 장착된 칭호 정보를 포함하도록 백엔드를 수정하였습니다.
+- **상세 변경 내역:**
+  - **`ShopController`**: `@DeleteMapping("/api/v1/shop/titles/equip")` 엔드포인트를 추가하여 칭호 해제 기능을 구현하였습니다.
+  - **`ShopService`**: 
+    - `unequipTitle(User user)` 메서드를 추가하여 유저의 `equippedTitleId`를 `null`로 초기화하도록 하였습니다.
+    - `getAllTitles(User user)` 메서드를 수정하여 각 칭호별로 `isEquipped` 장착 여부 플래그를 응답에 포함하도록 개선하였습니다.
+  - **`AuthService`**: `getCurrentUserInfo()` 호출 시 `TitleRepository`를 참조하여 현재 장착된 칭호의 이름(`equippedTitleName`)을 조회하고 응답에 포함하도록 수정하였습니다.
+  - **DTO 확장**:
+    - `UserResponse`: `equippedTitleId` (ID) 및 `equippedTitleName` (이름) 필드를 추가하였습니다.
+    - `TitleResponse`: `isEquipped` (장착 여부) 필드를 추가하였습니다.
+- **결과/영향:** 이제 프론트엔드에서 유저의 장착 칭호를 실시간으로 확인하고 해제할 수 있으며, 칭호 목록에서 현재 어떤 칭호가 장착 중인지 명확하게 표시할 수 있게 되었습니다.
+
+
 ## [2026-03-25 11:41:00] Gradle 빌드 및 서버 구동 성능 최적화 (Step 1)
 - **작업 내용:** 서버 구동 시간 단축 및 빌드 효율성 향상을 위해 Gradle 최적화 설정을 적용하였습니다.
 - **상세 변경 내역:**

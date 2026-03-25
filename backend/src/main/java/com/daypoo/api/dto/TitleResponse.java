@@ -4,4 +4,9 @@ import lombok.Builder;
 
 @Builder
 public record TitleResponse(
-    Long id, String name, String description, String requirementDescription, boolean isOwned) {}
+    Long id,
+    String name,
+    String description,
+    String requirementDescription,
+    boolean isOwned,
+    boolean isEquipped) {}
