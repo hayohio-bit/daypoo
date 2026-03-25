@@ -21,7 +21,7 @@ import {
   BarChart, Bar, RadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis
 } from 'recharts';
 import { useToilets } from '../hooks/useToilets';
-import { ToiletData, MOCK_TOILETS } from '../types/toilet';
+import { ToiletData } from '../types/toilet';
 import { api } from '../services/apiClient';
 import {
   AdminUserListResponse,
@@ -731,8 +731,8 @@ const ToiletsView = () => {
     level: mapScale
   });
 
-  // API 실패 시 fallback으로 MOCK_TOILETS 사용 (UI 깨짐 방지)
-  const toilets = apiToilets.length > 0 ? apiToilets : MOCK_TOILETS;
+  // API에서 받은 데이터 사용 (빈 배열일 경우 "데이터 없음" UI 표시)
+  const toilets = apiToilets;
 
   const handleSyncToilets = async () => {
     if (syncing) return;
@@ -1002,9 +1002,11 @@ const CsView = ({ stats }: { stats: AdminStatsResponse | null }) => {
       setInquiries([]);
       setTotalPages(0);
 
-      // 사용자에게 명확한 에러 메시지 표시
-      const errorMessage = error.message || '서버 데이터 처리 중 오류가 발생했습니다.';
-      alert(`문의 목록 조회 실패: ${errorMessage}\n\n개발자 도구 콘솔을 확인해주세요.`);
+      // 서버 에러인 경우에만 alert 표시 (404나 빈 데이터는 조용히 처리)
+      if (error.status && error.status >= 500) {
+        const errorMessage = error.message || '서버 오류가 발생했습니다.';
+        alert(`문의 목록 조회 실패: ${errorMessage}\n\n개발자 도구 콘솔을 확인해주세요.`);
+      }
     } finally {
       setLoading(false);
     }
@@ -1138,6 +1140,24 @@ const CsView = ({ stats }: { stats: AdminStatsResponse | null }) => {
           <div className="flex items-center justify-center py-20">
              <RefreshCw size={32} className="animate-spin text-[#1B4332]" />
           </div>
+       ) : inquiries.length === 0 ? (
+          <GlassCard>
+             <div className="flex flex-col items-center justify-center py-16 text-center">
+                <MessageSquare size={48} className="text-black/20 mb-4" />
+                <h4 className="text-lg font-black text-black mb-2">문의 데이터가 없습니다</h4>
+                <p className="text-sm text-black/40 mb-6">
+                   테스트 데이터를 생성하거나 실제 문의가 등록될 때까지 기다려주세요
+                </p>
+                <button
+                   onClick={handleGenerateTestData}
+                   disabled={generatingData}
+                   className="flex items-center gap-2 px-6 py-3 bg-amber-500 hover:bg-amber-600 text-white rounded-xl font-black text-sm shadow-lg transition-all disabled:opacity-50"
+                >
+                   {generatingData ? <RefreshCw size={16} className="animate-spin" /> : <Plus size={16} />}
+                   {generatingData ? '생성 중...' : '테스트 데이터 생성'}
+                </button>
+             </div>
+          </GlassCard>
        ) : (
           <>
              <GlassCard className="p-0 border-none bg-transparent shadow-none">

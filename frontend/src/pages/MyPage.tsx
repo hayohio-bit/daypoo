@@ -601,9 +601,9 @@ function TabBar({ active, onChange }: { active: TabKey; onChange: (k: TabKey) =>
 }
 
 // ── 홈 탭 ─────────────────────────────────────────────────────────────
-function HomeTab({ equipped, setEquipped, user, avatarItems, initialShopTab = 'inventory' }: { 
-  equipped: AvatarItem | null; 
-  setEquipped: (i: AvatarItem) => void; 
+function HomeTab({ equipped, setEquipped, user, avatarItems, initialShopTab = 'inventory' }: {
+  equipped: AvatarItem | null;
+  setEquipped: (i: AvatarItem) => void;
   user: UserProfile | null;
   avatarItems: AvatarItem[];
   initialShopTab?: 'inventory' | 'shop';
@@ -613,6 +613,26 @@ function HomeTab({ equipped, setEquipped, user, avatarItems, initialShopTab = 'i
   const [saved, setSaved] = useState(false);
   const ref = useRef(null);
   const inView = useInView(ref, { once: true, margin: '-40px' });
+
+  // AI 건강 지표 데이터
+  const [healthReport, setHealthReport] = useState<any>(null);
+  const [loadingHealth, setLoadingHealth] = useState(false);
+
+  // 홈 탭 로드 시 DAILY 리포트 가져오기
+  useEffect(() => {
+    const fetchDailyReport = async () => {
+      setLoadingHealth(true);
+      try {
+        const res = await api.get('/reports/DAILY');
+        setHealthReport(res);
+      } catch (err) {
+        console.warn('일간 건강 리포트 조회 실패:', err);
+      } finally {
+        setLoadingHealth(false);
+      }
+    };
+    fetchDailyReport();
+  }, []);
 
   const items = shopTab === 'inventory'
     ? avatarItems.filter((i) => i.owned)
@@ -773,7 +793,7 @@ function HomeTab({ equipped, setEquipped, user, avatarItems, initialShopTab = 'i
         </AnimatePresence>
       </motion.div>
 
-      {/* 데일리 AI 분석 섹션 (컴팩트화) */}
+      {/* 데일리 AI 분석 섹션 (API 연동) */}
       <motion.div variants={fadeUp(0.12)} className="bg-white rounded-[40px] p-10 border border-gray-100 shadow-sm">
         <div className="flex items-center justify-between mb-8">
           <div className="flex items-center gap-4">
@@ -786,32 +806,61 @@ function HomeTab({ equipped, setEquipped, user, avatarItems, initialShopTab = 'i
             </div>
           </div>
           <div className="bg-emerald-50 px-5 py-2.5 rounded-2xl border border-emerald-100">
-            <p className="text-4xl font-black text-emerald-600 leading-none">89<span className="text-lg ml-1 font-bold">점</span></p>
+            {loadingHealth ? (
+              <p className="text-2xl font-black text-emerald-400 animate-pulse">...</p>
+            ) : (
+              <p className="text-4xl font-black text-emerald-600 leading-none">
+                {healthReport?.healthScore || 0}
+                <span className="text-lg ml-1 font-bold">점</span>
+              </p>
+            )}
           </div>
         </div>
 
-        <div className="grid grid-cols-3 gap-5 mb-10">
-          {[
-            { label: '활동성', value: '매우 좋음', icon: <TrendingUp size={22} />, color: '#52b788' },
-            { label: '식단 균형', value: '균형 잡힘', icon: <Check size={22} />, color: '#E8A838' },
-            { label: '장 컨디션', value: '쾌적함', icon: <Activity size={22} />, color: '#2D6A4F' },
-          ].map((s, i) => (
-            <div key={i} className="flex flex-col items-center py-6 rounded-[32px] bg-gray-50 border border-gray-100 transition-all hover:bg-white hover:border-emerald-100 hover:shadow-2xl group">
-              <div className="mb-3 transform group-hover:scale-110 transition-transform" style={{ color: s.color }}>{s.icon}</div>
-              <span className="text-lg font-black text-[#1A2B27]">{s.value}</span>
-              <span className="text-xs font-black text-gray-300 mt-1.5 uppercase tracking-wide">{s.label}</span>
-            </div>
-          ))}
-        </div>
+        {healthReport?.insights && healthReport.insights.length >= 3 ? (
+          <div className="grid grid-cols-3 gap-5 mb-10">
+            {healthReport.insights.slice(0, 3).map((insight: string, i: number) => {
+              const icons = [<TrendingUp size={22} />, <Check size={22} />, <Activity size={22} />];
+              const colors = ['#52b788', '#E8A838', '#2D6A4F'];
+              return (
+                <div key={i} className="flex flex-col items-center py-6 rounded-[32px] bg-gray-50 border border-gray-100 transition-all hover:bg-white hover:border-emerald-100 hover:shadow-2xl group">
+                  <div className="mb-3 transform group-hover:scale-110 transition-transform" style={{ color: colors[i] }}>{icons[i]}</div>
+                  <span className="text-sm font-black text-[#1A2B27] text-center px-2">{insight}</span>
+                </div>
+              );
+            })}
+          </div>
+        ) : (
+          <div className="grid grid-cols-3 gap-5 mb-10">
+            {[
+              { label: '활동성', value: '분석 중', icon: <TrendingUp size={22} />, color: '#52b788' },
+              { label: '식단 균형', value: '분석 중', icon: <Check size={22} />, color: '#E8A838' },
+              { label: '장 컨디션', value: '분석 중', icon: <Activity size={22} />, color: '#2D6A4F' },
+            ].map((s, i) => (
+              <div key={i} className="flex flex-col items-center py-6 rounded-[32px] bg-gray-50 border border-gray-100 transition-all hover:bg-white hover:border-emerald-100 hover:shadow-2xl group">
+                <div className="mb-3 transform group-hover:scale-110 transition-transform" style={{ color: s.color }}>{s.icon}</div>
+                <span className="text-lg font-black text-[#1A2B27]">{s.value}</span>
+                <span className="text-xs font-black text-gray-300 mt-1.5 uppercase tracking-wide">{s.label}</span>
+              </div>
+            ))}
+          </div>
+        )}
 
         <div className="relative p-8 rounded-[36px] overflow-hidden bg-emerald-50/50 border border-emerald-100 shadow-inner">
           <Sparkles size={24} className="absolute top-7 right-8 text-emerald-300 opacity-60" />
           <p className="text-[13px] font-black text-emerald-600 mb-3 flex items-center gap-2.5">
             <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shadow-sm" /> 심층 AI 분석 가이드
           </p>
-          <p className="text-xl font-bold leading-relaxed text-[#1A2B27]/80 tracking-tight">
-            "어제 드신 식이섬유가 드디어 빛을 발하네요! 오늘 아침 컨디션은 최상입니다.<br/>이 흐름을 유지하려면 물 500ml만 더 마셔보세요! 🥤"
-          </p>
+          {loadingHealth ? (
+            <p className="text-lg font-bold text-gray-400 animate-pulse">AI 분석 중...</p>
+          ) : (
+            <p className="text-xl font-bold leading-relaxed text-[#1A2B27]/80 tracking-tight">
+              "{healthReport?.summary || "화장실 기록을 남기고 AI 분석을 받아보세요! 💩"}"
+              {healthReport?.solution && (
+                <><br/><span className="text-emerald-600">💡 {healthReport.solution}</span></>
+              )}
+            </p>
+          )}
         </div>
       </motion.div>
 
@@ -870,9 +919,45 @@ function HomeTab({ equipped, setEquipped, user, avatarItems, initialShopTab = 'i
 function CollectionTab({ titles, setTitles }: { titles: any[]; setTitles: React.Dispatch<React.SetStateAction<any[]>> }) {
   const ref = useRef(null);
   const inView = useInView(ref, { once: true, margin: '-40px' });
+  const [saving, setSaving] = useState(false);
+  const [selectedPreview, setSelectedPreview] = useState<any | null>(null);
 
-  const selectTitle = (id: string) =>
-    setTitles((prev) => prev.map((t) => ({ ...t, selected: t.id === id && t.earned })));
+  const selectedTitle = titles.find(t => t.selected);
+
+  const handleEquipTitle = async () => {
+    if (!selectedPreview || !selectedPreview.earned) return;
+
+    setSaving(true);
+    try {
+      await api.post(`/shop/titles/${selectedPreview.id}/equip`);
+      setTitles((prev) => prev.map((t) => ({ ...t, selected: t.id === selectedPreview.id })));
+      setSelectedPreview(null);
+      alert('✅ 칭호가 장착되었습니다!');
+    } catch (err: any) {
+      console.error('칭호 장착 실패:', err);
+      alert('칭호 장착에 실패했습니다.');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleUnequipTitle = async () => {
+    if (!selectedTitle) return;
+
+    if (!confirm('현재 칭호를 해제하시겠습니까?')) return;
+
+    setSaving(true);
+    try {
+      // 칭호 해제는 백엔드 수정 필요 (현재는 임시로 로컬만 변경)
+      setTitles((prev) => prev.map((t) => ({ ...t, selected: false })));
+      alert('✅ 칭호가 해제되었습니다!\n\n(백엔드 API 추가 시 서버에 저장됩니다)');
+    } catch (err: any) {
+      console.error('칭호 해제 실패:', err);
+      alert('칭호 해제에 실패했습니다.');
+    } finally {
+      setSaving(false);
+    }
+  };
 
   const earnedCount = titles.filter(t => t.earned).length;
 
@@ -947,18 +1032,61 @@ function CollectionTab({ titles, setTitles }: { titles: any[]; setTitles: React.
             cards={titleCards}
             onSelect={(id) => {
               const t = titles.find((x) => x.id === id);
-              if (t?.earned) selectTitle(id);
+              if (t?.earned) setSelectedPreview(t);
             }}
             cardWidth={180}
             cardHeight={240}
           />
         </div>
 
-        <div className="px-10 py-6 bg-gray-50/50 border-t border-gray-100 flex items-center justify-center gap-2.5">
-          <div className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
-          <p className="text-sm font-bold text-gray-400 italic">
-            획득한 칭호를 선택하여 당신의 닉네임을 빛내보세요
-          </p>
+        {/* 칭호 장착/해제 버튼 */}
+        <div className="px-10 py-6 bg-gray-50/50 border-t border-gray-100">
+          {selectedPreview ? (
+            <div className="space-y-4">
+              <div className="text-center">
+                <p className="text-sm font-black text-gray-400 mb-2">선택한 칭호</p>
+                <p className="text-xl font-black text-[#1B4332]">{selectedPreview.label}</p>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <button
+                  onClick={() => setSelectedPreview(null)}
+                  className="py-3 px-4 bg-white border-2 border-gray-200 text-gray-600 font-bold rounded-2xl hover:bg-gray-50 transition-all"
+                >
+                  취소
+                </button>
+                <button
+                  onClick={handleEquipTitle}
+                  disabled={saving}
+                  className="py-3 px-4 bg-gradient-to-r from-amber-500 to-amber-600 text-white font-black rounded-2xl shadow-lg hover:shadow-xl disabled:opacity-50 transition-all"
+                >
+                  {saving ? '저장 중...' : '장착하기 ✨'}
+                </button>
+              </div>
+            </div>
+          ) : selectedTitle ? (
+            <div className="space-y-4">
+              <div className="flex items-center justify-center gap-2.5 mb-2">
+                <Star size={18} className="text-amber-500" fill="#E8A838" />
+                <p className="text-sm font-bold text-gray-600">
+                  현재 장착: <span className="text-[#1B4332] font-black">{selectedTitle.label}</span>
+                </p>
+              </div>
+              <button
+                onClick={handleUnequipTitle}
+                disabled={saving}
+                className="w-full py-3 px-4 bg-white border-2 border-red-200 text-red-600 font-bold rounded-2xl hover:bg-red-50 disabled:opacity-50 transition-all"
+              >
+                {saving ? '처리 중...' : '칭호 해제'}
+              </button>
+            </div>
+          ) : (
+            <div className="flex items-center justify-center gap-2.5">
+              <div className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
+              <p className="text-sm font-bold text-gray-400 italic">
+                획득한 칭호를 선택하여 당신의 닉네임을 빛내보세요
+              </p>
+            </div>
+          )}
         </div>
       </motion.div>
     </motion.div>
@@ -1086,34 +1214,45 @@ function ReportTab({ records = [] }: { records?: any[] }) {
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-5 mb-8">
-                <div className="p-8 rounded-[36px] bg-gray-50 border border-gray-100 shadow-inner">
-                  <p className="text-[11px] font-black text-gray-400 uppercase tracking-widest mb-2.5">현재 장 상태</p>
-                  <p className="text-2xl font-black text-[#1B4332] flex items-center gap-2.5">
-                    {reportData?.healthScore > 80 ? '아주 좋음' : reportData?.healthScore > 60 ? '좋음' : '보통'} 
-                    <Sparkles size={22} className="text-amber-400" />
-                  </p>
+              {isFetchLoading ? (
+                <div className="flex items-center justify-center py-20">
+                  <div className="text-center">
+                    <div className="w-16 h-16 border-4 border-emerald-200 border-t-emerald-600 rounded-full animate-spin mx-auto mb-4" />
+                    <p className="text-gray-400 font-bold">AI 분석 중...</p>
+                  </div>
                 </div>
-                <div className="p-8 rounded-[36px] bg-gray-50 border border-gray-100 shadow-inner">
-                  <p className="text-[11px] font-black text-gray-400 uppercase tracking-widest mb-2.5">건강 점수</p>
-                  <p className="text-3xl font-black text-amber-500">{reportData?.healthScore || 0}</p>
-                </div>
-              </div>
+              ) : (
+                <>
+                  <div className="grid grid-cols-2 gap-5 mb-8">
+                    <div className="p-8 rounded-[36px] bg-gray-50 border border-gray-100 shadow-inner">
+                      <p className="text-[11px] font-black text-gray-400 uppercase tracking-widest mb-2.5">현재 장 상태</p>
+                      <p className="text-2xl font-black text-[#1B4332] flex items-center gap-2.5">
+                        {reportData?.healthScore > 80 ? '아주 좋음' : reportData?.healthScore > 60 ? '좋음' : '보통'}
+                        <Sparkles size={22} className="text-amber-400" />
+                      </p>
+                    </div>
+                    <div className="p-8 rounded-[36px] bg-gray-50 border border-gray-100 shadow-inner">
+                      <p className="text-[11px] font-black text-gray-400 uppercase tracking-widest mb-2.5">건강 점수</p>
+                      <p className="text-3xl font-black text-amber-500">{reportData?.healthScore || 0}</p>
+                    </div>
+                  </div>
 
-              <div className="p-10 rounded-[40px] bg-emerald-950 text-white relative overflow-hidden shadow-2xl">
-                <div className="absolute top-0 right-0 p-8 opacity-10">
-                  <Sparkles size={80} />
-                </div>
-                <p className="text-[13px] font-black text-emerald-300 mb-3 uppercase tracking-[0.2em] flex items-center gap-2">
-                  <div className="w-1.5 h-1.5 rounded-full bg-emerald-400" /> AI Doctor Poo Insight
-                </p>
-                <p className="text-xl font-bold leading-relaxed relative z-10 tracking-tight">
-                  "{reportData?.summary || "기록을 분석하고 있습니다. 화장실 기록을 남겨주세요!"}"
-                </p>
-                {reportData?.solution && (
-                  <p className="mt-4 text-emerald-200 text-lg italic">💡 {reportData.solution}</p>
-                )}
-              </div>
+                  <div className="p-10 rounded-[40px] bg-emerald-950 text-white relative overflow-hidden shadow-2xl">
+                    <div className="absolute top-0 right-0 p-8 opacity-10">
+                      <Sparkles size={80} />
+                    </div>
+                    <p className="text-[13px] font-black text-emerald-300 mb-3 uppercase tracking-[0.2em] flex items-center gap-2">
+                      <div className="w-1.5 h-1.5 rounded-full bg-emerald-400" /> AI Doctor Poo Insight
+                    </p>
+                    <p className="text-xl font-bold leading-relaxed relative z-10 tracking-tight">
+                      "{reportData?.summary || "기록을 분석하고 있습니다. 화장실 기록을 남겨주세요!"}"
+                    </p>
+                    {reportData?.solution && (
+                      <p className="mt-4 text-emerald-200 text-lg italic">💡 {reportData.solution}</p>
+                    )}
+                  </div>
+                </>
+              )}
             </div>
           </motion.div>
         ) : (
@@ -1124,6 +1263,14 @@ function ReportTab({ records = [] }: { records?: any[] }) {
           >
             {/* 정밀 분석 UI (비PRO 회원의 경우 블러 처리) */}
             <div className={`space-y-6 transition-all duration-500 ${!isPro ? 'blur-[12px] pointer-events-none' : ''}`}>
+              {isFetchLoading ? (
+                <div className="rounded-[40px] p-12 bg-white border border-gray-100 shadow-sm flex items-center justify-center py-32">
+                  <div className="text-center">
+                    <div className="w-20 h-20 border-4 border-amber-200 border-t-amber-600 rounded-full animate-spin mx-auto mb-4" />
+                    <p className="text-gray-400 font-bold text-lg">AI 정밀 분석 중...</p>
+                  </div>
+                </div>
+              ) : (
               <div className="rounded-[40px] p-12 bg-white border border-gray-100 shadow-sm">
                 <div className="flex items-center justify-between mb-10">
                   <h3 className="text-sm font-black text-gray-400 uppercase tracking-[0.2em]">
@@ -1189,6 +1336,7 @@ function ReportTab({ records = [] }: { records?: any[] }) {
                   </div>
                 </div>
               </div>
+              )}
             </div>
 
             {/* 잠금 오버레이 (비PRO 회원 전용) */}
