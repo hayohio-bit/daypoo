@@ -108,10 +108,10 @@ export function HeroSection({ onCtaClick, openAuth }: HeroSectionProps) {
               </WaveButton>
               <WaveButton 
                 onClick={() => openAuth('signup')} 
-                variant="outline" 
-                className="px-10 py-5 text-lg font-bold border-white/40 text-white hover:bg-white/5"
+                variant="accent" 
+                className="px-10 py-5 text-lg font-bold shadow-lg shadow-amber-500/20"
               >
-                무료 리포트 받기
+                무료 리포트 시작하기
               </WaveButton>
             </motion.div>
           </div>
@@ -137,26 +137,62 @@ export function HeroSection({ onCtaClick, openAuth }: HeroSectionProps) {
 
               <div className="space-y-4">
                 <div className="flex justify-between items-center text-xs">
-                  <span className="text-slate-400 font-medium flex items-center gap-2"><Activity size={12} /> 실시간 데이터 분석</span>
-                  <span className="text-emerald-400 font-black animate-pulse">LIVE</span>
+                  <span className="text-slate-400 font-medium flex items-center gap-2"><Activity size={12} /> 실시간 데이터 분석 엔진</span>
+                  <span className="text-emerald-400 font-black animate-pulse flex items-center gap-1.5">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" /> LIVE
+                  </span>
                 </div>
-                <div className="h-2 w-full bg-slate-800 rounded-full overflow-hidden">
-                  <motion.div 
-                    initial={{ width: 0 }}
-                    animate={{ width: `${Math.random() * 20 + 75}%` }}
-                    transition={{ duration: 2, repeat: Infinity, repeatType: "reverse" }}
-                    className="h-full bg-emerald-400 shadow-[0_0_10px_rgba(52,211,153,0.5)]"
-                  />
-                </div>
-                <div className="grid grid-cols-4 gap-2 h-12 overflow-hidden items-end">
-                  {[4, 7, 2, 9, 3, 6, 8, 5].map((h, i) => (
-                    <motion.div 
-                      key={i} 
-                      animate={{ height: [`${h*10}%`, `${(h+2)*10}%`, `${h*10}%`] }}
-                      transition={{ repeat: Infinity, duration: 1 + i * 0.1 }}
-                      className="w-full bg-emerald-400/20 rounded-t-lg"
+                
+                {/* Refined Signal Waveform Animation */}
+                <div className="h-20 w-full relative overflow-hidden bg-slate-800/20 rounded-2xl border border-white/5 flex items-center justify-center">
+                  <svg className="absolute inset-0 w-full h-full" preserveAspectRatio="none">
+                    <motion.path
+                      d="M0 40 Q 20 10, 40 40 T 80 40 T 120 40 T 160 40 T 200 40 T 240 40 T 280 40 T 320 40 T 360 40 T 400 40"
+                      fill="none"
+                      stroke="url(#wave-gradient)"
+                      strokeWidth="3"
+                      strokeLinecap="round"
+                      initial={{ pathLength: 0, pathOffset: 0 }}
+                      animate={{ 
+                        pathLength: [0.2, 0.4, 0.2],
+                        pathOffset: [0, 1] 
+                      }}
+                      transition={{ 
+                        duration: 3, 
+                        repeat: Infinity, 
+                        ease: "linear" 
+                      }}
                     />
-                  ))}
+                    <defs>
+                      <linearGradient id="wave-gradient" x1="0" y1="0" x2="1" y2="0">
+                        <stop offset="0%" stopColor="#10b981" stopOpacity="0" />
+                        <stop offset="50%" stopColor="#34d399" stopOpacity="1" />
+                        <stop offset="100%" stopColor="#10b981" stopOpacity="0" />
+                      </linearGradient>
+                    </defs>
+                  </svg>
+                  
+                  {/* Floating Data Particles */}
+                  <div className="absolute inset-0 flex items-center justify-around pointer-events-none px-4">
+                    {[1, 2, 3, 4, 5].map((_, i) => (
+                      <motion.div
+                        key={i}
+                        animate={{ 
+                          y: [0, -10, 0],
+                          opacity: [0, 0.5, 0],
+                          scale: [0.5, 1, 0.5]
+                        }}
+                        transition={{ 
+                          duration: 2, 
+                          delay: i * 0.4, 
+                          repeat: Infinity 
+                        }}
+                        className="w-1 h-1 rounded-full bg-emerald-400"
+                      />
+                    ))}
+                  </div>
+                  
+                  <div className="absolute inset-0 bg-gradient-to-r from-slate-900/50 via-transparent to-slate-900/50 pointer-events-none" />
                 </div>
               </div>
 

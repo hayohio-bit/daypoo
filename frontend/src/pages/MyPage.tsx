@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence, useInView } from 'framer-motion';
+import { generateProfileAvatar } from '../utils/avatar';
 import { Navbar } from '../components/Navbar';
 import {
   ShoppingBag,
@@ -586,7 +587,7 @@ function HeroBanner({
                 className="relative group"
               >
                 <div
-                  className="relative z-10 flex items-center justify-center rounded-[36px] transition-all duration-300 group-hover:shadow-2xl"
+                  className="relative z-10 flex items-center justify-center rounded-[36px] transition-all duration-300 group-hover:shadow-2xl overflow-hidden"
                   style={{
                     width: '110px',
                     height: '110px',
@@ -596,7 +597,15 @@ function HeroBanner({
                     boxShadow: '0 16px 48px rgba(27,67,50,0.12)',
                   }}
                 >
-                  {equippedItem?.emoji ?? '💩'}
+                  {user?.id ? (
+                    <img
+                      src={generateProfileAvatar(user.id)}
+                      alt={user.nickname || '프로필'}
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    equippedItem?.emoji ?? '💩'
+                  )}
                 </div>
                 <div
                   className="absolute -bottom-1 -right-1 z-20 flex items-center justify-center rounded-xl font-black text-xs shadow-lg"

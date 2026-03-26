@@ -37,8 +37,8 @@ const WaveButton: React.FC<WaveButtonProps> = ({
     },
     accent: {
       bg: '#E8A838',
-      text: '#1A2B27',
-      waves: ['#F4A261', '#E76F51', '#FFB703'],
+      text: '#1B4332',
+      waves: ['#FFC300', '#FFD60A', '#FFF000'],
     },
     error: {
       bg: '#FF4B4B',

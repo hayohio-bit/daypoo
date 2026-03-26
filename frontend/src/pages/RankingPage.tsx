@@ -644,18 +644,24 @@ export function RankingPage({ openAuth }: { openAuth: (mode: 'login' | 'signup')
             {/* 통계 칩 */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mt-4">
               {[
-                { label: '활성 사용자', value: '1,000', unit: '+' },
-                { 
-                  label: '내 현재 순위', 
-                  value: myRankData ? myRankData.rank.toString() : '-', 
-                  unit: '위' 
+                {
+                  label: '활성 사용자',
+                  value: (isDataValid && (data as any).activeUserCount)
+                    ? (data as any).activeUserCount.toLocaleString()
+                    : '0',
+                  unit: '+'
                 },
-                { 
-                  label: '상위권 도전', 
-                  value: (myRankData && typeof myRankData.rank === 'number' && myRankData.rank > 10) 
-                    ? (myRankData.rank - 10).toString() 
-                    : '0', 
-                  unit: '계단' 
+                {
+                  label: '내 현재 순위',
+                  value: myRankData ? myRankData.rank.toString() : '-',
+                  unit: '위'
+                },
+                {
+                  label: '상위권 도전',
+                  value: (myRankData && typeof myRankData.rank === 'number' && myRankData.rank > 10)
+                    ? (myRankData.rank - 10).toString()
+                    : '0',
+                  unit: '계단'
                 },
               ].map((s, i) => (
                 <motion.div

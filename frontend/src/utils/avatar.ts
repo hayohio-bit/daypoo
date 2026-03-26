@@ -41,7 +41,7 @@ export const generateAvatar = (
     size,
   });
 
-  return avatar.toDataUriSync();
+  return avatar.toDataUri();
 };
 
 /**
