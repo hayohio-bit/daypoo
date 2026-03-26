@@ -65,6 +65,7 @@ public class RankingService {
       long uniqueToilets =
           recordRepository.countDistinctToiletsByUserAndRegionName(user, regionName);
       double score = recordCount + uniqueToilets * 3.0;
+      if (score <= 0) return;
       String key = REGION_RANK_KEY_PREFIX + regionName;
       redisTemplate.opsForZSet().add(key, user.getId().toString(), score);
     }
@@ -205,17 +206,19 @@ public class RankingService {
 
     // Batch-fetch equipped items for all top rankers
     java.util.Map<Long, List<EquippedItemResponse>> equippedItemsMap =
-        inventoryRepository.findEquippedByUserIn(users).stream()
-            .collect(
-                Collectors.groupingBy(
-                    inv -> inv.getUser().getId(),
-                    Collectors.mapping(
-                        inv ->
-                            new EquippedItemResponse(
-                                inv.getItem().getImageUrl(),
-                                inv.getItem().getName(),
-                                inv.getItem().getType().name()),
-                        Collectors.toList())));
+        users.isEmpty()
+            ? java.util.Map.of()
+            : inventoryRepository.findEquippedByUserIn(users).stream()
+                .collect(
+                    Collectors.groupingBy(
+                        inv -> inv.getUser().getId(),
+                        Collectors.mapping(
+                            inv ->
+                                new EquippedItemResponse(
+                                    inv.getItem().getImageUrl(),
+                                    inv.getItem().getName(),
+                                    inv.getItem().getType().name()),
+                            Collectors.toList())));
 
     List<UserRankResponse> topRankers =
         topRankersRaw.stream()
