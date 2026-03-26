@@ -36,6 +36,7 @@ export interface UserResponse {
   isPro?: boolean;
   subscription?: SubscriptionResponse | null;
   birthDate?: string | null;
+  homeRegion?: string | null;
   createdAt?: string;
   totalAuthCount?: number;
   totalVisitCount?: number;

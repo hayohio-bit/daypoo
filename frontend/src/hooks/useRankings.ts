@@ -29,13 +29,20 @@ export function useRankings(tab: 'total' | 'local' | 'health', regionName?: stri
   const [error, setError] = useState<string | null>(null);
 
   const fetchRankings = useCallback(async () => {
+    // local 탭인데 regionName이 없으면 API 호출하지 않음
+    if (tab === 'local' && !regionName) {
+      setLoading(false);
+      setData(null);
+      return;
+    }
+
     setLoading(true);
     setError(null);
     try {
       let endpoint = '';
       if (tab === 'total') endpoint = '/rankings/global';
       else if (tab === 'health') endpoint = '/rankings/health';
-      else endpoint = `/rankings/region?regionName=${encodeURIComponent(regionName || '서울')}`;
+      else endpoint = `/rankings/region?regionName=${encodeURIComponent(regionName!)}`;
 
       const res = await api.get(endpoint);
       setData(res as RankingResponse);

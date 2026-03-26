@@ -573,7 +573,7 @@ function HeroBanner({
         />
       </div>
 
-      <div className="relative z-10 max-w-3xl mx-auto px-6 pt-40 pb-12">
+      <div className="relative z-10 max-w-4xl mx-auto px-6 pt-40 pb-12">
         <div className="flex items-end justify-between gap-6">
           <motion.div
             variants={stagger}
@@ -787,7 +787,7 @@ function TabBar({ active, onChange }: { active: TabKey; onChange: (k: TabKey) =>
     <div
       className="flex gap-4 px-10 py-5 mx-auto"
       style={{
-        maxWidth: '900px',
+        maxWidth: '896px',
         background: 'transparent',
         borderBottom: '1px solid rgba(26,43,39,0.05)',
       }}
@@ -1013,10 +1013,10 @@ function HomeTab({
       {/* ★ 아바타 커스터마이징 섹션 (심리스 듀얼 패널 대시보드) */}
       <motion.div
         variants={fadeUp(0)}
-        className="bg-white rounded-[40px] border border-gray-100 shadow-sm overflow-hidden flex flex-col md:flex-row min-h-[700px]"
+        className="bg-white rounded-[40px] border border-gray-100 shadow-sm overflow-hidden flex flex-col min-h-[500px]"
       >
-        {/* 왼쪽: 인벤토리 메인 영역 */}
-        <div className="flex-1 flex flex-col border-b md:border-b-0 md:border-r border-gray-100">
+        {/* 인벤토리 메인 영역 */}
+        <div className="flex-1 flex flex-col">
           <div className="flex items-center justify-between px-10 pt-10 pb-8">
           <div>
             <p className="text-sm font-black text-gray-400 uppercase tracking-widest mb-1.5">
@@ -1088,7 +1088,7 @@ function HomeTab({
             >
               {items.length > 0 ? (
                 <>
-                  <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 mb-8">
                     {items
                       .slice(currentPage * itemsPerPage, (currentPage + 1) * itemsPerPage)
                       .map((item, idx) => {
@@ -2963,7 +2963,7 @@ export function MyPage({ openAuth }: { openAuth: (mode: 'login' | 'signup') => v
         records={records}
       />
       <TabBar active={activeTab} onChange={handleTabChange} />
-      <div className="max-w-4xl mx-auto px-6 py-8 pb-20 overflow-hidden">
+      <div className="max-w-4xl mx-auto px-6 py-8 pb-40 overflow-hidden">
         <AnimatePresence mode="wait" custom={tabDir}>
           <motion.div
             key={activeTab}

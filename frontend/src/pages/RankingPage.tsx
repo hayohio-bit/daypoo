@@ -571,25 +571,7 @@ export function RankingPage({ openAuth }: { openAuth: (mode: 'login' | 'signup')
   const { user } = useAuth();
   const [tab, setTab] = useState<TabKey>('total');
   const [selectedUser, setSelectedUser] = useState<RankUser | null>(null);
-  const [regionName, setRegionName] = useState<string | undefined>(undefined);
-
-  useEffect(() => {
-    if (!navigator.geolocation) return;
-    navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        const { kakao } = window as any;
-        if (!kakao?.maps?.services) return;
-        const geocoder = new kakao.maps.services.Geocoder();
-        geocoder.coord2RegionCode(pos.coords.longitude, pos.coords.latitude, (result: any[], status: string) => {
-          if (status === kakao.maps.services.Status.OK && result.length > 0) {
-            const region = result.find((r: any) => r.region_type === 'H') || result[0];
-            setRegionName(region.region_2depth_name);
-          }
-        });
-      },
-      () => { }
-    );
-  }, []);
+  const regionName = user?.homeRegion ?? undefined;
 
   const { data, loading, error } = useRankings(tab, regionName);
 
