@@ -107,13 +107,13 @@ public class GeocodingService {
 
       if (documents.isArray() && !documents.isEmpty()) {
         for (JsonNode doc : documents) {
-          // 'H' (행정동) 타입을 우선적으로 반환합니다.
+          // 'H' (행정동) 타입을 우선적으로 반환합니다. (시/도 단위로 지역 랭킹 구분)
           if ("H".equals(doc.path("region_type").asText())) {
-            return doc.path("region_3depth_name").asText("기타");
+            return doc.path("region_2depth_name").asText("기타");
           }
         }
         // 행정동이 없으면 법정동(B) 등 첫 번째 결과를 반환
-        return documents.get(0).path("region_3depth_name").asText("기타");
+        return documents.get(0).path("region_2depth_name").asText("기타");
       }
 
       return "기타";
