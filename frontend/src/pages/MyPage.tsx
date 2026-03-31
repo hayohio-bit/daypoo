@@ -57,6 +57,13 @@ interface AvatarItem {
   isEquipped?: boolean; // 장착 여부
 }
 
+const DEFAULT_AVATAR_URL = 'https://api.dicebear.com/7.x/notionists/svg?seed=user';
+
+// ── 공통 헬퍼 함수 ───────────────────────────────────────────────────────
+export const isEmoji = (str: string) => {
+  return str && str.length <= 4 && /\p{Extended_Pictographic}/u.test(str);
+};
+
 // ── FALLBACK 데이터 ───────────────────────────────────────────────────────
 const FALLBACK_AVATAR_ITEMS: AvatarItem[] = [
   // 헤드 (Head)
@@ -701,8 +708,8 @@ function HeroBanner({
                   }}
                 >
                   {equippedItem?.id ? (
-                    equippedItem.emoji && /\p{Emoji}/u.test(equippedItem.emoji) ? (
-                      <span className="text-5xl select-none">{equippedItem.emoji}</span>
+                    equippedItem.imageUrl && (isEmoji(equippedItem.imageUrl) || (!equippedItem.imageUrl.includes(':') && !equippedItem.imageUrl.startsWith('http'))) ? (
+                      <span className="text-5xl select-none leading-none">{equippedItem.imageUrl}</span>
                     ) : (
                       <img
                         src={parseDicebearUrl(equippedItem.imageUrl, equippedItem.id, equippedItem.rawType || 'AVATAR')}
@@ -974,8 +981,8 @@ function HomeTab({
 
   const items =
     shopTab === 'inventory'
-      ? avatarItems.filter((i) => i.owned)
-      : avatarItems.filter((i) => !i.owned);
+      ? (avatarItems || []).filter((i) => i.owned)
+      : (avatarItems || []).filter((i) => !i.owned);
 
   // DepthDeck 카드 데이터 변환
   const deckCards: DeckCard[] = items.map((item) => ({
@@ -1230,9 +1237,9 @@ function HomeTab({
                                 className="w-12 h-12 rounded-full blur-2xl opacity-20 absolute"
                                 style={{ background: color }}
                               />
-                              {item.emoji && /\p{Emoji}/u.test(item.emoji) ? (
-                                <span className="text-6xl transition-transform group-hover:scale-110 duration-500 select-none">
-                                  {item.emoji}
+                              {item.imageUrl && (isEmoji(item.imageUrl) || (!item.imageUrl.includes(':') && !item.imageUrl.startsWith('http'))) ? (
+                                <span className="text-6xl transition-transform group-hover:scale-110 duration-500 select-none leading-none">
+                                  {item.imageUrl}
                                 </span>
                               ) : (
                                 <img
@@ -1313,8 +1320,8 @@ function HomeTab({
               style={{ background: 'rgba(255,255,255,0.92)' }}
             >
               <div className="w-14 h-14 rounded-2xl bg-emerald-50 flex-shrink-0 relative overflow-hidden group flex items-center justify-center">
-                {preview.emoji && /\p{Emoji}/u.test(preview.emoji) ? (
-                  <span className="text-3xl select-none">{preview.emoji}</span>
+                {preview.imageUrl && (isEmoji(preview.imageUrl) || (!preview.imageUrl.includes(':') && !preview.imageUrl.startsWith('http'))) ? (
+                  <span className="text-3xl select-none leading-none">{preview.imageUrl}</span>
                 ) : (
                   <img
                     src={parseDicebearUrl(preview.imageUrl, preview.id, preview.rawType || 'AVATAR')}
@@ -1390,7 +1397,7 @@ function HomeTab({
           </div>
         </div>
 
-        {healthReport?.insights && healthReport.insights.length >= 3 ? (
+              {healthReport?.insights && Array.isArray(healthReport.insights) && healthReport.insights.length >= 3 ? (
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-5 mb-6 sm:mb-10">
             {healthReport.insights.slice(0, 3).map((insight: string, i: number) => {
               const icons = [<TrendingUp size={22} />, <Check size={22} />, <Activity size={22} />];
@@ -1873,6 +1880,8 @@ function ReportTab({ records = [], reportCacheRef }: { records?: any[]; reportCa
   const [reportData, setReportData] = useState<any>(null);
   const [isFetchLoading, setIsFetchLoading] = useState(false);
   const [showPremiumModal, setShowPremiumModal] = useState(false);
+
+
 
   const fetchReport = useCallback(async (type: string) => {
     // 이미 불러온 데이터가 있으면 즉시 표시 (DAILY는 항상 새로 요청)
@@ -3121,6 +3130,7 @@ export function MyPage({ openAuth }: { openAuth: (mode: 'login' | 'signup') => v
           id: itemId,
           emoji:
             item.imageUrl || (itemType === 'AVATAR' ? '🎭' : itemType === 'EFFECT' ? '✨' : '📍'),
+          imageUrl: item.imageUrl, // 원본 imageUrl 보존
           name: item.name || '알 수 없는 아이템',
           type: itemType === 'AVATAR' ? '헤드' : itemType === 'EFFECT' ? '이펙트' : '마커',
           rawType: itemType, // 원본 타입 저장

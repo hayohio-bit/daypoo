@@ -800,7 +800,32 @@ export function RankingPage({ openAuth }: { openAuth: (mode: 'login' | 'signup')
                   exit={{ opacity: 0, scale: 0.97 }}
                   transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
                 >
-                  <Podium users={users.slice(0, 3)} onSelect={handleSelect} />
+                  {tab === 'local' && !regionName ? (
+                    <div className="flex flex-col items-center justify-center py-20 px-6 bg-white/50 rounded-3xl border border-gray-100">
+                      <MapPin size={48} className="text-gray-300 mb-4" />
+                      <h3 className="text-xl font-black text-gray-800 mb-2">홈 지역이 설정되지 않았습니다</h3>
+                      <p className="text-sm text-gray-500 text-center mb-6 max-w-md">
+                        우리 동네 랭킹을 확인하려면 마이페이지에서 홈 지역을 설정해주세요.
+                      </p>
+                      <WaveButtonComponent
+                        onClick={() => window.location.href = '/mypage?tab=settings'}
+                        variant="primary"
+                        size="md"
+                      >
+                        설정하러 가기
+                      </WaveButtonComponent>
+                    </div>
+                  ) : users.length === 0 && !loading ? (
+                    <div className="flex flex-col items-center justify-center py-20 px-6 bg-white/50 rounded-3xl border border-gray-100">
+                      <Trophy size={48} className="text-gray-300 mb-4" />
+                      <h3 className="text-xl font-black text-gray-800 mb-2">아직 랭킹 데이터가 없습니다</h3>
+                      <p className="text-sm text-gray-500 text-center">
+                        첫 번째 랭커가 되어보세요!
+                      </p>
+                    </div>
+                  ) : (
+                    <Podium users={users.slice(0, 3)} onSelect={handleSelect} />
+                  )}
                 </motion.div>
               </AnimatePresence>
 
