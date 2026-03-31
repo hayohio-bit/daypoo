@@ -2729,7 +2729,7 @@ const SystemView = ({
                 <div className="flex items-center justify-between mb-2">
                   <div className="flex items-center gap-2">
                     {getLogIcon(log.level)}
-                    <span className="text-[10px] font-black tracking-widest uppercase">{log.level}</span>
+                    <span className="text-[10px] font-black tracking-widest uppercase text-black/80">{log.level}</span>
                   </div>
                   <span className="text-[9px] font-bold text-black/30">
                     {log.timestamp ? new Date(log.timestamp).toLocaleTimeString() : '방금 전'}

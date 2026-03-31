@@ -103,39 +103,7 @@ export const GridFlipReveal: React.FC<GridFlipRevealProps> = ({
         </div>
       )}
 
-      {/* 중앙 브랜드 텍스트 (피어오르는 시차 애니메이션 - 즉시 노출) */}
-      <AnimatePresence>
-        {isStarted && !isFinished && (
-          <motion.div
-            className="fixed inset-0 flex items-center justify-center z-[1000] pointer-events-none"
-          >
-            <div className="flex gap-2 overflow-hidden">
-              {"Day.poo".split("").map((char, index) => (
-                <motion.span
-                  key={index}
-                  initial={{ opacity: 0, y: 35, filter: 'blur(15px)', rotateX: 30 }}
-                  animate={{ 
-                    opacity: [0, 1, 1, 0], 
-                    y: [35, 0, -2, -20],
-                    filter: ['blur(15px)', 'blur(0px)', 'blur(0px)', 'blur(8px)'],
-                    rotateX: [30, 0, 0, -15]
-                  }}
-                  transition={{ 
-                    duration: 1.2, // 로고 노출 시간 단축 (속도감 최적화)
-                    delay: index * 0.05, // 텍스트 지연 최소화
-                    times: [0, 0.25, 0.75, 1],
-                    ease: "easeOut"
-                  }}
-                  className="text-8xl font-bold text-amber-400 drop-shadow-[0_8px_30px_rgba(232,168,56,0.25)] tracking-tighter"
-                  style={{ fontFamily: 'SchoolSafetyNotification, cursive' }}
-                >
-                  {char === " " ? "\u00A0" : char}
-                </motion.span>
-              ))}
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+
     </div>
   );
 };
