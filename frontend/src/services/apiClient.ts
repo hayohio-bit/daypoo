@@ -82,7 +82,13 @@ class ApiClient {
       const contentType = response.headers.get('content-type');
       let data: any;
       if (contentType && contentType.includes('application/json')) {
-        data = await response.json();
+        const textData = await response.text();
+        try {
+          data = textData ? JSON.parse(textData) : {};
+        } catch (e) {
+          // JSON 파싱 실패 시 원본 문자열을 그대로 사용 (예: "사용 가능한 이메일입니다.")
+          data = textData;
+        }
       } else {
         data = await response.text();
       }

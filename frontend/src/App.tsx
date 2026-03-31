@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { BrowserRouter, Route, Routes } from 'react-router-dom';
 import { SplashPage } from './pages/SplashPage';
 import { MainPage } from './pages/MainPage';
@@ -25,11 +25,10 @@ import { ErrorBoundary } from './components/ErrorBoundary';
 import { Navigate } from 'react-router-dom';
 
 function LoginPage() {
-  return (
-    <div className="flex min-h-screen items-center justify-center bg-[#152e22] text-white">
-      <h1 className="text-2xl">로그인 페이지 (/login)</h1>
-    </div>
-  );
+  // 백엔드(Spring Security)에서 OAuth2 인증 실패 또는 로그인 페이지로의
+  // 리다이렉트가 발생했을 때 이 컴포넌트로 라우팅됩니다. 
+  // 더미 페이지 대신, 메인 페이지로 돌아가 로그인 모달을 다시 열 수 있도록 처리합니다.
+  return <Navigate to="/main?login=open" replace />;
 }
 
 function AdminRoute({ children }: { children: React.ReactNode }) {
@@ -72,6 +71,22 @@ function App() {
   const [onAuthSuccess, setOnAuthSuccess] = useState<(() => void) | null>(null);
   const [authOpen, setAuthOpen] = useState(false);
   const [authMode, setAuthMode] = useState<'login' | 'signup'>('login');
+
+  // URL에 ?login=open 이 있을 경우 자동으로 AuthModal을 열어줌
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('login') === 'open') {
+      setAuthMode('login');
+      setAuthOpen(true);
+      // 열고 난 후 URL 파라미터 정리
+      window.history.replaceState({}, document.title, window.location.pathname);
+    } else if (params.get('error')) {
+      // OAuth2 인증 실패(예: KAKAO_CLIENT_ID 없음 등) 시 
+      console.error('OAuth Error:', params.get('error'));
+      alert('소셜 로그인 처리 중 문제가 발생했습니다. (설정/비밀키 누락 등)\n서버 관리자에게 문의하세요.');
+      window.history.replaceState({}, document.title, window.location.pathname);
+    }
+  }, []);
 
   const openAuth = useCallback((mode: 'login' | 'signup', callback?: () => void) => {
     setAuthMode(mode);
