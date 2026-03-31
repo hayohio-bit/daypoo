@@ -96,6 +96,7 @@ jobs:
           key: ${{ secrets.EC2_SSH_PRIVATE_KEY }}
           envs: DB_PASSWORD,DB_USERNAME,DB_HOST,DOCKERHUB_USERNAME,AWS_REGION,APP_CORS_ALLOWED_ORIGINS,APP_FRONTEND_URL,VITE_TOSS_CLIENT_KEY,VITE_KAKAO_MAP_KEY
           script: |
+            set -e
             # 디렉토리 권한 확인 및 설정
             sudo mkdir -p /opt/daypoo
             sudo chown -R ec2-user:ec2-user /opt/daypoo
@@ -126,8 +127,8 @@ jobs:
             printf "VITE_TOSS_CLIENT_KEY=%s\n" "${{ secrets.VITE_TOSS_CLIENT_KEY }}" >> .env
             printf "VITE_KAKAO_MAP_KEY=%s\n" "${{ secrets.VITE_KAKAO_MAP_KEY }}" >> .env
             
-            docker-compose -f docker-compose.prod.yml pull
-            docker-compose -f docker-compose.prod.yml up -d
+            docker compose -f docker-compose.prod.yml pull
+            docker compose -f docker-compose.prod.yml up -d
             
             # 미사용 이미지 정리 (용량 확보)
             docker image prune -f
