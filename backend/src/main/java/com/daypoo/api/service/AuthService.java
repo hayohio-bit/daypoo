@@ -11,6 +11,8 @@ import com.daypoo.api.entity.User;
 import com.daypoo.api.entity.enums.Role;
 import com.daypoo.api.global.exception.BusinessException;
 import com.daypoo.api.global.exception.ErrorCode;
+import com.daypoo.api.entity.Inventory;
+import com.daypoo.api.entity.enums.ItemType;
 import com.daypoo.api.repository.*;
 import com.daypoo.api.security.JwtProvider;
 import io.jsonwebtoken.Claims;
@@ -39,6 +41,7 @@ public class AuthService {
   private final UserDeletionService userDeletionService;
   private final PooRecordRepository pooRecordRepository;
   private final SystemLogService systemLogService;
+  private final InventoryRepository inventoryRepository;
 
   @Transactional
   public TokenResponse socialSignUp(SocialSignUpRequest request) {
@@ -134,13 +137,23 @@ public class AuthService {
       consecutiveDays = streak;
     }
 
+    // 장착된 아바타 아이템 조회
+    String equippedAvatarUrl = inventoryRepository
+        .findAllByUserAndIsEquippedTrueAndItemType(user, ItemType.AVATAR)
+        .stream()
+        .findFirst()
+        .map(Inventory::getItem)
+        .map(com.daypoo.api.entity.Item::getImageUrl)
+        .orElse(null);
+
     return UserResponse.from(
         user,
         titleName,
         user.getActiveSubscription(),
         totalAuthCount,
         totalVisitCount,
-        consecutiveDays);
+        consecutiveDays,
+        equippedAvatarUrl);
   }
 
   @Transactional
