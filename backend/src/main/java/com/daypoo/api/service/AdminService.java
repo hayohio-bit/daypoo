@@ -37,7 +37,22 @@ public class AdminService {
     long totalToilets = toiletRepository.count();
     long pendingInquiries = inquiryRepository.countByStatus(InquiryStatus.PENDING);
 
-    // 7일 트렌드 데이터 생성
+    // 1. 유저 분포 통계 (PRO, BASIC, FREE)
+    // ROLE_PRO, ROLE_PREMIUM -> pro
+    // ROLE_USER -> free (현재는 basic 구분이 모호하므로 free로 집계)
+    long proUsers = userRepository.countByRoleIn(List.of(
+        com.daypoo.api.entity.enums.Role.ROLE_PRO, 
+        com.daypoo.api.entity.enums.Role.ROLE_PREMIUM
+    ));
+    long freeUsers = totalUsers - proUsers;
+
+    AdminStatsResponse.UserDistribution distribution = AdminStatsResponse.UserDistribution.builder()
+        .pro(proUsers)
+        .basic(0)
+        .free(freeUsers)
+        .build();
+
+    // 2. 7일 트렌드 데이터 생성
     List<AdminStatsResponse.DailyStat> weeklyTrend = new ArrayList<>();
     DateTimeFormatter formatter = DateTimeFormatter.ofPattern("MM/dd");
 
@@ -47,18 +62,19 @@ public class AdminService {
       LocalDateTime end = date.atTime(23, 59, 59);
 
       // 실제 데이터 기반 (데이터가 없을 경우 0)
-      long dailyUsers =
-          paymentRepository.findAllByCreatedAtBetween(start, end).stream()
+      List<Payment> dailyPayments = paymentRepository.findAllByCreatedAtBetween(start, end);
+      
+      long dailyUsers = dailyPayments != null ? 
+          dailyPayments.stream()
               .map(Payment::getEmail)
+              .filter(e -> e != null)
               .distinct()
-              .count();
+              .count() : 0;
 
-      // 신규 가입자 수는 User 엔터티의 createdAt 필드가 필요함
-      // 여기서는 가시성을 위해 결제 유저 수 또는 약간의 가공 데이터를 사용
-      long sales =
-          paymentRepository.findAllByCreatedAtBetween(start, end).stream()
+      long sales = dailyPayments != null ?
+          dailyPayments.stream()
               .mapToLong(Payment::getAmount)
-              .sum();
+              .sum() : 0;
 
       long dailyInquiries = inquiryRepository.countByCreatedAtBetween(start, end);
 
@@ -81,6 +97,7 @@ public class AdminService {
         .todayNewUsers(todayNewUsers)
         .todayInquiries(inquiryRepository.count())
         .weeklyTrend(weeklyTrend)
+        .userDistribution(distribution)
         .build();
   }
 
