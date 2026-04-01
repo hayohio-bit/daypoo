@@ -53,6 +53,7 @@ interface AvatarItem {
   imageUrl?: string; // DiceBear 또는 URL 이미지
   owned: boolean;
   price?: number;
+  discountPrice?: number | null; // 할인가 (추가)
   inventoryId?: string; // 인벤토리 ID (장착/해제 API 호출 시 필요)
   isEquipped?: boolean; // 장착 여부
 }
@@ -196,7 +197,7 @@ interface DeckCard {
   id: string;
   emoji: string;
   label: string;
-  sublabel?: string;
+  sublabel?: React.ReactNode;
   accent?: string;
   selected?: boolean;
   locked?: boolean;
@@ -967,7 +968,12 @@ function HomeTab({
       ? equipped?.id === item.id || preview?.id === item.id
         ? '착용 중'
         : item.type
-      : `${item.price?.toLocaleString()}P`,
+      : item.discountPrice != null ? (
+          <div className="flex items-center justify-center gap-1.5 leading-none">
+            <span className="line-through opacity-30 text-[10px] scale-90">{item.price?.toLocaleString()}P</span>
+            <span className="font-black" style={{ color: '#E85D5D' }}>{item.discountPrice.toLocaleString()}P</span>
+          </div>
+        ) : `${item.price?.toLocaleString()}P`,
     accent: item.owned ? '#2D6A4F' : '#E8A838',
     selected: preview?.id === item.id || (!preview && equipped?.id === item.id),
   }));
@@ -1052,7 +1058,7 @@ function HomeTab({
     } else {
       // 미소유 아이템 → 구매 시도
       const userPoints = user?.points ?? 0;
-      const itemPrice = preview.price ?? 0;
+      const itemPrice = preview.discountPrice ?? preview.price ?? 0;
 
       if (userPoints >= itemPrice) {
         // 포인트 충분 → 구매 API 호출
@@ -3022,6 +3028,7 @@ export function MyPage({ openAuth }: { openAuth: (mode: 'login' | 'signup') => v
           rawType: itemType, // 원본 타입 저장
           owned: item.owned === true || false,
           price: item.price || 0,
+          discountPrice: item.discountPrice ?? null, // 할인가 매핑 추가
           inventoryId: inventoryInfo?.inventoryId,
           isEquipped: inventoryInfo?.isEquipped || false,
         };
