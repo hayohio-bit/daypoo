@@ -6,10 +6,11 @@ import com.daypoo.api.service.RankingService;
 import com.daypoo.api.service.TitleAchievementService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.context.event.EventListener;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.event.TransactionPhase;
+import org.springframework.transaction.event.TransactionalEventListener;
 
 @Slf4j
 @Component
@@ -21,7 +22,7 @@ public class PooRecordEventListener {
   private final TitleAchievementService titleAchievementService;
 
   @Async("taskExecutor")
-  @EventListener
+  @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
   @Transactional
   public void handlePooRecordCreated(PooRecordCreatedEvent event) {
     log.info("Async processing post-save effects for user: {}", event.email());
