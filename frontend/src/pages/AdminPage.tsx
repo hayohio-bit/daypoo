@@ -795,7 +795,7 @@ const UsersView = () => {
             <input
               type="text"
               placeholder="이메일 또는 닉네임으로 검색"
-              className="w-full pl-12 pr-4 py-3 rounded-2xl border border-black/5 bg-white/50 backdrop-blur-xl focus:outline-none focus:border-[#1B4332]/30 transition-all font-bold text-sm"
+              className="w-full pl-12 pr-4 py-3 rounded-2xl border border-black/5 bg-white/50 backdrop-blur-xl focus:outline-none focus:border-[#1B4332]/30 transition-all font-bold text-sm text-[#1B4332] placeholder:text-black/20"
               value={searchInput}
               onChange={(e) => setSearchInput(e.target.value)}
             />
@@ -809,7 +809,7 @@ const UsersView = () => {
                 setRoleFilter(e.target.value);
                 setPage(0);
               }}
-              className="px-4 py-3 rounded-2xl border border-black/5 bg-white/50 backdrop-blur-xl focus:outline-none focus:border-[#1B4332]/30 transition-all font-black text-sm appearance-none cursor-pointer"
+              className="px-4 py-3 rounded-2xl border border-black/5 bg-white/50 backdrop-blur-xl focus:outline-none focus:border-[#1B4332]/30 transition-all font-black text-sm appearance-none cursor-pointer text-[#1B4332]"
             >
               <option value="">역할: 전체</option>
               <option value="ROLE_USER">일반 유저</option>
@@ -825,7 +825,7 @@ const UsersView = () => {
                 setPlanFilter(e.target.value);
                 setPage(0);
               }}
-              className="px-4 py-3 rounded-2xl border border-black/5 bg-white/50 backdrop-blur-xl focus:outline-none focus:border-[#1B4332]/30 transition-all font-black text-sm appearance-none cursor-pointer"
+              className="px-4 py-3 rounded-2xl border border-black/5 bg-white/50 backdrop-blur-xl focus:outline-none focus:border-[#1B4332]/30 transition-all font-black text-sm appearance-none cursor-pointer text-[#1B4332]"
             >
               <option value="">플랜: 전체</option>
               <option value="BASIC">BASIC (미구독)</option>
