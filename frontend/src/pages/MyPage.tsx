@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence, useInView } from 'framer-motion';
-import { generateProfileAvatar, generateItemAvatar, parseDicebearUrl } from '../utils/avatar';
+import { generateProfileAvatar, generateItemAvatar, parseDicebearUrl, isEmoji } from '../utils/avatar';
 import { Navbar } from '../components/Navbar';
 import {
   ShoppingBag,
@@ -60,9 +60,6 @@ interface AvatarItem {
 const DEFAULT_AVATAR_URL = '/assets/default-avatar.svg';
 
 // ── 공통 헬퍼 함수 ───────────────────────────────────────────────────────
-export const isEmoji = (str: string) => {
-  return str && str.length <= 4 && /\p{Extended_Pictographic}/u.test(str);
-};
 
 // [CLEANUP] 하드코딩된 FALLBACK 데이터와 BRISTOL_DATA는 백엔드 연동이 완료되었으므로 제거합니다.
 

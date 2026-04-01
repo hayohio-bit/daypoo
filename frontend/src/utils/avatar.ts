@@ -7,6 +7,15 @@ import { funEmoji, avataaars, bottts, lorelei, pixelArt } from '@dicebear/collec
 export type AvatarStyle = 'funEmoji' | 'avataaars' | 'bottts' | 'lorelei' | 'pixelArt';
 
 /**
+ * 전역 유틸리티: 이모지 판단 함수
+ */
+export const isEmoji = (str: string | null | undefined): boolean => {
+  if (!str) return false;
+  // 단일 이모지 또는 결합된 이모지 시퀀스를 판별하기 위한 정규식
+  return str.length <= 8 && /\p{Extended_Pictographic}/u.test(str);
+};
+
+/**
  * 아바타 스타일별 설정
  */
 const AVATAR_STYLES = {

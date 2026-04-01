@@ -5,7 +5,7 @@ import { Footer } from '../components/Footer';
 import { WaveDivider } from '../components/WaveDivider';
 import { Crown, TrendingUp, TrendingDown, Minus, ShoppingBag, X, MapPin, Star, Trophy, Activity } from 'lucide-react';
 import { useRankings } from '../hooks/useRankings';
-import { generateRankingAvatar, generateItemAvatar, parseDicebearUrl, DEFAULT_AVATAR_URL } from '../utils/avatar';
+import { generateRankingAvatar, generateItemAvatar, parseDicebearUrl, DEFAULT_AVATAR_URL, isEmoji } from '../utils/avatar';
 
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
@@ -176,10 +176,10 @@ function ItemPopup({ user, onClose, openAuth }: { user: RankUser; onClose: () =>
                 {user.effectEmoji && <RankAvatarEffect emoji={user.effectEmoji} size={96} />}
                 <ConicGlow color={user.titleColor} thickness={4} borderRadius="50%" />
                 <div className="absolute inset-[4px] rounded-full bg-white flex items-center justify-center z-10 overflow-hidden">
-                  {user.avatarUrl ? (
-                    <img src={user.avatarUrl} alt={user.nick} className="w-full h-full object-cover" />
+                  {isEmoji(user.avatarUrl) ? (
+                    <span className="text-5xl select-none leading-none">{user.avatarUrl}</span>
                   ) : (
-                    <img src={DEFAULT_AVATAR_URL} alt={user.nick} className="w-full h-full object-cover" />
+                    <img src={user.avatarUrl || DEFAULT_AVATAR_URL} alt={user.nick} className="w-full h-full object-cover" />
                   )}
                 </div>
                 {user.rank <= 3 && (
@@ -342,10 +342,10 @@ const FlipGlassCard = ({
             {user.effectEmoji && <RankAvatarEffect emoji={user.effectEmoji} size={80} />}
             <ConicGlow color={user.titleColor} thickness={4} borderRadius="50%" />
             <div className="absolute inset-[4px] rounded-full bg-white flex items-center justify-center z-10 overflow-hidden">
-              {user.avatarUrl ? (
-                <img src={user.avatarUrl} alt={user.nick} className="w-full h-full object-cover" />
+              {isEmoji(user.avatarUrl) ? (
+                <span className="text-3xl select-none leading-none">{user.avatarUrl}</span>
               ) : (
-                <img src={DEFAULT_AVATAR_URL} alt={user.nick} className="w-full h-full object-cover" />
+                <img src={user.avatarUrl || DEFAULT_AVATAR_URL} alt={user.nick} className="w-full h-full object-cover" />
               )}
             </div>
           </div>
@@ -548,10 +548,10 @@ function RankItem({
           />
         )}
         <div className="w-full h-full rounded-full overflow-hidden relative z-10 flex items-center justify-center">
-          {user.avatarUrl ? (
-            <img src={user.avatarUrl} alt={user.nick} className="w-full h-full object-cover" />
+          {isEmoji(user.avatarUrl) ? (
+            <span className="text-2xl select-none leading-none">{user.avatarUrl}</span>
           ) : (
-            <img src={DEFAULT_AVATAR_URL} alt={user.nick} className="w-full h-full object-cover" />
+            <img src={user.avatarUrl || DEFAULT_AVATAR_URL} alt={user.nick} className="w-full h-full object-cover" />
           )}
         </div>
       </div>
@@ -617,12 +617,15 @@ function MyRankBar({ data }: { data: any }) {
           </div>
           <div className="flex items-center gap-6">
             <div className="flex items-center gap-3">
-              <div className="w-12 h-12 rounded-full overflow-hidden border-2 border-emerald-500/30 bg-white">
-                <img
-                  src={generateRankingAvatar(data.userId || 0, data.rank === '-' ? 99 : data.rank, data.equippedAvatarUrl)}
-                  alt="My Avatar"
-                  className="w-full h-full object-cover"
-                />
+              <div className="w-12 h-12 rounded-full overflow-hidden border-2 border-emerald-500/30 bg-white flex items-center justify-center text-2xl">
+                {(() => {
+                  const avatarUrl = generateRankingAvatar(data.userId || 0, data.rank === '-' ? 99 : data.rank, data.equippedAvatarUrl);
+                  return isEmoji(avatarUrl) ? (
+                    <span className="select-none leading-none">{avatarUrl}</span>
+                  ) : (
+                    <img src={avatarUrl} alt="My Avatar" className="w-full h-full object-cover" />
+                  );
+                })()}
               </div>
               <div className="flex flex-col">
                 <div className="flex items-center gap-2.5">
