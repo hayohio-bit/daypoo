@@ -99,9 +99,9 @@ export function Navbar({ openAuth }: { openAuth: (mode: 'login' | 'signup') => v
             alignItems: 'center',
             background: '#1A2B27',
             borderRadius: '100px',
-            padding: '12px 16px 12px 24px',
-            boxShadow: '0 8px 32px rgba(0,0,0,0.25)',
-            gap: '16px',
+            padding: '14px 24px 14px 32px',
+            boxShadow: '0 12px 48px rgba(0,0,0,0.3)',
+            gap: '24px',
           }}
         >
           {/* 로고 */}

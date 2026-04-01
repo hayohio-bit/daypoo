@@ -89,12 +89,12 @@ export function HeroSection({ onCtaClick, openAuth }: HeroSectionProps) {
                 <span className="text-emerald-300 text-[10px] font-black uppercase tracking-widest">실시간 건강 엔진 작동 중</span>
               </div>
 
-              <h1 className="text-4xl sm:text-6xl lg:text-[100px] font-black leading-[0.9] text-white tracking-tighter">
+              <h1 className="text-4xl sm:text-6xl lg:text-[85px] font-black leading-[0.95] text-white tracking-tighter">
                 건강은 <br />
                 <span className="text-emerald-400">데이터</span>로 말합니다.
               </h1>
 
-              <p className="text-lg md:text-2xl text-slate-400 font-medium leading-relaxed max-w-xl">
+              <p className="text-lg md:text-xl text-slate-400 font-bold leading-relaxed max-w-xl opacity-80">
                 단순한 지도가 아닙니다. <br />
                 사용자의 기록과 AI 분석이 결합된 <br className="hidden md:block" />
                 차세대 라이프스타일 헬스케어 시스템.
@@ -153,31 +153,53 @@ export function HeroSection({ onCtaClick, openAuth }: HeroSectionProps) {
                   </span>
                 </div>
                 
-                {/* Refined Signal Waveform Animation */}
-                <div className="h-20 w-full relative overflow-hidden bg-slate-800/20 rounded-2xl border border-white/5 flex items-center justify-center">
+                {/* Refined Signal Waveform Animation — Hyper Dynamic */}
+                <div className="h-24 w-full relative overflow-hidden bg-slate-800/40 rounded-3xl border border-white/5 flex items-center justify-center">
                   <svg className="absolute inset-0 w-full h-full" preserveAspectRatio="none">
                     <motion.path
-                      d="M0 40 Q 20 10, 40 40 T 80 40 T 120 40 T 160 40 T 200 40 T 240 40 T 280 40 T 320 40 T 360 40 T 400 40"
+                      d="M0 48 Q 15 15, 30 48 T 60 48 T 90 48 T 120 48 T 150 48 T 180 48 T 210 48 T 240 48 T 270 48 T 300 48 T 330 48 T 360 48 T 390 48 T 420 48"
                       fill="none"
                       stroke="url(#wave-gradient)"
-                      strokeWidth="3"
+                      strokeWidth="2.5"
                       strokeLinecap="round"
-                      initial={{ pathLength: 0, pathOffset: 0 }}
                       animate={{ 
-                        pathLength: [0.2, 0.4, 0.2],
                         pathOffset: [0, 1] 
                       }}
                       transition={{ 
-                        duration: 3, 
+                        duration: 1.8, 
                         repeat: Infinity, 
                         ease: "linear" 
                       }}
                     />
+                    <motion.path
+                      d="M0 48 Q 15 15, 30 48 T 60 48 T 90 48 T 120 48 T 150 48 T 180 48 T 210 48 T 240 48 T 270 48 T 300 48 T 330 48 T 360 48 T 390 48 T 420 48"
+                      fill="none"
+                      stroke="url(#wave-gradient-glow)"
+                      strokeWidth="6"
+                      strokeLinecap="round"
+                      animate={{ 
+                        pathOffset: [0, 1],
+                        opacity: [0.1, 0.3, 0.1]
+                      }}
+                      transition={{ 
+                        duration: 1.8, 
+                        repeat: Infinity, 
+                        ease: "linear" 
+                      }}
+                      className="blur-md"
+                    />
                     <defs>
                       <linearGradient id="wave-gradient" x1="0" y1="0" x2="1" y2="0">
                         <stop offset="0%" stopColor="#10b981" stopOpacity="0" />
+                        <stop offset="10%" stopColor="#10b981" stopOpacity="0.2" />
                         <stop offset="50%" stopColor="#34d399" stopOpacity="1" />
+                        <stop offset="90%" stopColor="#10b981" stopOpacity="0.2" />
                         <stop offset="100%" stopColor="#10b981" stopOpacity="0" />
+                      </linearGradient>
+                      <linearGradient id="wave-gradient-glow" x1="0" y1="0" x2="1" y2="0">
+                        <stop offset="0%" stopColor="#34d399" stopOpacity="0" />
+                        <stop offset="50%" stopColor="#34d399" stopOpacity="0.6" />
+                        <stop offset="100%" stopColor="#34d399" stopOpacity="0" />
                       </linearGradient>
                     </defs>
                   </svg>
