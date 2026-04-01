@@ -1267,6 +1267,11 @@ function HomeTab({
                                     </span>
                                   ) : isOwned ? (
                                     '보유중'
+                                  ) : item.discountPrice != null ? (
+                                    <span className="flex items-center gap-1.5">
+                                      <span className="text-[10px] line-through text-gray-300">{item.price?.toLocaleString()}P</span>
+                                      <span className="text-red-500">{item.discountPrice.toLocaleString()}P</span>
+                                    </span>
                                   ) : (
                                     `${item.price?.toLocaleString()}P`
                                   )}
@@ -1350,7 +1355,9 @@ function HomeTab({
                 </div>
                 <h4 className="text-base font-black text-[#1A2B27] truncate">{preview.name}</h4>
                 <p className="text-[10px] font-bold text-gray-400">
-                  {preview.owned ? (equipped?.id === preview.id ? '현재 장착 중' : '보유 중인 아이템') : `${preview.price?.toLocaleString()}P 필요`}
+                  {preview.owned ? (equipped?.id === preview.id ? '현재 장착 중' : '보유 중인 아이템') : preview.discountPrice != null ? (
+                    <span><span className="line-through mr-1">{preview.price?.toLocaleString()}P</span><span className="text-red-500 font-black">{preview.discountPrice.toLocaleString()}P 필요</span></span>
+                  ) : `${preview.price?.toLocaleString()}P 필요`}
                 </p>
               </div>
 

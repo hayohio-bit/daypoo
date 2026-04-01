@@ -80,7 +80,8 @@ public class AdminController {
   @Operation(summary = "시스템 설정 업데이트", description = "공지사항, 점검 모드, 회원가입 제한 등 시스템 설정을 업데이트합니다.")
   @org.springframework.web.bind.annotation.PutMapping("/settings")
   public ResponseEntity<com.daypoo.api.dto.SystemSettingsResponse> updateSettings(
-      @org.springframework.web.bind.annotation.RequestBody com.daypoo.api.dto.SystemSettingsUpdateRequest request) {
+      @org.springframework.web.bind.annotation.RequestBody
+          com.daypoo.api.dto.SystemSettingsUpdateRequest request) {
     return ResponseEntity.ok(adminSettingsService.updateSettings(request));
   }
 }

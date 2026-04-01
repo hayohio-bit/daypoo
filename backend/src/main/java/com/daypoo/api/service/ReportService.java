@@ -192,26 +192,27 @@ public class ReportService {
           }
         }
 
-        HealthReportResponse snapshotResponse = HealthReportResponse.builder()
-            .reportType(s.getReportType().name())
-            .healthScore(s.getHealthScore())
-            .summary(s.getSummary())
-            .solution(s.getSolution())
-            .premiumSolution(s.getPremiumSolution())
-            .insights(s.getInsights() != null ? List.of(s.getInsights().split(",")) : List.of())
-            .recordCount(s.getRecordCount())
-            .periodStart(s.getPeriodStart())
-            .periodEnd(s.getPeriodEnd())
-            .analyzedAt(s.getCreatedAt().toString())
-            .mostFrequentBristol(s.getMostFrequentBristol())
-            .mostFrequentCondition(s.getMostFrequentCondition())
-            .mostFrequentDiet(s.getMostFrequentDiet())
-            .healthyRatio(s.getHealthyRatio())
-            .weeklyHealthScores(weeklyScores)
-            .improvementTrend(s.getImprovementTrend())
-            .bristolDistribution(bristolDist)
-            .avgDailyRecordCount(s.getAvgDailyRecordCount())
-            .build();
+        HealthReportResponse snapshotResponse =
+            HealthReportResponse.builder()
+                .reportType(s.getReportType().name())
+                .healthScore(s.getHealthScore())
+                .summary(s.getSummary())
+                .solution(s.getSolution())
+                .premiumSolution(s.getPremiumSolution())
+                .insights(s.getInsights() != null ? List.of(s.getInsights().split(",")) : List.of())
+                .recordCount(s.getRecordCount())
+                .periodStart(s.getPeriodStart())
+                .periodEnd(s.getPeriodEnd())
+                .analyzedAt(s.getCreatedAt().toString())
+                .mostFrequentBristol(s.getMostFrequentBristol())
+                .mostFrequentCondition(s.getMostFrequentCondition())
+                .mostFrequentDiet(s.getMostFrequentDiet())
+                .healthyRatio(s.getHealthyRatio())
+                .weeklyHealthScores(weeklyScores)
+                .improvementTrend(s.getImprovementTrend())
+                .bristolDistribution(bristolDist)
+                .avgDailyRecordCount(s.getAvgDailyRecordCount())
+                .build();
 
         return applyPremiumMasking(snapshotResponse, isPremium);
       } else {
@@ -374,7 +375,8 @@ public class ReportService {
   }
 
   /** 무료 회원의 리포트 요청 시, 프리미엄 전용 필드를 숨깁니다. */
-  private HealthReportResponse applyPremiumMasking(HealthReportResponse response, boolean isPremium) {
+  private HealthReportResponse applyPremiumMasking(
+      HealthReportResponse response, boolean isPremium) {
     if (isPremium) {
       return response;
     }
@@ -384,7 +386,7 @@ public class ReportService {
         .summary(response.summary())
         .solution(response.solution())
         .premiumSolution(null) // 프리미엄 솔루션 제거 (보안 마스킹)
-        .insights(null)        // 인사이트 통계 제거 (프리미엄 전용)
+        .insights(null) // 인사이트 통계 제거 (프리미엄 전용)
         .recordCount(response.recordCount())
         .periodStart(response.periodStart())
         .periodEnd(response.periodEnd())

@@ -30,7 +30,7 @@ public class ToiletSearchService {
    * 화장실 이름/주소 텍스트 검색 (초성 검색 지원)
    *
    * @param query 검색어 (일반 한글 또는 초성만)
-   * @param size  최대 결과 개수
+   * @param size 최대 결과 개수
    */
   public List<ToiletSearchResultResponse> search(String query, int size) {
     if (query == null || query.isBlank()) return List.of();
@@ -69,10 +69,14 @@ public class ToiletSearchService {
           Map.of(
               "multi_match",
               Map.of(
-                  "query", query,
-                  "fields", List.of("name^2", "address"),
-                  "type", "best_fields",
-                  "minimum_should_match", "75%")));
+                  "query",
+                  query,
+                  "fields",
+                  List.of("name^2", "address"),
+                  "type",
+                  "best_fields",
+                  "minimum_should_match",
+                  "75%")));
     }
 
     // 초성 wildcard 검색 (이름)

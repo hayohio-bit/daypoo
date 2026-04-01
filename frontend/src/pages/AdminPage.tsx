@@ -2271,89 +2271,19 @@ const StoreView = ({
   const handleSyncDefaultItems = async () => {
     if (syncingStore) return;
     const confirmed = confirm(
-      '마이페이지의 기본 아바타와 칭호 데이터를 상점에 동기화하시겠습니까?\n기존에 동일한 이름의 아이템이 있으면 중복 생성될 수 있습니다.',
+      '미공개 상태의 모든 아이템을 상점에 공개하시겠습니까?\n공개된 아이템은 유저의 마이페이지 상점에 노출됩니다.',
     );
     if (!confirmed) return;
 
     setSyncingStore(true);
     try {
-      // 1. 아바타 아이템 (헤드, 이펙트, 마커)
-      const avatars = [
-        {
-          name: '황금 왕관',
-          type: 'AVATAR',
-          price: 0,
-          description: '[헤드] 👑 기품 있는 국왕의 상징',
-          imageUrl: '👑',
-        },
-        {
-          name: '마법사 모자',
-          type: 'AVATAR',
-          price: 0,
-          description: '[헤드] 🎩 신비로운 마력을 지닌 모자',
-          imageUrl: '🎩',
-        },
-        {
-          name: '핑크 리본',
-          type: 'AVATAR',
-          price: 300,
-          description: '[헤드] 🎀 러블리한 감성의 핑크 리본',
-          imageUrl: '🎀',
-        },
-        {
-          name: '힙합 스냅백',
-          type: 'AVATAR',
-          price: 450,
-          description: '[헤드] 🧢 스트릿 감성이 넘치는 스냅백',
-          imageUrl: '🧢',
-        },
-        {
-          name: '황금 오라',
-          type: 'EFFECT',
-          price: 0,
-          description: '[이펙트] ✨ 몸 주변에서 빛나는 황금빛 기운',
-          imageUrl: '✨',
-        },
-        {
-          name: '별빛 오라',
-          type: 'EFFECT',
-          price: 500,
-          description: '[이펙트] 🌟 밤하늘의 별을 담은 오라',
-          imageUrl: '🌟',
-        },
-        {
-          name: '다이아 마커',
-          type: 'EFFECT',
-          price: 1200,
-          description: '[마커] 💎 지도 위에서 빛나는 다이아몬드',
-          imageUrl: '💎',
-        },
-        {
-          name: '무지개 마커',
-          type: 'EFFECT',
-          price: 2500,
-          description: '[마커] 🌈 화려한 무지개 색상의 이동 경로',
-          imageUrl: '🌈',
-        },
-      ];
-
-      const allItems = [...avatars];
-
-      for (const item of allItems) {
-        try {
-          await api.post('/admin/shop/items', {
-            ...item,
-            imageUrl: item.imageUrl || null,
-          });
-          console.log(`✅ 아이템 생성 성공: ${item.name}`);
-        } catch (itemError: any) {
-          console.error(`❌ 아이템 생성 실패: ${item.name}`, itemError);
-          throw new Error(`"${item.name}" 생성 중 오류: ${itemError.message || itemError}`);
-        }
+      const result = await api.post<{ publishedCount: number }>('/admin/shop/items/publish-all');
+      const count = result?.publishedCount ?? 0;
+      if (count > 0) {
+        alert(`${count}개의 아이템이 공개되었습니다.\n마이페이지의 [상점] 탭에서 확인하실 수 있습니다.`);
+      } else {
+        alert('공개할 미공개 아이템이 없습니다.');
       }
-
-      alert('기본 아이템 동기화가 완료되었습니다.\n마이페이지의 [상점] 탭에서 확인하실 수 있습니다.');
-      setSyncingStore(false);
       fetchItems();
     } catch (error: any) {
       console.error('동기화 실패:', error);
@@ -2361,6 +2291,16 @@ const StoreView = ({
       alert(`동기화 중 오류가 발생했습니다.\n\n상세: ${errorMsg}`);
     } finally {
       setSyncingStore(false);
+    }
+  };
+
+  const handleTogglePublish = async (itemId: number, itemName: string) => {
+    try {
+      await api.put(`/admin/shop/items/${itemId}/toggle-publish`);
+      fetchItems();
+    } catch (error: any) {
+      console.error('공개 상태 변경 실패:', error);
+      alert(`"${itemName}" 공개 상태 변경에 실패했습니다.`);
     }
   };
 
@@ -2552,7 +2492,7 @@ const StoreView = ({
                 )
               }
             >
-              {syncingStore ? '동기화 중...' : '마이페이지 동기화'}
+              {syncingStore ? '동기화 중...' : '미공개 아이템 전체 공개'}
             </WaveButtonComponent>
             <WaveButtonComponent
               onClick={handleGenerateTestData}
@@ -2601,12 +2541,12 @@ const StoreView = ({
         </div>
       ) : (
         <>
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6 place-items-center">
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
             {(items || []).map((item) => {
               const color = getItemTypeColor(item.type);
               return (
-                <GlassCard key={item.id} className="group cursor-pointer">
-                  <div className="w-full aspect-square rounded-[24px] mb-4 bg-black/[0.02] flex items-center justify-center relative overflow-hidden">
+                <GlassCard key={item.id} className="group cursor-pointer w-full h-full flex flex-col">
+                  <div className="w-full aspect-square rounded-[24px] mb-4 bg-black/[0.02] flex items-center justify-center relative overflow-hidden flex-shrink-0">
                     <div
                       className="w-16 h-16 rounded-full blur-3xl opacity-20 absolute"
                       style={{ background: color }}
@@ -2649,42 +2589,58 @@ const StoreView = ({
                       </button>
                     </div>
                   </div>
-                  <h5 className="font-black text-sm mb-1 text-black">{item.name}</h5>
-                  <p className="text-xs text-black/50 mb-2 line-clamp-2 font-bold">
+                  <h5 className="font-black text-sm mb-1 text-black truncate">{item.name}</h5>
+                  <p className="text-xs text-black/50 mb-2 line-clamp-2 font-bold min-h-[32px]">
                     {item.description}
                   </p>
-                  {item.discountPrice != null ? (
-                    <div className="mb-4">
-                      <p className="text-xs text-black/40 line-through font-bold">
-                        {item.price.toLocaleString()} P
-                      </p>
-                      <div className="flex items-center gap-2">
+                  <div className="mt-auto">
+                    <div className="h-[52px] flex items-end mb-4">
+                      {item.discountPrice != null ? (
+                        <div>
+                          <p className="text-xs text-black/40 line-through font-bold">
+                            {item.price.toLocaleString()} P
+                          </p>
+                          <div className="flex items-center gap-2">
+                            <p className="font-black text-lg" style={{ color }}>
+                              {item.discountPrice.toLocaleString()} P
+                            </p>
+                            <span className="text-[10px] font-black px-1.5 py-0.5 rounded-md bg-red-100 text-red-500">
+                              -{Math.round((1 - item.discountPrice / item.price) * 100)}%
+                            </span>
+                          </div>
+                        </div>
+                      ) : (
                         <p className="font-black text-lg" style={{ color }}>
-                          {item.discountPrice.toLocaleString()} P
+                          {(item.price || 0).toLocaleString()} P
                         </p>
-                        <span className="text-[10px] font-black px-1.5 py-0.5 rounded-md bg-red-100 text-red-500">
-                          -{Math.round((1 - item.discountPrice / item.price) * 100)}%
-                        </span>
-                      </div>
+                      )}
                     </div>
-                  ) : (
-                    <p className="font-black text-lg mb-4" style={{ color }}>
-                      {(item.price || 0).toLocaleString()} P
-                    </p>
-                  )}
-                  <div
-                    className="flex items-center justify-between border-t pt-4"
-                    style={{ borderColor: COLORS.border }}
-                  >
-                    <span className="text-[9px] font-black text-black/40 uppercase tracking-widest">
-                      {item.createdAt 
-                        ? new Date(item.createdAt).toLocaleDateString('ko-KR', {
-                            month: 'short',
-                            day: 'numeric',
-                          })
-                        : 'NO DATE'}
-                    </span>
-                    <span className="text-[10px] font-black italic text-green-500">판매중</span>
+                    <div
+                      className="flex items-center justify-between border-t pt-4"
+                      style={{ borderColor: COLORS.border }}
+                    >
+                      <span className="text-[9px] font-black text-black/40 uppercase tracking-widest">
+                        {item.createdAt
+                          ? new Date(item.createdAt).toLocaleDateString('ko-KR', {
+                              month: 'short',
+                              day: 'numeric',
+                            })
+                          : 'NO DATE'}
+                      </span>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleTogglePublish(item.id, item.name);
+                        }}
+                        className={`text-[10px] font-black italic px-2 py-0.5 rounded-md transition-colors ${
+                          item.published
+                            ? 'text-green-500 bg-green-50 hover:bg-green-100'
+                            : 'text-orange-500 bg-orange-50 hover:bg-orange-100'
+                        }`}
+                      >
+                        {item.published ? '공개중' : '미공개'}
+                      </button>
+                    </div>
                   </div>
                 </GlassCard>
               );

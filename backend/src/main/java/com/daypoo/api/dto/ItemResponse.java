@@ -12,4 +12,5 @@ public record ItemResponse(
     long price,
     Long discountPrice,
     String imageUrl,
-    boolean owned) {}
+    boolean owned,
+    boolean published) {}

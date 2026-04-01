@@ -10,6 +10,12 @@ import org.springframework.data.jpa.repository.JpaRepository;
 public interface ItemRepository extends JpaRepository<Item, Long> {
   List<Item> findAllByType(ItemType type);
 
+  List<Item> findAllByPublishedTrue();
+
+  List<Item> findAllByTypeAndPublishedTrue(ItemType type);
+
+  List<Item> findAllByPublishedFalse();
+
   Page<Item> findAllByType(ItemType type, Pageable pageable);
 
   Page<Item> findByNameContaining(String name, Pageable pageable);

@@ -37,8 +37,33 @@ public class Item extends BaseTimeEntity {
   @Column(name = "discount_price")
   private Long discountPrice;
 
+  @Column(nullable = false)
+  private boolean published = false;
+
   @Builder
-  public Item(String name, String description, ItemType type, long price, String imageUrl, Long discountPrice) {
+  public Item(
+      String name,
+      String description,
+      ItemType type,
+      long price,
+      String imageUrl,
+      Long discountPrice) {
+    this.name = name;
+    this.description = description;
+    this.type = type;
+    this.price = price;
+    this.imageUrl = imageUrl;
+    this.discountPrice = discountPrice;
+    this.published = false;
+  }
+
+  public void update(
+      String name,
+      String description,
+      ItemType type,
+      long price,
+      String imageUrl,
+      Long discountPrice) {
     this.name = name;
     this.description = description;
     this.type = type;
@@ -47,12 +72,16 @@ public class Item extends BaseTimeEntity {
     this.discountPrice = discountPrice;
   }
 
-  public void update(String name, String description, ItemType type, long price, String imageUrl, Long discountPrice) {
-    this.name = name;
-    this.description = description;
-    this.type = type;
-    this.price = price;
-    this.imageUrl = imageUrl;
-    this.discountPrice = discountPrice;
+  public void publish() {
+    this.published = true;
+  }
+
+  public void unpublish() {
+    this.published = false;
+  }
+
+  /** 실제 결제 금액 (할인가가 있으면 할인가, 없으면 원가) */
+  public long getEffectivePrice() {
+    return discountPrice != null ? discountPrice : price;
   }
 }

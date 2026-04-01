@@ -43,7 +43,11 @@ public class PooRecordController {
     String email = authentication.getName();
     PooCheckInResponse response =
         recordService.checkIn(
-            email, request.toiletId(), request.latitude(), request.longitude(), request.enteredAt());
+            email,
+            request.toiletId(),
+            request.latitude(),
+            request.longitude(),
+            request.enteredAt());
     return ResponseEntity.ok(response);
   }
 

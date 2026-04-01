@@ -45,9 +45,8 @@ public class RateLimitAspect {
   }
 
   /**
-   * CloudFront / Nginx 등 리버스 프록시 환경에서 실제 클라이언트 IP를 추출한다.
-   * X-Forwarded-For 헤더가 존재하면 첫 번째 값(원본 클라이언트 IP)을 사용하고,
-   * 없으면 RemoteAddr를 fallback으로 사용한다.
+   * CloudFront / Nginx 등 리버스 프록시 환경에서 실제 클라이언트 IP를 추출한다. X-Forwarded-For 헤더가 존재하면 첫 번째 값(원본 클라이언트
+   * IP)을 사용하고, 없으면 RemoteAddr를 fallback으로 사용한다.
    */
   private String resolveClientIp(HttpServletRequest request) {
     String forwarded = request.getHeader("X-Forwarded-For");

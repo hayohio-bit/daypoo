@@ -103,12 +103,7 @@ public class ToiletIndexingService {
     WebClient client = webClientBuilder.build();
     try {
       // HEAD 요청으로 인덱스 존재 여부 확인
-      client
-          .head()
-          .uri(opensearchUrl + "/" + INDEX_NAME)
-          .retrieve()
-          .toBodilessEntity()
-          .block();
+      client.head().uri(opensearchUrl + "/" + INDEX_NAME).retrieve().toBodilessEntity().block();
     } catch (Exception e) {
       // 404 → 인덱스 없음 → 생성
       createIndex(client);

@@ -127,6 +127,7 @@ export interface ItemResponse {
   price: number;
   discountPrice: number | null;
   imageUrl: string | null;
+  published: boolean;
   createdAt: string;
 }
 

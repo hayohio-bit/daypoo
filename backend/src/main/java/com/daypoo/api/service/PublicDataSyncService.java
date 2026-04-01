@@ -88,7 +88,14 @@ public class PublicDataSyncService {
     systemLogService.info("System", "Scheduled toilet data sync started");
     try {
       int[] result = syncAllToilets(1, 550);
-      systemLogService.info("System", "Scheduled sync completed. Total: " + result[0] + ", Inserted: " + result[1] + ", Updated: " + result[2]);
+      systemLogService.info(
+          "System",
+          "Scheduled sync completed. Total: "
+              + result[0]
+              + ", Inserted: "
+              + result[1]
+              + ", Updated: "
+              + result[2]);
       log.info(
           "✅ [Scheduled] Daily sync completed. Total: {}, Inserted: {}, Updated: {}",
           result[0],
@@ -190,14 +197,22 @@ public class PublicDataSyncService {
 
     try {
       log.info("📢 Starting background sync: {} - {}", startPage, endPage);
-      systemLogService.info("System", "Background toilet sync started: pages " + startPage + "-" + endPage);
+      systemLogService.info(
+          "System", "Background toilet sync started: pages " + startPage + "-" + endPage);
       int[] result = syncAllToilets(startPage, endPage);
       lastCount = result[0];
       insertedCount = result[1];
       updatedCount = result[2];
       syncStatus = "COMPLETED";
       completedAt = LocalDateTime.now().format(DATE_TIME_FORMATTER);
-      systemLogService.info("System", "Background sync completed. Total: " + result[0] + ", Inserted: " + result[1] + ", Updated: " + result[2]);
+      systemLogService.info(
+          "System",
+          "Background sync completed. Total: "
+              + result[0]
+              + ", Inserted: "
+              + result[1]
+              + ", Updated: "
+              + result[2]);
       log.info(
           "✅ Background sync finished. Total: {}, Inserted: {}, Updated: {}",
           result[0],

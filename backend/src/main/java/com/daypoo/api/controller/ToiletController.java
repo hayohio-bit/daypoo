@@ -32,13 +32,12 @@ public class ToiletController {
   /**
    * OpenSearch 기반 텍스트 검색 (초성 검색 지원)
    *
-   * @param q    검색어 (일반 한글 또는 초성. 예: "서대문" 또는 "ㅅㄷㅁ")
+   * @param q 검색어 (일반 한글 또는 초성. 예: "서대문" 또는 "ㅅㄷㅁ")
    * @param size 최대 결과 수 (기본 10)
    */
   @GetMapping("/search")
   public ResponseEntity<List<ToiletSearchResultResponse>> textSearch(
-      @RequestParam String q,
-      @RequestParam(defaultValue = "10") int size) {
+      @RequestParam String q, @RequestParam(defaultValue = "10") int size) {
     List<ToiletSearchResultResponse> results = toiletSearchService.search(q, size);
     return ResponseEntity.ok(results);
   }

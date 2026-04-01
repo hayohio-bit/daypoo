@@ -3,8 +3,7 @@ package com.daypoo.api.util;
 public class ChosungUtils {
 
   private static final char[] CHOSUNG = {
-    'ㄱ', 'ㄲ', 'ㄴ', 'ㄷ', 'ㄸ', 'ㄹ', 'ㅁ', 'ㅂ', 'ㅃ', 'ㅅ',
-    'ㅆ', 'ㅇ', 'ㅈ', 'ㅉ', 'ㅊ', 'ㅋ', 'ㅌ', 'ㅍ', 'ㅎ'
+    'ㄱ', 'ㄲ', 'ㄴ', 'ㄷ', 'ㄸ', 'ㄹ', 'ㅁ', 'ㅂ', 'ㅃ', 'ㅅ', 'ㅆ', 'ㅇ', 'ㅈ', 'ㅉ', 'ㅊ', 'ㅋ', 'ㅌ', 'ㅍ', 'ㅎ'
   };
 
   /** 한글 문자열에서 초성만 추출 (예: "서대문" → "ㅅㄷㅁ") */
@@ -21,10 +20,7 @@ public class ChosungUtils {
     return sb.toString();
   }
 
-  /**
-   * 문자열이 초성(한글 자음 자모)만으로 이루어졌는지 판별
-   * 공백은 허용, 영숫자 혼합이면 false
-   */
+  /** 문자열이 초성(한글 자음 자모)만으로 이루어졌는지 판별 공백은 허용, 영숫자 혼합이면 false */
   public static boolean isChosungOnly(String text) {
     if (text == null || text.isBlank()) return false;
     boolean hasChosung = false;

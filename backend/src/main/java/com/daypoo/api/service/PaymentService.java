@@ -89,11 +89,14 @@ public class PaymentService {
                   .build());
 
       handleMembershipOrPoints(user, savedPayment);
-      systemLogService.info("Payment", "Payment confirmed: orderId=" + orderId + ", amount=" + amount + ", user=" + email);
+      systemLogService.info(
+          "Payment",
+          "Payment confirmed: orderId=" + orderId + ", amount=" + amount + ", user=" + email);
       log.info("✅ Payment confirmed, recorded, and membership/points updated for user: {}", email);
 
     } catch (HttpClientErrorException e) {
-      systemLogService.error("Payment", "Toss payment failed: orderId=" + orderId + ", user=" + email);
+      systemLogService.error(
+          "Payment", "Toss payment failed: orderId=" + orderId + ", user=" + email);
       handleTossError(e);
     } catch (Exception e) {
       systemLogService.error("Payment", "Unexpected payment error: " + e.getMessage());

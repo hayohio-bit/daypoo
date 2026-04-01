@@ -20,9 +20,8 @@ public class AppConfig {
   }
 
   /**
-   * 서버 기동 직후 BCrypt JVM 워밍업.
-   * t2.micro 환경에서 첫 번째 passwordEncoder.matches() 호출 시
-   * JIT 컴파일이 되지 않아 수 초간 지연되는 현상을 방지한다.
+   * 서버 기동 직후 BCrypt JVM 워밍업. t2.micro 환경에서 첫 번째 passwordEncoder.matches() 호출 시 JIT 컴파일이 되지 않아 수 초간
+   * 지연되는 현상을 방지한다.
    */
   @EventListener(ApplicationReadyEvent.class)
   public void warmUpBCrypt() {

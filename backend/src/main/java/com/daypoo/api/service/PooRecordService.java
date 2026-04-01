@@ -153,8 +153,9 @@ public class PooRecordService {
     // 7. 보상 · 랭킹 · 칭호 비동기 처리 이벤트 발행 (같은 화장실 하루 3회 초과 시 포인트 미지급)
     LocalDateTime todayStart = LocalDate.now().atStartOfDay();
     LocalDateTime todayEnd = todayStart.plusDays(1);
-    long todayCount = visitLogRepository.countByUserAndToiletAndEventTypeAndCreatedAtBetween(
-        user, toilet, VisitEventType.RECORD_CREATED, todayStart, todayEnd);
+    long todayCount =
+        visitLogRepository.countByUserAndToiletAndEventTypeAndCreatedAtBetween(
+            user, toilet, VisitEventType.RECORD_CREATED, todayStart, todayEnd);
     int rewardPoints = todayCount < DAILY_POINT_LIMIT_PER_TOILET ? REWARD_POINTS : 0;
 
     eventPublisher.publishEvent(

@@ -4,8 +4,4 @@ import lombok.Builder;
 
 @Builder
 public record ToiletSearchResultResponse(
-    Long id,
-    String name,
-    String address,
-    double latitude,
-    double longitude) {}
+    Long id, String name, String address, double latitude, double longitude) {}

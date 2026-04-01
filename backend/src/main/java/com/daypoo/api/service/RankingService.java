@@ -254,11 +254,13 @@ public class RankingService {
                   if (user == null) return null;
 
                   Long rank = redisTemplate.opsForZSet().reverseRank(key, userId.toString());
-                  String titleName = user.getEquippedTitleId() != null
-                      ? titleMap.get(user.getEquippedTitleId())
-                      : null;
+                  String titleName =
+                      user.getEquippedTitleId() != null
+                          ? titleMap.get(user.getEquippedTitleId())
+                          : null;
 
-                  List<EquippedItemResponse> equippedItems = equippedItemsMap.getOrDefault(userId, List.of());
+                  List<EquippedItemResponse> equippedItems =
+                      equippedItemsMap.getOrDefault(userId, List.of());
                   String equippedAvatarUrl = extractAvatarUrl(equippedItems);
 
                   return UserRankResponse.builder()
@@ -280,11 +282,11 @@ public class RankingService {
       Long myRankRaw = redisTemplate.opsForZSet().reverseRank(key, myUser.getId().toString());
       if (myRankRaw != null) {
         Double myScoreRaw = redisTemplate.opsForZSet().score(key, myUser.getId().toString());
-        String myTitleName = myUser.getEquippedTitleId() != null
-            ? titleMap.get(myUser.getEquippedTitleId())
-            : null;
+        String myTitleName =
+            myUser.getEquippedTitleId() != null ? titleMap.get(myUser.getEquippedTitleId()) : null;
 
-        List<EquippedItemResponse> myEquippedItems = equippedItemsMap.getOrDefault(myUser.getId(), List.of());
+        List<EquippedItemResponse> myEquippedItems =
+            equippedItemsMap.getOrDefault(myUser.getId(), List.of());
         String myEquippedAvatarUrl = extractAvatarUrl(myEquippedItems);
 
         myRank =

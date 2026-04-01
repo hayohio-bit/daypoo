@@ -44,69 +44,83 @@ public class AdminManagementService {
   @Transactional(readOnly = true)
   public Page<AdminUserListResponse> getUsers(
       String search, Role role, SubscriptionPlan plan, Pageable pageable) {
-    Specification<User> spec = (root, query, cb) -> {
-      List<jakarta.persistence.criteria.Predicate> predicates = new ArrayList<>();
+    Specification<User> spec =
+        (root, query, cb) -> {
+          List<jakarta.persistence.criteria.Predicate> predicates = new ArrayList<>();
 
-      // 1. 키워드 검색 (이메일 또는 닉네임)
-      if (search != null && !search.isBlank()) {
-        predicates.add(
-            cb.or(
-                cb.like(root.get("email"), "%" + search + "%"),
-                cb.like(root.get("nickname"), "%" + search + "%")));
-      }
+          // 1. 키워드 검색 (이메일 또는 닉네임)
+          if (search != null && !search.isBlank()) {
+            predicates.add(
+                cb.or(
+                    cb.like(root.get("email"), "%" + search + "%"),
+                    cb.like(root.get("nickname"), "%" + search + "%")));
+          }
 
-      // 2. 역할 필터
-      if (role != null) {
-        predicates.add(cb.equal(root.get("role"), role));
-      }
+          // 2. 역할 필터
+          if (role != null) {
+            predicates.add(cb.equal(root.get("role"), role));
+          }
 
-      // 3. 구독 플랜 필터
-      if (plan != null) {
-        if (plan == com.daypoo.api.entity.enums.SubscriptionPlan.BASIC) {
-          // '미구독(BASIC)' 유저: 활성화(ACTIVE)된 PRO나 PREMIUM 구독이 없는 경우
-          jakarta.persistence.criteria.Subquery<Long> subquery = query.subquery(Long.class);
-          jakarta.persistence.criteria.Root<Subscription> subRoot = subquery.from(Subscription.class);
-          subquery.select(cb.literal(1L));
-          subquery.where(
-              cb.equal(subRoot.get("user"), root),
-              cb.equal(subRoot.get("status"), com.daypoo.api.entity.enums.SubscriptionStatus.ACTIVE),
-              cb.greaterThan(subRoot.get("endDate"), java.time.LocalDateTime.now()),
-              subRoot.get("plan").in(
-                  com.daypoo.api.entity.enums.SubscriptionPlan.PRO,
-                  com.daypoo.api.entity.enums.SubscriptionPlan.PREMIUM));
-          predicates.add(cb.not(cb.exists(subquery)));
-        } else {
-          // 특정 활성 유료 구독(PRO 또는 PREMIUM)이 있는 유저
-          jakarta.persistence.criteria.Join<User, Subscription> subJoin = root.join("subscriptions");
-          predicates.add(cb.equal(subJoin.get("plan"), plan));
-          predicates.add(cb.equal(subJoin.get("status"), com.daypoo.api.entity.enums.SubscriptionStatus.ACTIVE));
-          predicates.add(cb.greaterThan(subJoin.get("endDate"), java.time.LocalDateTime.now()));
-        }
-      }
-      return cb.and(predicates.toArray(new jakarta.persistence.criteria.Predicate[0]));
-    };
+          // 3. 구독 플랜 필터
+          if (plan != null) {
+            if (plan == com.daypoo.api.entity.enums.SubscriptionPlan.BASIC) {
+              // '미구독(BASIC)' 유저: 활성화(ACTIVE)된 PRO나 PREMIUM 구독이 없는 경우
+              jakarta.persistence.criteria.Subquery<Long> subquery = query.subquery(Long.class);
+              jakarta.persistence.criteria.Root<Subscription> subRoot =
+                  subquery.from(Subscription.class);
+              subquery.select(cb.literal(1L));
+              subquery.where(
+                  cb.equal(subRoot.get("user"), root),
+                  cb.equal(
+                      subRoot.get("status"), com.daypoo.api.entity.enums.SubscriptionStatus.ACTIVE),
+                  cb.greaterThan(subRoot.get("endDate"), java.time.LocalDateTime.now()),
+                  subRoot
+                      .get("plan")
+                      .in(
+                          com.daypoo.api.entity.enums.SubscriptionPlan.PRO,
+                          com.daypoo.api.entity.enums.SubscriptionPlan.PREMIUM));
+              predicates.add(cb.not(cb.exists(subquery)));
+            } else {
+              // 특정 활성 유료 구독(PRO 또는 PREMIUM)이 있는 유저
+              jakarta.persistence.criteria.Join<User, Subscription> subJoin =
+                  root.join("subscriptions");
+              predicates.add(cb.equal(subJoin.get("plan"), plan));
+              predicates.add(
+                  cb.equal(
+                      subJoin.get("status"),
+                      com.daypoo.api.entity.enums.SubscriptionStatus.ACTIVE));
+              predicates.add(cb.greaterThan(subJoin.get("endDate"), java.time.LocalDateTime.now()));
+            }
+          }
+          return cb.and(predicates.toArray(new jakarta.persistence.criteria.Predicate[0]));
+        };
 
     return userRepository
         .findAll(spec, pageable)
         .map(
-            user -> AdminUserListResponse.builder()
-                .id(user.getId())
-                .email(user.getEmail())
-                .nickname(user.getNickname())
-                .role(user.getRole())
-                .plan(user.getActiveSubscription() != null ? user.getActiveSubscription().getPlan() : SubscriptionPlan.BASIC)
-                .level(user.getLevel())
-                .points(user.getPoints())
-                .recordCount((int) pooRecordRepository.countByUserId(user.getId()))
-                .createdAt(user.getCreatedAt())
-                .build());
+            user ->
+                AdminUserListResponse.builder()
+                    .id(user.getId())
+                    .email(user.getEmail())
+                    .nickname(user.getNickname())
+                    .role(user.getRole())
+                    .plan(
+                        user.getActiveSubscription() != null
+                            ? user.getActiveSubscription().getPlan()
+                            : SubscriptionPlan.BASIC)
+                    .level(user.getLevel())
+                    .points(user.getPoints())
+                    .recordCount((int) pooRecordRepository.countByUserId(user.getId()))
+                    .createdAt(user.getCreatedAt())
+                    .build());
   }
 
   @Transactional(readOnly = true)
   public AdminUserDetailResponse getUserDetail(Long userId) {
-    User user = userRepository
-        .findById(userId)
-        .orElseThrow(() -> new BusinessException(ErrorCode.ADMIN_USER_NOT_FOUND));
+    User user =
+        userRepository
+            .findById(userId)
+            .orElseThrow(() -> new BusinessException(ErrorCode.ADMIN_USER_NOT_FOUND));
 
     long paymentCount = paymentRepository.countByUserId(userId);
     Long totalAmount = paymentRepository.sumAmountByUserId(userId);
@@ -116,7 +130,10 @@ public class AdminManagementService {
         .email(user.getEmail())
         .nickname(user.getNickname())
         .role(user.getRole())
-        .plan(user.getActiveSubscription() != null ? user.getActiveSubscription().getPlan() : SubscriptionPlan.BASIC)
+        .plan(
+            user.getActiveSubscription() != null
+                ? user.getActiveSubscription().getPlan()
+                : SubscriptionPlan.BASIC)
         .level(user.getLevel())
         .exp(user.getExp())
         .points(user.getPoints())
@@ -130,9 +147,10 @@ public class AdminManagementService {
 
   @Transactional
   public void updateUserRole(Long userId, Role role, String currentAdminEmail) {
-    User user = userRepository
-        .findById(userId)
-        .orElseThrow(() -> new BusinessException(ErrorCode.ADMIN_USER_NOT_FOUND));
+    User user =
+        userRepository
+            .findById(userId)
+            .orElseThrow(() -> new BusinessException(ErrorCode.ADMIN_USER_NOT_FOUND));
 
     if (user.getEmail().equals(currentAdminEmail)) {
       throw new BusinessException(ErrorCode.ADMIN_CANNOT_CHANGE_OWN_ROLE);
@@ -143,9 +161,10 @@ public class AdminManagementService {
 
   @Transactional
   public void deleteUser(Long userId, String currentAdminEmail) {
-    User user = userRepository
-        .findById(userId)
-        .orElseThrow(() -> new BusinessException(ErrorCode.ADMIN_USER_NOT_FOUND));
+    User user =
+        userRepository
+            .findById(userId)
+            .orElseThrow(() -> new BusinessException(ErrorCode.ADMIN_USER_NOT_FOUND));
 
     // 본인 삭제 방지
     if (user.getEmail().equals(currentAdminEmail)) {
@@ -169,18 +188,19 @@ public class AdminManagementService {
     }
 
     return toilets.map(
-        t -> AdminToiletListResponse.builder()
-            .id(t.getId())
-            .name(t.getName())
-            .mngNo(t.getMngNo())
-            .address(t.getAddress())
-            .openHours(t.getOpenHours())
-            .is24h(t.is24h())
-            .isUnisex(t.isUnisex())
-            .latitude(t.getLocation() != null ? t.getLocation().getY() : 0)
-            .longitude(t.getLocation() != null ? t.getLocation().getX() : 0)
-            .createdAt(t.getCreatedAt())
-            .build());
+        t ->
+            AdminToiletListResponse.builder()
+                .id(t.getId())
+                .name(t.getName())
+                .mngNo(t.getMngNo())
+                .address(t.getAddress())
+                .openHours(t.getOpenHours())
+                .is24h(t.is24h())
+                .isUnisex(t.isUnisex())
+                .latitude(t.getLocation() != null ? t.getLocation().getY() : 0)
+                .longitude(t.getLocation() != null ? t.getLocation().getX() : 0)
+                .createdAt(t.getCreatedAt())
+                .build());
   }
 
   // --- 문의 관리 ---
@@ -235,9 +255,10 @@ public class AdminManagementService {
 
   @Transactional(readOnly = true)
   public AdminInquiryDetailResponse getInquiryDetail(Long inquiryId) {
-    Inquiry inquiry = inquiryRepository
-        .findById(inquiryId)
-        .orElseThrow(() -> new BusinessException(ErrorCode.ADMIN_INQUIRY_NOT_FOUND));
+    Inquiry inquiry =
+        inquiryRepository
+            .findById(inquiryId)
+            .orElseThrow(() -> new BusinessException(ErrorCode.ADMIN_INQUIRY_NOT_FOUND));
 
     return AdminInquiryDetailResponse.builder()
         .id(inquiry.getId())
@@ -255,9 +276,10 @@ public class AdminManagementService {
 
   @Transactional
   public void answerInquiry(Long inquiryId, AdminInquiryAnswerRequest request) {
-    Inquiry inquiry = inquiryRepository
-        .findById(inquiryId)
-        .orElseThrow(() -> new BusinessException(ErrorCode.ADMIN_INQUIRY_NOT_FOUND));
+    Inquiry inquiry =
+        inquiryRepository
+            .findById(inquiryId)
+            .orElseThrow(() -> new BusinessException(ErrorCode.ADMIN_INQUIRY_NOT_FOUND));
 
     if (inquiry.getStatus() == InquiryStatus.COMPLETED) {
       throw new BusinessException(ErrorCode.ADMIN_INQUIRY_ALREADY_ANSWERED);
@@ -293,27 +315,30 @@ public class AdminManagementService {
     }
 
     return items.map(
-        item -> ItemResponse.builder()
-            .id(item.getId())
-            .name(item.getName())
-            .description(item.getDescription())
-            .type(item.getType())
-            .price(item.getPrice())
-            .discountPrice(item.getDiscountPrice())
-            .imageUrl(item.getImageUrl())
-            .build());
+        item ->
+            ItemResponse.builder()
+                .id(item.getId())
+                .name(item.getName())
+                .description(item.getDescription())
+                .type(item.getType())
+                .price(item.getPrice())
+                .discountPrice(item.getDiscountPrice())
+                .imageUrl(item.getImageUrl())
+                .published(item.isPublished())
+                .build());
   }
 
   @Transactional
   public ItemResponse createItem(AdminItemCreateRequest request) {
-    Item item = Item.builder()
-        .name(request.name())
-        .description(request.description())
-        .type(request.type())
-        .price(request.price())
-        .imageUrl(request.imageUrl())
-        .discountPrice(request.discountPrice())
-        .build();
+    Item item =
+        Item.builder()
+            .name(request.name())
+            .description(request.description())
+            .type(request.type())
+            .price(request.price())
+            .imageUrl(request.imageUrl())
+            .discountPrice(request.discountPrice())
+            .build();
 
     Item saved = itemRepository.save(item);
     return ItemResponse.builder()
@@ -324,17 +349,23 @@ public class AdminManagementService {
         .price(saved.getPrice())
         .discountPrice(saved.getDiscountPrice())
         .imageUrl(saved.getImageUrl())
+        .published(saved.isPublished())
         .build();
   }
 
   @Transactional
   public ItemResponse updateItem(Long itemId, AdminItemUpdateRequest request) {
-    Item item = itemRepository
-        .findById(itemId)
-        .orElseThrow(() -> new BusinessException(ErrorCode.ADMIN_ITEM_NOT_FOUND));
+    Item item =
+        itemRepository
+            .findById(itemId)
+            .orElseThrow(() -> new BusinessException(ErrorCode.ADMIN_ITEM_NOT_FOUND));
 
     item.update(
-        request.name(), request.description(), request.type(), request.price(), request.imageUrl(),
+        request.name(),
+        request.description(),
+        request.type(),
+        request.price(),
+        request.imageUrl(),
         request.discountPrice());
 
     return ItemResponse.builder()
@@ -345,6 +376,41 @@ public class AdminManagementService {
         .price(item.getPrice())
         .discountPrice(item.getDiscountPrice())
         .imageUrl(item.getImageUrl())
+        .published(item.isPublished())
+        .build();
+  }
+
+  /** 미공개 아이템 전체를 공개 처리 */
+  @Transactional
+  public int publishAllItems() {
+    List<Item> unpublished = itemRepository.findAllByPublishedFalse();
+    unpublished.forEach(Item::publish);
+    return unpublished.size();
+  }
+
+  /** 특정 아이템 공개/비공개 토글 */
+  @Transactional
+  public ItemResponse togglePublishItem(Long itemId) {
+    Item item =
+        itemRepository
+            .findById(itemId)
+            .orElseThrow(() -> new BusinessException(ErrorCode.ADMIN_ITEM_NOT_FOUND));
+
+    if (item.isPublished()) {
+      item.unpublish();
+    } else {
+      item.publish();
+    }
+
+    return ItemResponse.builder()
+        .id(item.getId())
+        .name(item.getName())
+        .description(item.getDescription())
+        .type(item.getType())
+        .price(item.getPrice())
+        .discountPrice(item.getDiscountPrice())
+        .imageUrl(item.getImageUrl())
+        .published(item.isPublished())
         .build();
   }
 
@@ -364,7 +430,8 @@ public class AdminManagementService {
   // --- 칭호 관리 ---
 
   @Transactional(readOnly = true)
-  public Page<AdminTitleResponse> getTitles(AchievementType type, String search, Pageable pageable) {
+  public Page<AdminTitleResponse> getTitles(
+      AchievementType type, String search, Pageable pageable) {
     Page<Title> titles;
     if (type != null) {
       if (search != null && !search.isBlank()) {
@@ -381,14 +448,15 @@ public class AdminManagementService {
     }
 
     return titles.map(
-        t -> new AdminTitleResponse(
-            t.getId(),
-            t.getName(),
-            t.getDescription(),
-            t.getImageUrl(),
-            t.getAchievementType(),
-            t.getAchievementThreshold(),
-            t.getCreatedAt()));
+        t ->
+            new AdminTitleResponse(
+                t.getId(),
+                t.getName(),
+                t.getDescription(),
+                t.getImageUrl(),
+                t.getAchievementType(),
+                t.getAchievementThreshold(),
+                t.getCreatedAt()));
   }
 
   @Transactional
@@ -397,13 +465,14 @@ public class AdminManagementService {
       throw new BusinessException(ErrorCode.ADMIN_TITLE_NAME_DUPLICATE);
     }
 
-    Title title = Title.builder()
-        .name(request.name())
-        .description(request.description())
-        .imageUrl(request.imageUrl())
-        .achievementType(request.achievementType())
-        .achievementThreshold(request.achievementThreshold())
-        .build();
+    Title title =
+        Title.builder()
+            .name(request.name())
+            .description(request.description())
+            .imageUrl(request.imageUrl())
+            .achievementType(request.achievementType())
+            .achievementThreshold(request.achievementThreshold())
+            .build();
 
     Title saved = titleRepository.save(title);
     return new AdminTitleResponse(
@@ -418,9 +487,10 @@ public class AdminManagementService {
 
   @Transactional
   public AdminTitleResponse updateTitle(Long id, AdminTitleUpdateRequest request) {
-    Title title = titleRepository
-        .findById(id)
-        .orElseThrow(() -> new BusinessException(ErrorCode.ADMIN_TITLE_NOT_FOUND));
+    Title title =
+        titleRepository
+            .findById(id)
+            .orElseThrow(() -> new BusinessException(ErrorCode.ADMIN_TITLE_NOT_FOUND));
 
     // 이름 수정 시 중복 체크 (본인 이름 제외)
     if (!title.getName().equals(request.name()) && titleRepository.existsByName(request.name())) {
@@ -464,41 +534,45 @@ public class AdminManagementService {
     log.info("Generating 30 inquiry test data...");
 
     // 테스트용 사용자 가져오기 (없으면 첫 번째 사용자 사용)
-    User testUser = userRepository
-        .findByEmail("user1@daypoo.com")
-        .or(() -> userRepository.findByEmail("user2@daypoo.com"))
-        .orElseGet(
-            () -> userRepository.findAll().stream()
-                .filter(u -> u.getRole() == Role.ROLE_USER)
-                .findFirst()
-                .orElseThrow(() -> new RuntimeException("테스트 문의를 생성할 유저가 없습니다.")));
+    User testUser =
+        userRepository
+            .findByEmail("user1@daypoo.com")
+            .or(() -> userRepository.findByEmail("user2@daypoo.com"))
+            .orElseGet(
+                () ->
+                    userRepository.findAll().stream()
+                        .filter(u -> u.getRole() == Role.ROLE_USER)
+                        .findFirst()
+                        .orElseThrow(() -> new RuntimeException("테스트 문의를 생성할 유저가 없습니다.")));
 
     log.info("Using test user: {}", testUser.getEmail());
 
     // 30개의 문의 생성
     InquiryType[] types = InquiryType.values();
     String[] titles = {
-        "앱 사용 중 오류가 발생합니다",
-        "결제가 완료되지 않아요",
-        "화장실 정보가 잘못되었어요",
-        "포인트가 적립되지 않았습니다",
-        "아이템 구매 후 인벤토리 확인이 안 돼요",
-        "AI 분석 결과가 이상합니다",
-        "지도에서 화장실이 표시되지 않아요",
-        "리뷰 작성 후 반영이 안 됩니다",
-        "랭킹 점수가 업데이트되지 않아요",
-        "알림이 오지 않습니다"
+      "앱 사용 중 오류가 발생합니다",
+      "결제가 완료되지 않아요",
+      "화장실 정보가 잘못되었어요",
+      "포인트가 적립되지 않았습니다",
+      "아이템 구매 후 인벤토리 확인이 안 돼요",
+      "AI 분석 결과가 이상합니다",
+      "지도에서 화장실이 표시되지 않아요",
+      "리뷰 작성 후 반영이 안 됩니다",
+      "랭킹 점수가 업데이트되지 않아요",
+      "알림이 오지 않습니다"
     };
 
     for (int i = 0; i < 30; i++) {
       InquiryType type = types[i % types.length];
       String title = titles[i % titles.length] + " #" + (i + 1);
-      String content = "문의 내용입니다. 테스트 데이터 "
-          + (i + 1)
-          + "번째 문의입니다.\n"
-          + "상세한 설명을 여기에 작성합니다. 문제가 발생한 상황과 재현 방법을 알려주세요.";
+      String content =
+          "문의 내용입니다. 테스트 데이터 "
+              + (i + 1)
+              + "번째 문의입니다.\n"
+              + "상세한 설명을 여기에 작성합니다. 문제가 발생한 상황과 재현 방법을 알려주세요.";
 
-      Inquiry inquiry = Inquiry.builder().user(testUser).type(type).title(title).content(content).build();
+      Inquiry inquiry =
+          Inquiry.builder().user(testUser).type(type).title(title).content(content).build();
 
       inquiryRepository.save(inquiry);
 

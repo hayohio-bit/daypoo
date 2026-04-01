@@ -32,14 +32,17 @@ public class ShopService {
   @Transactional(readOnly = true)
   public List<ItemResponse> getAllItems(User user, ItemType type) {
     List<Item> items =
-        (type == null) ? itemRepository.findAll() : itemRepository.findAllByType(type);
+        (type == null)
+            ? itemRepository.findAllByPublishedTrue()
+            : itemRepository.findAllByTypeAndPublishedTrue(type);
 
     // 기본 아바타는 상점 목록에서 제외
     Long defaultAvatarItemId = adminSettingsService.getDefaultAvatarItemId();
     if (defaultAvatarItemId != null) {
-      items = items.stream()
-          .filter(item -> !item.getId().equals(defaultAvatarItemId))
-          .collect(Collectors.toList());
+      items =
+          items.stream()
+              .filter(item -> !item.getId().equals(defaultAvatarItemId))
+              .collect(Collectors.toList());
     }
 
     // 사용자가 소유한 아이템 ID 목록 조회
@@ -60,6 +63,7 @@ public class ShopService {
                     .discountPrice(item.getDiscountPrice())
                     .imageUrl(item.getImageUrl())
                     .owned(ownedItemIds.contains(item.getId()))
+                    .published(item.isPublished())
                     .build())
         .collect(Collectors.toList());
   }
@@ -75,7 +79,7 @@ public class ShopService {
       throw new BusinessException(ErrorCode.ALREADY_OWNED_ITEM);
     }
 
-    user.deductPoints(item.getPrice());
+    user.deductPoints(item.getEffectivePrice());
     // userRepository.save(user); // 더티 체킹에 의해 자동 반영됨
 
     try {

@@ -54,4 +54,17 @@ public class AdminShopController {
     adminManagementService.deleteItem(id);
     return ResponseEntity.ok().build();
   }
+
+  @Operation(summary = "미공개 아이템 전체 동기화(공개)", description = "공개되지 않은 모든 아이템을 상점에 공개합니다.")
+  @PostMapping("/publish-all")
+  public ResponseEntity<java.util.Map<String, Object>> publishAllItems() {
+    int count = adminManagementService.publishAllItems();
+    return ResponseEntity.ok(java.util.Map.of("publishedCount", count));
+  }
+
+  @Operation(summary = "아이템 공개/비공개 토글", description = "특정 아이템의 공개 상태를 토글합니다.")
+  @PutMapping("/{id}/toggle-publish")
+  public ResponseEntity<ItemResponse> togglePublishItem(@PathVariable Long id) {
+    return ResponseEntity.ok(adminManagementService.togglePublishItem(id));
+  }
 }
