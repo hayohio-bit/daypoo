@@ -125,6 +125,7 @@ export interface ItemResponse {
   description: string;
   type: ItemType;
   price: number;
+  discountPrice: number | null;
   imageUrl: string | null;
   createdAt: string;
 }
@@ -134,13 +135,16 @@ export interface AdminItemCreateRequest {
   description: string;
   type: ItemType;
   price: number;
+  discountPrice?: number | null;
   imageUrl?: string;
 }
 
 export interface AdminItemUpdateRequest {
   name?: string;
   description?: string;
+  type?: ItemType;
   price?: number;
+  discountPrice?: number | null;
   imageUrl?: string;
 }
 

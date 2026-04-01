@@ -42,6 +42,7 @@ import {
   UserPlus,
   BrainCircuit,
   MessageCircle,
+  Pencil,
   PieChart as PieChartIcon,
 } from 'lucide-react';
 import WaveButtonComponent from '../components/WaveButton';
@@ -99,6 +100,7 @@ type AdminTab =
   | 'titles'
   | 'system'
   | 'add-item'
+  | 'edit-item'
   | 'add-title'
   | 'edit-title'
   | 'logs';
@@ -2619,7 +2621,7 @@ const StoreView = ({ setActiveTab }: { setActiveTab: (tab: AdminTab) => void }) 
                         {getItemTypeLabel(item.type)}
                       </span>
                     </div>
-                    <div className="absolute top-3 left-3 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <div className="absolute top-3 left-3 opacity-0 group-hover:opacity-100 transition-opacity flex gap-1">
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
@@ -2629,15 +2631,41 @@ const StoreView = ({ setActiveTab }: { setActiveTab: (tab: AdminTab) => void }) 
                       >
                         <Trash2 size={14} />
                       </button>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setEditingItem(item);
+                          setActiveTab('edit-item');
+                        }}
+                        className="p-1.5 rounded-lg bg-blue-500 text-white hover:bg-blue-600 transition-colors shadow-lg"
+                      >
+                        <Pencil size={14} />
+                      </button>
                     </div>
                   </div>
                   <h5 className="font-black text-sm mb-1 text-black">{item.name}</h5>
                   <p className="text-xs text-black/50 mb-2 line-clamp-2 font-bold">
                     {item.description}
                   </p>
-                  <p className="font-black text-lg mb-4" style={{ color }}>
-                    {(item.price || 0).toLocaleString()} P
-                  </p>
+                  {item.discountPrice != null ? (
+                    <div className="mb-4">
+                      <p className="text-xs text-black/40 line-through font-bold">
+                        {item.price.toLocaleString()} P
+                      </p>
+                      <div className="flex items-center gap-2">
+                        <p className="font-black text-lg" style={{ color }}>
+                          {item.discountPrice.toLocaleString()} P
+                        </p>
+                        <span className="text-[10px] font-black px-1.5 py-0.5 rounded-md bg-red-100 text-red-500">
+                          -{Math.round((1 - item.discountPrice / item.price) * 100)}%
+                        </span>
+                      </div>
+                    </div>
+                  ) : (
+                    <p className="font-black text-lg mb-4" style={{ color }}>
+                      {(item.price || 0).toLocaleString()} P
+                    </p>
+                  )}
                   <div
                     className="flex items-center justify-between border-t pt-4"
                     style={{ borderColor: COLORS.border }}
@@ -2983,6 +3011,7 @@ const AddItemView = ({ setActiveTab }: { setActiveTab: (tab: AdminTab) => void }
   const [itemType, setItemType] = useState<ItemType>('AVATAR');
   const [itemPrice, setItemPrice] = useState<number | ''>('');
   const [itemImageUrl, setItemImageUrl] = useState('');
+  const [discountPrice, setDiscountPrice] = useState<number | null>(null);
   const [dicebearStyle, setDicebearStyle] = useState('funEmoji');
   const [dicebearSeed, setDicebearSeed] = useState('golden-crown');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -3009,6 +3038,7 @@ const AddItemView = ({ setActiveTab }: { setActiveTab: (tab: AdminTab) => void }
         description: itemDescription,
         type: itemType,
         price: itemPrice,
+        discountPrice: discountPrice,
         imageUrl: itemType === 'AVATAR' ? `dicebear:${dicebearStyle}:${dicebearSeed}` : (itemImageUrl || null),
       });
       alert('아이템이 등록되었습니다.');
@@ -3017,6 +3047,7 @@ const AddItemView = ({ setActiveTab }: { setActiveTab: (tab: AdminTab) => void }
       setItemDescription('');
       setItemType('AVATAR');
       setItemPrice('');
+      setDiscountPrice(null);
       setItemImageUrl('');
       // Store 탭으로 이동
       setActiveTab('store');
@@ -3119,6 +3150,232 @@ const AddItemView = ({ setActiveTab }: { setActiveTab: (tab: AdminTab) => void }
                 </div>
                 <div>
                   <label className="text-[10px] font-black uppercase text-black/40 mb-2 block">
+                    할인가 (선택)
+                  </label>
+                  <input
+                    type="number"
+                    value={discountPrice === null ? '' : discountPrice}
+                    onChange={(e) => setDiscountPrice(e.target.value === '' ? null : Number(e.target.value))}
+                    className="w-full bg-black/[0.02] border border-black/5 px-5 py-4 rounded-2xl text-sm font-bold text-black placeholder:text-black/40 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                    placeholder="미입력 시 할인 없음"
+                    min="0"
+                  />
+                  {discountPrice !== null && itemPrice !== '' && discountPrice < Number(itemPrice) && (
+                    <p className="text-xs text-red-500 font-bold mt-1">
+                      -{Math.round((1 - discountPrice / Number(itemPrice)) * 100)}% 할인 적용
+                    </p>
+                  )}
+                </div>
+              </div>
+              <div>
+                <label className="text-[10px] font-black uppercase text-black/40 mb-2 block">
+                  카테고리 *
+                </label>
+                <select
+                  value={itemType}
+                  onChange={(e) => setItemType(e.target.value as ItemType)}
+                  className="w-full bg-black/[0.02] border border-black/5 px-5 py-4 rounded-2xl text-sm font-bold text-black"
+                >
+                  <option value="AVATAR">아바타</option>
+                  <option value="EFFECT">효과</option>
+                </select>
+              </div>
+              <div>
+                <label className="text-[10px] font-black uppercase text-black/40 mb-2 block">
+                  아이템 설명 *
+                </label>
+                <textarea
+                  value={itemDescription}
+                  onChange={(e) => setItemDescription(e.target.value)}
+                  className="w-full bg-black/[0.02] border border-black/5 px-5 py-4 rounded-2xl text-sm font-bold h-32 resize-none text-black placeholder:text-black/40"
+                  placeholder="아이템에 대한 상세 설명을 입력하세요..."
+                />
+              </div>
+              <div className="pt-4 flex gap-4">
+                <button
+                  onClick={handleSubmit}
+                  disabled={isSubmitting}
+                  className="flex-1 py-4 bg-[#1B4332] text-white rounded-2xl font-black shadow-xl shadow-green-900/20 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {isSubmitting ? '등록 중...' : '등록 완료'}
+                </button>
+                <button
+                  onClick={() => setActiveTab('store')}
+                  className="flex-1 py-4 bg-black/5 text-black/60 rounded-2xl font-black hover:bg-black/10 transition-colors"
+                >
+                  취소
+                </button>
+              </div>
+            </div>
+          </GlassCard>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// ── Screen: Edit Item Form ─────────────────────────────────────────────
+const EditItemView = ({ setActiveTab, editingItem }: { setActiveTab: (tab: AdminTab) => void, editingItem: ItemResponse }) => {
+  const [itemName, setItemName] = useState(editingItem.name);
+  const [itemDescription, setItemDescription] = useState(editingItem.description);
+  const [itemType, setItemType] = useState<ItemType>(editingItem.type);
+  const [itemPrice, setItemPrice] = useState<number | ''>(editingItem.price);
+  const [discountPrice, setDiscountPrice] = useState<number | null>(editingItem.discountPrice ?? null);
+  const [itemImageUrl, setItemImageUrl] = useState(editingItem.imageUrl || '');
+  
+  // dicebear 파싱
+  const isDicebear = editingItem.imageUrl?.startsWith('dicebear:');
+  const dParts = isDicebear ? editingItem.imageUrl?.split(':') || [] : [];
+  const [dicebearStyle, setDicebearStyle] = useState(dParts[1] || 'funEmoji');
+  const [dicebearSeed, setDicebearSeed] = useState(dParts[2] || '');
+  
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const handleSubmit = async () => {
+    if (!itemName.trim()) {
+      alert('아이템 명칭을 입력해주세요.');
+      return;
+    }
+    if (!itemDescription.trim()) {
+      alert('아이템 설명을 입력해주세요.');
+      return;
+    }
+    if (itemPrice === '' || itemPrice < 0) {
+      alert('가격은 0 이상이어야 합니다.');
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      await api.put(`/admin/shop/items/${editingItem.id}`, {
+        name: itemName,
+        description: itemDescription,
+        type: itemType,
+        price: itemPrice,
+        discountPrice: discountPrice,
+        imageUrl: itemType === 'AVATAR' ? `dicebear:${dicebearStyle}:${dicebearSeed}` : (itemImageUrl || null),
+      });
+      alert('아이템이 수정되었습니다.');
+      setActiveTab('store');
+    } catch (error) {
+      console.error('아이템 수정 실패:', error);
+      alert('아이템 수정에 실패했습니다.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  return (
+    <div className="max-w-4xl mx-auto space-y-6">
+      <div className="flex items-center gap-4 mb-4">
+        <button
+          onClick={() => setActiveTab('store')}
+          className="p-2 rounded-xl hover:bg-black/5 transition-colors"
+        >
+          <ChevronLeft size={24} />
+        </button>
+        <h3 className="text-2xl font-black text-black">아이템 수정</h3>
+      </div>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+        <div className="md:col-span-1">
+          <GlassCard className="aspect-square flex flex-col items-center justify-center border-2 border-dashed border-black/10 bg-black/[0.01]">
+            {itemType === 'EFFECT' ? (
+              <>
+                <span className="text-7xl mb-4 select-none">{itemImageUrl || '✨'}</span>
+                <p className="text-xs font-black text-black/30 mb-3">이펙트 이모지 *</p>
+                <input
+                  type="text"
+                  value={itemImageUrl}
+                  onChange={(e) => setItemImageUrl(e.target.value)}
+                  className="w-full bg-white border border-black/10 px-4 py-2 rounded-xl text-center text-2xl placeholder:text-black/40"
+                  placeholder="🔥"
+                  maxLength={2}
+                />
+              </>
+            ) : (
+              <div className="flex flex-col items-center justify-center w-full h-full p-4">
+                <img src={parseDicebearUrl(`dicebear:${dicebearStyle}:${dicebearSeed}`, editingItem.id, 'AVATAR')} alt="preview" className="w-32 h-32 mb-4" />
+                <button
+                  onClick={() => setDicebearSeed(Math.random().toString(36).substring(7))}
+                  className="px-4 py-2 bg-[#E8A838]/10 text-[#E8A838] rounded-xl font-bold flex items-center gap-2 mb-4 hover:bg-[#E8A838]/20 transition-colors text-xs"
+                >
+                  <Sparkles size={16} /> 랜덤 생성
+                </button>
+                <div className="w-full space-y-2">
+                  <select
+                    value={dicebearStyle}
+                    onChange={(e) => setDicebearStyle(e.target.value)}
+                    className="w-full bg-white border border-black/10 px-4 py-2 rounded-xl text-xs font-bold text-black"
+                  >
+                    <option value="funEmoji">funEmoji (기본)</option>
+                    <option value="avataaars">avataaars (사람)</option>
+                    <option value="bottts">bottts (로봇)</option>
+                    <option value="lorelei">lorelei (만화)</option>
+                    <option value="pixelArt">pixelArt (픽셀)</option>
+                  </select>
+                  <input
+                    type="text"
+                    value={dicebearSeed}
+                    onChange={(e) => setDicebearSeed(e.target.value)}
+                    className="w-full bg-white border border-black/10 px-4 py-2 rounded-xl text-xs font-bold text-black placeholder:text-black/40"
+                    placeholder="시드 단어 입력..."
+                  />
+                </div>
+              </div>
+            )}
+          </GlassCard>
+        </div>
+        <div className="md:col-span-2 space-y-6">
+          <GlassCard>
+            <div className="space-y-4">
+              <div>
+                <label className="text-[10px] font-black uppercase text-black/40 mb-2 block">
+                  아이템 명칭 *
+                </label>
+                <input
+                  type="text"
+                  value={itemName}
+                  onChange={(e) => setItemName(e.target.value)}
+                  className="w-full bg-black/[0.02] border border-black/5 px-5 py-4 rounded-2xl text-sm font-bold focus:ring-4 ring-[#1B4332]/10 outline-none transition-all text-black placeholder:text-black/40"
+                  placeholder="예: 황금 변기 칭호"
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="text-[10px] font-black uppercase text-black/40 mb-2 block">
+                    가격 (POOP POINT) *
+                  </label>
+                  <input
+                    type="number"
+                    value={itemPrice}
+                    onChange={(e) => setItemPrice(e.target.value === '' ? '' : Number(e.target.value))}
+                    className="w-full bg-black/[0.02] border border-black/5 px-5 py-4 rounded-2xl text-sm font-bold text-black placeholder:text-black/40 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                    placeholder="5000"
+                    min="0"
+                  />
+                </div>
+                <div>
+                  <label className="text-[10px] font-black uppercase text-black/40 mb-2 block">
+                    할인가 (선택)
+                  </label>
+                  <input
+                    type="number"
+                    value={discountPrice === null ? '' : discountPrice}
+                    onChange={(e) => setDiscountPrice(e.target.value === '' ? null : Number(e.target.value))}
+                    className="w-full bg-black/[0.02] border border-black/5 px-5 py-4 rounded-2xl text-sm font-bold text-black placeholder:text-black/40 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                    placeholder="미입력 시 할인 없음"
+                    min="0"
+                  />
+                  {discountPrice !== null && itemPrice !== '' && discountPrice < Number(itemPrice) && (
+                    <p className="text-xs text-red-500 font-bold mt-1">
+                      -{Math.round((1 - discountPrice / Number(itemPrice)) * 100)}% 할인 적용
+                    </p>
+                  )}
+                </div>
+              </div>
+              <div className="grid grid-cols-1 gap-4">
+                <div>
+                  <label className="text-[10px] font-black uppercase text-black/40 mb-2 block">
                     카테고리 *
                   </label>
                   <select
@@ -3148,7 +3405,7 @@ const AddItemView = ({ setActiveTab }: { setActiveTab: (tab: AdminTab) => void }
                   disabled={isSubmitting}
                   className="flex-1 py-4 bg-[#1B4332] text-white rounded-2xl font-black shadow-xl shadow-green-900/20 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  {isSubmitting ? '등록 중...' : '등록 완료'}
+                  {isSubmitting ? '수정 중...' : '수정 완료'}
                 </button>
                 <button
                   onClick={() => setActiveTab('store')}
@@ -3599,6 +3856,7 @@ export function AdminPage() {
   const [currentTime, setCurrentTime] = useState(new Date());
   const [globalSearch, setGlobalSearch] = useState('');
   const [editingTitle, setEditingTitle] = useState<AdminTitleResponse | null>(null);
+  const [editingItem, setEditingItem] = useState<ItemResponse | null>(null);
 
   // Dashboard 통계 데이터 상태 관리
   const [stats, setStats] = useState<AdminStatsResponse | null>(null);
@@ -3848,9 +4106,11 @@ export function AdminPage() {
                               ? '신규 칭호 마스터 클래스'
                               : activeTab === 'add-item'
                                 ? '신규 아이템 카탈로그'
-                                : activeTab === 'logs'
-                                  ? '시스템 런타임 로그'
-                                  : '시스템 인프라 설정'}
+                                : activeTab === 'edit-item'
+                                  ? '아이템 데이터 마스터 수정'
+                                  : activeTab === 'logs'
+                                    ? '시스템 런타임 로그'
+                                    : '시스템 인프라 설정'}
               </h2>
               <div className="flex items-center gap-2 text-[11px] text-black/40 font-bold">
                 <Calendar size={12} /> {currentTime.toLocaleDateString()}
@@ -3916,6 +4176,9 @@ export function AdminPage() {
                 />
               )}
               {activeTab === 'add-item' && <AddItemView setActiveTab={setActiveTab} />}
+              {activeTab === 'edit-item' && editingItem && (
+                <EditItemView setActiveTab={setActiveTab} editingItem={editingItem} />
+              )}
               {activeTab === 'logs' && <LogsView logs={logs} loading={statsLoading} />}
             </motion.div>
           </AnimatePresence>
