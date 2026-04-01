@@ -1,3 +1,11 @@
+- **2026-04-01 13:20:00**
+  - **작업 내용:** 백엔드 가이드 기반 랭킹 페이지 아바타 및 이모지 필드 수정
+  - **상세 변경 내역:**
+    - `useRankings.ts`: `EquippedItemResponse` 인터페이스에 `iconType` 필드 추가 및 타입 정교화.
+    - `RankingPage.tsx`: 효과 이모지(`effectEmoji`) 접근 필드명을 `imageUrl`에서 `icon`으로 수정하여 데이터 유실 해결.
+    - `avatar.ts`: `generateRankingAvatar` 및 `generateProfileAvatar`의 폴백을 `userId` 기반 고유 아바타로 일원화.
+  - **결과/영향:** 마이페이지와 랭킹 페이지 간 아바타 표시 일치 및 효과 아이콘 정상 출력.
+
 - **2026-04-01 13:10:00**
   - **작업 내용:** 로그인 중복 요청 방지 및 랭킹 페이지 이모지 렌더링 수정
   - **상세 변경 내역:**
