@@ -128,7 +128,7 @@ jobs:
             printf "VITE_KAKAO_MAP_KEY=%s\n" "${{ secrets.VITE_KAKAO_MAP_KEY }}" >> .env
             
             docker compose -f docker-compose.prod.yml pull
-            docker compose -f docker-compose.prod.yml up -d
+            docker compose -f docker-compose.prod.yml up -d --remove-orphans --force-recreate
             
             # 미사용 이미지 정리 (용량 확보)
             docker image prune -f
