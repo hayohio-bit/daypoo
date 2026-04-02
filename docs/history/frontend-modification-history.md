@@ -1,5 +1,13 @@
 # Frontend Modification History
 
+## [2026-04-02 19:09:00] Deployment: 빌드/배포 자동화 장애 해결 (CI/CD Hardening)
+
+- **작업 내용**: 반복되는 배포 실패와 빌드 차단 현상 해결
+- **상세 변경 내역**:
+  - `backend`: `./gradlew spotlessApply`를 실행하여 자바 코드 포맷팅 규칙 준수 (CI 통과 보장).
+  - `.github/workflows/deploy-aws.yml`: 새 컨테이너 실행 전 `docker rm -f` 명령으로 기존 좀비 컨테이너의 이름 점유를 해소하는 안전장치 추가.
+- **결과/영향**: 배포 안정성 확보 및 최신 검색 최적화 로직의 즉각적인 반영 가능.
+
 ## [2026-04-02 19:00:00] Backend: 검색 정렬 우선순위 변경 (Distance > Score)
 
 - **작업 내용**: 화장실 검색의 특성을 고려하여, 텍스트 일치도보다 **사용자와의 거리**를 최우선 정렬 기준으로 변경
