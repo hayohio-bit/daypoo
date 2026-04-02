@@ -35,6 +35,7 @@ class RankingServiceTest {
   @Mock private TitleRepository titleRepository;
   @Mock private PooRecordRepository recordRepository;
   @Mock private HealthReportSnapshotRepository snapshotRepository;
+  @Mock private com.daypoo.api.repository.InventoryRepository inventoryRepository;
   @Mock private ZSetOperations<String, String> zSetOperations;
 
   private User testUser;

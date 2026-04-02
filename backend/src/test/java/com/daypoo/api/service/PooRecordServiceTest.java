@@ -29,6 +29,11 @@ import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
 import org.springframework.test.util.ReflectionTestUtils;
 
+import com.daypoo.api.repository.UserRepository;
+import com.daypoo.api.repository.VisitLogRepository;
+import com.daypoo.api.repository.ToiletRepository;
+import org.springframework.context.ApplicationEventPublisher;
+
 @ExtendWith(MockitoExtension.class)
 @MockitoSettings(strictness = Strictness.LENIENT)
 @DisplayName("배변 기록 서비스 테스트")
@@ -38,13 +43,14 @@ class PooRecordServiceTest {
 
   @Mock private PooRecordRepository recordRepository;
   @Mock private ToiletRepository toiletRepository;
-  @Mock private UserRepository userRepository;
+  @Mock private UserService userService;
   @Mock private LocationVerificationService locationVerificationService;
   @Mock private GeocodingService geocodingService;
-  @Mock private TitleAchievementService titleAchievementService;
-  @Mock private RankingService rankingService;
-  @Mock private AiClient aiClient;
+  @Mock private ApplicationEventPublisher eventPublisher;
   @Mock private PooRecordMapper recordMapper;
+  @Mock private VisitLogRepository visitLogRepository;
+  @Mock private AiClient aiClient;
+  @Mock private UserRepository userRepository;
 
   private User testUser;
   private Toilet testToilet;
@@ -103,14 +109,10 @@ class PooRecordServiceTest {
     // then
     assertThat(response).isNotNull();
     assertThat(response.toiletName()).isEqualTo("강남역 화장실");
-    assertThat(testUser.getExp()).isEqualTo(10L);
-    assertThat(testUser.getPoints()).isEqualTo(5L);
 
     verify(recordRepository).save(any(PooRecord.class));
     verify(userRepository).save(testUser);
-    verify(rankingService).updateGlobalRank(testUser);
-    verify(rankingService).updateRegionRank(eq(testUser), eq("역삼1동"));
-    verify(titleAchievementService).checkAndGrantTitles(testUser);
+    verify(eventPublisher, times(1)).publishEvent(any(com.daypoo.api.event.PooRecordCreatedEvent.class));
   }
 
   @Test
