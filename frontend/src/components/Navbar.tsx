@@ -1,4 +1,4 @@
-import { motion, useScroll, useTransform, useMotionValueEvent, AnimatePresence } from 'framer-motion';
+import { m, useScroll, useTransform, useMotionValueEvent, AnimatePresence } from 'framer-motion';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { Bell, User, LogOut, Menu, X, Map, Trophy, HelpCircle, Crown, Home } from 'lucide-react';
 import { useState, useEffect } from 'react';
@@ -85,7 +85,7 @@ export function Navbar({ openAuth }: { openAuth: (mode: 'login' | 'signup') => v
           pointerEvents: 'none',
         }}
       >
-        <motion.nav
+        <m.nav
           variants={{
             visible: { y: 0, opacity: 1 },
             hidden: { y: -110, opacity: 0 },
@@ -99,9 +99,9 @@ export function Navbar({ openAuth }: { openAuth: (mode: 'login' | 'signup') => v
             alignItems: 'center',
             background: '#1A2B27',
             borderRadius: '100px',
-            padding: '14px 36px 14px 44px',
+            padding: '14px 28px 14px 36px',
             boxShadow: '0 12px 48px rgba(0,0,0,0.3)',
-            gap: '24px',
+            gap: '16px',
           }}
         >
           {/* 로고 */}
@@ -125,15 +125,16 @@ export function Navbar({ openAuth }: { openAuth: (mode: 'login' | 'signup') => v
           <div className="hidden md:block" style={{ width: '1px', height: '16px', background: 'rgba(255,255,255,0.15)' }} />
 
           {/* 네비 링크 - 데스크톱 */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '24px' }} className="hidden md:flex">
+          <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }} className="hidden md:flex flex-nowrap">
             {NAV_LINKS.map((link) => (
-              <AnimatedUnderlink
-                key={link.path}
-                to={link.path}
-                text={link.label}
-                style={{ fontSize: '15px' }}
-                variant={link.variant}
-              />
+              <div key={link.path} className="whitespace-nowrap flex-shrink-0">
+                <AnimatedUnderlink
+                  to={link.path}
+                  text={link.label}
+                  style={{ fontSize: '15px' }}
+                  variant={link.variant}
+                />
+              </div>
             ))}
           </div>
 
@@ -183,7 +184,7 @@ export function Navbar({ openAuth }: { openAuth: (mode: 'login' | 'signup') => v
 
           {/* 알림 벨 (로그인 상태에서만 표시) */}
           {isAuthenticated && (
-            <motion.button
+            <m.button
               whileHover={{ scale: 1.1 }}
               whileTap={{ scale: 0.9 }}
               onClick={() => setNotifOpen(!notifOpen)}
@@ -193,7 +194,7 @@ export function Navbar({ openAuth }: { openAuth: (mode: 'login' | 'signup') => v
             >
               <Bell size={18} />
               {unreadCount > 0 && (
-                <motion.span
+                <m.span
                   initial={{ scale: 0 }}
                   animate={{ scale: 1 }}
                   className="absolute top-1 right-1 w-2.5 h-2.5 rounded-full"
@@ -201,7 +202,7 @@ export function Navbar({ openAuth }: { openAuth: (mode: 'login' | 'signup') => v
                   aria-hidden="true"
                 />
               )}
-            </motion.button>
+            </m.button>
           )}
 
           {/* 햄버거 메뉴 - 모바일 */}
@@ -212,7 +213,7 @@ export function Navbar({ openAuth }: { openAuth: (mode: 'login' | 'signup') => v
           >
             <Menu size={20} />
           </button>
-        </motion.nav>
+        </m.nav>
       </div>
 
       {/* ── 모바일 사이드 드로어 ── */}
@@ -220,7 +221,7 @@ export function Navbar({ openAuth }: { openAuth: (mode: 'login' | 'signup') => v
         {drawerOpen && (
           <>
             {/* 백드롭 */}
-            <motion.div
+            <m.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
@@ -230,7 +231,7 @@ export function Navbar({ openAuth }: { openAuth: (mode: 'login' | 'signup') => v
             />
 
             {/* 드로어 패널 */}
-            <motion.div
+            <m.div
               initial={{ x: '100%' }}
               animate={{ x: 0 }}
               exit={{ x: '100%' }}
@@ -379,7 +380,7 @@ export function Navbar({ openAuth }: { openAuth: (mode: 'login' | 'signup') => v
                   </div>
                 )}
               </div>
-            </motion.div>
+            </m.div>
           </>
         )}
       </AnimatePresence>

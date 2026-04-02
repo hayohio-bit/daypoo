@@ -1,4 +1,4 @@
-import { useEffect, useRef, useCallback, useImperativeHandle, forwardRef } from 'react';
+import React, { useEffect, useRef, useCallback, useImperativeHandle, forwardRef, memo } from 'react';
 import { ToiletData } from '../../types/toilet';
 
 declare global {
@@ -38,19 +38,18 @@ function createToiletMarker(kakao: any, toilet: ToiletData, onSelect: (t: Toilet
       position:relative;
       display:flex;flex-direction:column;align-items:center;
       cursor:pointer;
-      will-change:transform;
-      transform:translateZ(0);
-      contain:strict;
       width:36px; height:44px;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
     ">
       <div style="
         width:36px;height:36px;border-radius:50%;
         background:${markerBg};
         display:flex;align-items:center;justify-content:center;
         font-size:18px;
-        box-shadow:0 3px 12px rgba(0,0,0,0.25);
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15), 0 0 0 0.5px rgba(0,0,0,0.05);
         border:2.5px solid #fff;
-        ${toilet.isOpen24h ? 'outline:2px solid #E8A838;outline-offset:2px;' : ''}
+        backface-visibility: hidden;
       ">${emoji}</div>
       <div style="
         width:0;height:0;
@@ -58,6 +57,7 @@ function createToiletMarker(kakao: any, toilet: ToiletData, onSelect: (t: Toilet
         border-right:6px solid transparent;
         border-top:8px solid ${markerBg};
         margin-top:-1px;
+        filter: drop-shadow(0 2px 2px rgba(0,0,0,0.1));
       "></div>
     </div>`;
 
@@ -81,7 +81,7 @@ function createToiletMarker(kakao: any, toilet: ToiletData, onSelect: (t: Toilet
   return { marker, overlay };
 }
 
-export const MapView = forwardRef<MapViewHandle, MapViewProps>(
+export const MapView = memo(forwardRef<MapViewHandle, MapViewProps>(
   ({ toilets, pos, onSelectToilet, onBoundsChange, onLevelChange }, ref) => {
     const mapContainerRef = useRef<HTMLDivElement>(null);
     const mapRef = useRef<any>(null);
@@ -228,42 +228,33 @@ export const MapView = forwardRef<MapViewHandle, MapViewProps>(
       if (!mapRef.current || !clustererRef.current) return;
 
       window.setSelectedToiletGlobal = onSelectToilet;
-
+      
       const level = mapRef.current.getLevel();
-      const maxRenderCount = level >= 7 ? 500 : 1000;
-      const toiletsToRender = toilets.slice(0, maxRenderCount);
-      const currentToiletsIds = new Set(toiletsToRender.map((t) => t.id));
+      const currentToiletsIds = new Set(toilets.map((t) => t.id));
 
-      const toRemove: any[] = [];
-      const toUpdate: ToiletData[] = [];
-
+      // 제거할 마커 식별
+      const toRemoveMarkers: any[] = [];
       markersRef.current.forEach((item, id) => {
         if (!currentToiletsIds.has(id)) {
           item.overlay.setMap(null);
-          toRemove.push(item.marker);
+          toRemoveMarkers.push(item.marker);
           markersRef.current.delete(id);
-        } else {
-          const updatedToilet = toiletsToRender.find((t) => t.id === id);
-          if (updatedToilet && updatedToilet.isVisited) {
-            item.overlay.setMap(null);
-            toRemove.push(item.marker);
-            markersRef.current.delete(id);
-            toUpdate.push(updatedToilet);
-          }
         }
       });
-      if (toRemove.length > 0) clustererRef.current.removeMarkers(toRemove);
 
+      if (toRemoveMarkers.length > 0) {
+        clustererRef.current.removeMarkers(toRemoveMarkers);
+      }
+
+      // 추가할 마커 식별 (이미 있는 건 스킵)
       const newMarkers: any[] = [];
-      const updateIds = new Set(toUpdate.map((t) => t.id));
-      [
-        ...toiletsToRender.filter((t) => !markersRef.current.has(t.id) && !updateIds.has(t.id)),
-        ...toUpdate,
-      ].forEach((toilet) => {
-        const { marker, overlay } = createToiletMarker(window.kakao, toilet, onSelectToilet);
-        if (level < 5) overlay.setMap(mapRef.current);
-        markersRef.current.set(toilet.id, { marker, overlay });
-        newMarkers.push(marker);
+      toilets.forEach((toilet) => {
+        if (!markersRef.current.has(toilet.id)) {
+          const { marker, overlay } = createToiletMarker(window.kakao, toilet, onSelectToilet);
+          if (level < 5) overlay.setMap(mapRef.current);
+          markersRef.current.set(toilet.id, { marker, overlay });
+          newMarkers.push(marker);
+        }
       });
 
       if (newMarkers.length > 0) {
@@ -285,7 +276,7 @@ export const MapView = forwardRef<MapViewHandle, MapViewProps>(
         }}
       />
     );
-  },
+  })
 );
 
 MapView.displayName = 'MapView';

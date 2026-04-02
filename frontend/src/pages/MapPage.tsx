@@ -1,5 +1,6 @@
 import { useRef, useState, useCallback, useEffect, useMemo } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { useSearchParams } from 'react-router-dom';
+import { m, AnimatePresence } from 'framer-motion';
 import { LocateFixed } from 'lucide-react';
 import { Navbar } from '../components/Navbar';
 import { ToiletPopup } from '../components/map/ToiletPopup';
@@ -17,6 +18,8 @@ type FilterMode = 'all' | 'favorite' | 'visited';
 
 export function MapPage({ openAuth }: { openAuth: (mode: 'login' | 'signup') => void }) {
   const mapViewRef = useRef<MapViewHandle>(null);
+  const [searchParams] = useSearchParams();
+  const openNearest = searchParams.get('openNearest') === 'true';
 
   // 상태 관리
   const [selectedToilet, setSelectedToilet] = useState<ToiletData | null>(null);
@@ -30,6 +33,7 @@ export function MapPage({ openAuth }: { openAuth: (mode: 'login' | 'signup') => 
   const [checkInTime, setCheckInTime] = useState<number | null>(null);
   const [visitCounts, setVisitCounts] = useState<Record<string, number>>({});
   const [favoriteIds, setFavoriteIds] = useState<Set<string>>(new Set());
+  const [hasTriedOpenNearest, setHasTriedOpenNearest] = useState(false);
 
   // visitCounts로부터 visitedIds Set 생성 (메모이제이션)
   const visitedIds = useMemo(() => {
@@ -38,8 +42,88 @@ export function MapPage({ openAuth }: { openAuth: (mode: 'login' | 'signup') => 
 
   const { refreshUser, isAuthenticated } = useAuth();
 
+  // ── 비즈니스 로직 ──────────────────────────────────────────
+
+  const handleSelectToilet = useCallback(
+    (toilet: ToiletData | null) => {
+      if (toilet) {
+        // useToilets 훅에서 관리하는 toilets 배열은 MapPage 컨텍스트 내에서 이미 hooks/useToilets를 통해 업데이트되고 있음
+        setSelectedToilet(toilet);
+        sessionStorage.setItem('lastSelectedToilet', JSON.stringify(toilet));
+      } else {
+        setSelectedToilet(null);
+        sessionStorage.removeItem('lastSelectedToilet');
+      }
+    },
+    [],
+  );
+
+  const handleFavoriteToggle = useCallback(
+    async (id: string) => {
+      if (!isAuthenticated) {
+        openAuth('login');
+        return;
+      }
+
+      // 1. 낙관적 업데이트: favoriteIds (SSOT) 즉시 변경 → sync useEffect가 마커 isFavorite 갱신
+      const wasAdded = !favoriteIds.has(id);
+      setFavoriteIds((prev) => {
+        const next = new Set(prev);
+        wasAdded ? next.add(id) : next.delete(id);
+        return next;
+      });
+      // 2. 팝업 즉시 반영 (selectedToilet은 sync useEffect 대상 아님)
+      setSelectedToilet((prev) => {
+        if (prev && prev.id === id) {
+          const updated = { ...prev, isFavorite: wasAdded };
+          sessionStorage.setItem('lastSelectedToilet', JSON.stringify(updated));
+          return updated;
+        }
+        return prev;
+      });
+
+      try {
+        const isAdded = await api.post<boolean>(`/favorites/${id}`);
+        // 3. 서버 응답으로 재동기화 (낙관적 추측과 다를 경우만 보정)
+        if (isAdded !== wasAdded) {
+          setFavoriteIds((prev) => {
+            const next = new Set(prev);
+            isAdded ? next.add(id) : next.delete(id);
+            return next;
+          });
+          setSelectedToilet((prev) => {
+            if (prev && prev.id === id) {
+              const updated = { ...prev, isFavorite: isAdded };
+              sessionStorage.setItem('lastSelectedToilet', JSON.stringify(updated));
+              return updated;
+            }
+            return prev;
+          });
+        }
+      } catch (e) {
+        // 4. 실패 시 롤백
+        setFavoriteIds((prev) => {
+          const next = new Set(prev);
+          wasAdded ? next.delete(id) : next.add(id);
+          return next;
+        });
+        setSelectedToilet((prev) => {
+          if (prev && prev.id === id) {
+            const updated = { ...prev, isFavorite: !wasAdded };
+            sessionStorage.setItem('lastSelectedToilet', JSON.stringify(updated));
+            return updated;
+          }
+          return prev;
+        });
+        console.error('즐겨찾기 처리 실패:', e);
+        alert('즐겨찾기 처리에 실패했습니다.');
+      }
+    },
+    [favoriteIds, openAuth, isAuthenticated],
+  );
+
   // 데이터 훅
-  const { toilets, toggleFavorite, markVisited, refetch } = useToilets({
+  const { toilets, markVisited, refetch } = useToilets({
     lat: 37.5172,
     lng: 127.0473,
     bounds,
@@ -126,85 +210,54 @@ export function MapPage({ openAuth }: { openAuth: (mode: 'login' | 'signup') => 
     return () => clearTimeout(timer);
   }, [searchQuery, visitedIds, favoriteIds]);
 
-  // ── 비즈니스 로직 ──────────────────────────────────────────
+  // ── Nearest Toilet 자동 오픈 (openNearest=true 파라미터 대응) ──
+  useEffect(() => {
+    if (openNearest && pos && !hasTriedOpenNearest) {
+      const findAndOpenNearest = async () => {
+        try {
+          // 현재 위치 기준 5km 반경 화장실 검색 (API 사용)
+          const data = await api.get<any[]>(`/toilets?latitude=${pos.lat}&longitude=${pos.lng}&radius=5000`);
+          if (data && data.length > 0) {
+            const mappedToilets: ToiletData[] = data.map((item: any) => ({
+              id: String(item.id),
+              name: item.name || '이름없음',
+              roadAddress: item.address || '',
+              lat: item.latitude,
+              lng: item.longitude,
+              isOpen24h: item.open_24h || false,
+              isMixedGender: item.mixed_gender || false,
+              hasDiaperTable: item.diaper_table || false,
+              hasEmergencyBell: item.emergency_bell || false,
+              hasCCTV: item.cctv || false,
+              isVisited: visitedIds.has(String(item.id)),
+              isFavorite: favoriteIds.has(String(item.id)),
+            }));
 
-  const handleSelectToilet = useCallback(
-    (toilet: ToiletData | null) => {
-      if (toilet) {
-        const fresh = toilets.find((t) => t.id === toilet.id) ?? toilet;
-        setSelectedToilet(fresh);
-        sessionStorage.setItem('lastSelectedToilet', JSON.stringify(fresh));
-      } else {
-        setSelectedToilet(null);
-        sessionStorage.removeItem('lastSelectedToilet');
-      }
-    },
-    [toilets],
-  );
+            // 가장 가까운 화장실 계산
+            let nearest = mappedToilets[0];
+            let minD = calculateDistance(pos.lat, pos.lng, nearest.lat, nearest.lng);
+            
+            mappedToilets.forEach(t => {
+              const d = calculateDistance(pos.lat, pos.lng, t.lat, t.lng);
+              if (d < minD) {
+                minD = d;
+                nearest = t;
+              }
+            });
 
-  const handleFavoriteToggle = useCallback(
-    async (id: string) => {
-      if (!isAuthenticated) {
-        openAuth('login');
-        return;
-      }
-
-      // 1. 낙관적 업데이트: favoriteIds (SSOT) 즉시 변경 → sync useEffect가 마커 isFavorite 갱신
-      const wasAdded = !favoriteIds.has(id);
-      setFavoriteIds((prev) => {
-        const next = new Set(prev);
-        wasAdded ? next.add(id) : next.delete(id);
-        return next;
-      });
-      // 2. 팝업 즉시 반영 (selectedToilet은 sync useEffect 대상 아님)
-      setSelectedToilet((prev) => {
-        if (prev && prev.id === id) {
-          const updated = { ...prev, isFavorite: wasAdded };
-          sessionStorage.setItem('lastSelectedToilet', JSON.stringify(updated));
-          return updated;
-        }
-        return prev;
-      });
-
-      try {
-        const isAdded = await api.post<boolean>(`/favorites/${id}`);
-        // 3. 서버 응답으로 재동기화 (낙관적 추측과 다를 경우만 보정)
-        if (isAdded !== wasAdded) {
-          setFavoriteIds((prev) => {
-            const next = new Set(prev);
-            isAdded ? next.add(id) : next.delete(id);
-            return next;
-          });
-          setSelectedToilet((prev) => {
-            if (prev && prev.id === id) {
-              const updated = { ...prev, isFavorite: isAdded };
-              sessionStorage.setItem('lastSelectedToilet', JSON.stringify(updated));
-              return updated;
-            }
-            return prev;
-          });
-        }
-      } catch (e) {
-        // 4. 실패 시 롤백
-        setFavoriteIds((prev) => {
-          const next = new Set(prev);
-          wasAdded ? next.delete(id) : next.add(id);
-          return next;
-        });
-        setSelectedToilet((prev) => {
-          if (prev && prev.id === id) {
-            const updated = { ...prev, isFavorite: !wasAdded };
-            sessionStorage.setItem('lastSelectedToilet', JSON.stringify(updated));
-            return updated;
+            // 화장실 선택 및 지도 중심 이동
+            handleSelectToilet(nearest);
+            mapViewRef.current?.panTo(nearest.lat, nearest.lng);
           }
-          return prev;
-        });
-        console.error('즐겨찾기 처리 실패:', e);
-        alert('즐겨찾기 처리에 실패했습니다.');
-      }
-    },
-    [favoriteIds, openAuth, isAuthenticated],
-  );
+        } catch (e) {
+          console.error('가장 가까운 화장실 찾기 실패:', e);
+        } finally {
+          setHasTriedOpenNearest(true);
+        }
+      };
+      findAndOpenNearest();
+    }
+  }, [openNearest, pos, hasTriedOpenNearest, visitedIds, favoriteIds, handleSelectToilet]);
 
   const handleVisitRequest = useCallback(async () => {
     if (!isAuthenticated) {
@@ -354,7 +407,7 @@ export function MapPage({ openAuth }: { openAuth: (mode: 'login' | 'signup') => 
         {/* 검색 결과 목록 */}
         <AnimatePresence>
           {searchQuery.trim() !== '' && (searchLoading || filteredToilets.length > 0) && (
-            <motion.div
+            <m.div
               initial={{ opacity: 0, y: -20 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -20 }}
@@ -401,7 +454,7 @@ export function MapPage({ openAuth }: { openAuth: (mode: 'login' | 'signup') => 
                   ))}
                 </div>
               </div>
-            </motion.div>
+            </m.div>
           )}
         </AnimatePresence>
 

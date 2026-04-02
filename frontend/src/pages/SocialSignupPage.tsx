@@ -3,10 +3,12 @@ import { useSearchParams, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { User, CheckCircle2, AlertCircle, ArrowRight, Sparkles } from 'lucide-react';
 import { api } from '../services/apiClient';
+import { useAuth } from '../context/AuthContext';
 
 export function SocialSignupPage() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
+  const { login } = useAuth();
   const registrationToken = searchParams.get('registration_token');
   const navigatedRef = useRef(false);
 
@@ -64,8 +66,9 @@ export function SocialSignupPage() {
       // 성공 시 토큰 저장 및 메인 이동
       if (response.accessToken) {
         navigatedRef.current = true;
-        localStorage.setItem('accessToken', response.accessToken);
-        localStorage.setItem('refreshToken', response.refreshToken);
+        
+        // login 함수를 통해 토큰 저장 및 유저 정보 갱신 수행
+        await login(response.accessToken, response.refreshToken);
         
         const returnUrl = localStorage.getItem('returnUrl') || '/main';
         localStorage.removeItem('returnUrl');

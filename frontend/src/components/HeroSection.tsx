@@ -1,4 +1,4 @@
-import { motion } from 'framer-motion';
+import { m } from 'framer-motion';
 import { useEffect, useState } from 'react';
 import { Activity, MapPin, Sparkles, TrendingUp, Zap } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
@@ -92,7 +92,7 @@ export function HeroSection({ onCtaClick, openAuth }: HeroSectionProps) {
           
           {/* Left: Text Content (60%) */}
           <div className="lg:col-span-7 space-y-10 text-left">
-            <motion.div
+          <m.div
               initial={{ opacity: 0, x: -50 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.8 }}
@@ -114,16 +114,16 @@ export function HeroSection({ onCtaClick, openAuth }: HeroSectionProps) {
                 사용자의 기록과 AI 분석이 결합된 <br className="hidden md:block" />
                 차세대 라이프스타일 헬스케어 시스템.
               </p>
-            </motion.div>
+          </m.div>
 
-            <motion.div 
+          <m.div 
               initial={{ opacity: 0, y: 30 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.4 }}
               className="flex flex-col sm:flex-row gap-6 pt-4"
             >
               <WaveButton onClick={onCtaClick} variant="primary" className="px-7 py-3.5 text-[15px] font-semibold">
-                우리 동네 순위 확인하기
+                기록하러 가기
               </WaveButton>
               <WaveButton
                 onClick={() => {
@@ -138,12 +138,12 @@ export function HeroSection({ onCtaClick, openAuth }: HeroSectionProps) {
               >
                 무료 리포트 시작하기
               </WaveButton>
-            </motion.div>
+          </m.div>
           </div>
 
           {/* Right: Functional Widget Block (40%) */}
           <div className="lg:col-span-5 relative">
-            <motion.div
+          <m.div
               initial={{ opacity: 0, scale: 0.9, rotate: 2 }}
               animate={{ opacity: 1, scale: 1, rotate: 0 }}
               transition={{ duration: 0.8, delay: 0.2 }}
@@ -194,7 +194,7 @@ export function HeroSection({ onCtaClick, openAuth }: HeroSectionProps) {
                   {/* Central processing hub */}
                   <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-10">
                     {/* Outer ring pulse */}
-                    <motion.div
+                  <m.div
                       className="absolute inset-0 rounded-xl"
                       animate={{
                         scale: [1, 1.8, 1],
@@ -204,7 +204,7 @@ export function HeroSection({ onCtaClick, openAuth }: HeroSectionProps) {
                       style={{ background: 'rgba(52,211,153,0.15)', width: 36, height: 36, margin: 'auto', inset: 0, position: 'absolute' }}
                     />
                     {/* Hub body */}
-                    <motion.div
+                  <m.div
                       className="relative w-9 h-9 rounded-xl border border-emerald-400/20 flex items-center justify-center"
                       style={{ background: 'radial-gradient(circle, rgba(52,211,153,0.12) 0%, transparent 70%)' }}
                       animate={{
@@ -212,13 +212,13 @@ export function HeroSection({ onCtaClick, openAuth }: HeroSectionProps) {
                       }}
                       transition={{ duration: 2.5, repeat: Infinity, ease: 'easeInOut' }}
                     >
-                      <motion.div
+                    <m.div
                         className="w-2.5 h-2.5 rounded-md bg-emerald-400"
                         animate={{ rotate: [0, 180, 360] }}
                         transition={{ duration: 6, repeat: Infinity, ease: 'linear' }}
                         style={{ boxShadow: '0 0 10px rgba(52,211,153,0.7), 0 0 20px rgba(52,211,153,0.3)' }}
                       />
-                    </motion.div>
+                  </m.div>
                   </div>
 
                   {/* Convergence lines — lanes to hub */}
@@ -248,7 +248,7 @@ export function HeroSection({ onCtaClick, openAuth }: HeroSectionProps) {
 
                   {/* Flowing data particles */}
                   {FLOW_DOTS.map((dot, i) => (
-                    <motion.div
+                  <m.div
                       key={i}
                       className="absolute rounded-full z-20"
                       style={{
@@ -263,7 +263,7 @@ export function HeroSection({ onCtaClick, openAuth }: HeroSectionProps) {
                           ? '0 0 8px rgba(52,211,153,0.9), 0 0 16px rgba(52,211,153,0.4)'
                           : '0 0 6px rgba(52,211,153,0.7), 0 0 12px rgba(52,211,153,0.2)',
                       }}
-                      animate={{ left: ['-2%', '102%'] }}
+                      animate={{ x: ['-20%', '1100%'] }}
                       transition={{
                         duration: dot.speed,
                         delay: dot.delay,
@@ -275,7 +275,7 @@ export function HeroSection({ onCtaClick, openAuth }: HeroSectionProps) {
 
                   {/* Floating status labels */}
                   {PIPELINE_LABELS.map((label, i) => (
-                    <motion.span
+                    <m.span
                       key={i}
                       className="absolute text-[9px] font-medium tracking-wide text-emerald-400/60 pointer-events-none z-20"
                       style={{ left: label.x, top: label.y }}
@@ -283,7 +283,7 @@ export function HeroSection({ onCtaClick, openAuth }: HeroSectionProps) {
                       transition={{ duration: 4.5, delay: label.delay, repeat: Infinity, times: [0, 0.08, 0.2, 0.75, 1] }}
                     >
                       {label.text}
-                    </motion.span>
+                    </m.span>
                   ))}
 
                   {/* Edge fade masks */}
@@ -307,7 +307,7 @@ export function HeroSection({ onCtaClick, openAuth }: HeroSectionProps) {
                 </div>
                 <TrendingUp size={20} className="text-emerald-500 opacity-0 group-hover:opacity-100 transition-opacity" />
               </div>
-            </motion.div>
+          </m.div>
 
             <div className="absolute -top-10 -right-10 w-40 h-40 bg-blue-500/20 blur-[130px] rounded-full pointer-events-none" />
             <div className="absolute -bottom-20 -left-10 w-80 h-80 bg-emerald-500/20 blur-[150px] rounded-full pointer-events-none" />
@@ -327,7 +327,7 @@ export function HeroSection({ onCtaClick, openAuth }: HeroSectionProps) {
 
       <section id="steps-section" className="relative pt-20 pb-32 px-6 overflow-hidden bg-[#F8FAF9]">
         <div className="max-w-5xl mx-auto mb-12">
-          <motion.div
+          <m.div
             initial={{ opacity: 0, y: 24 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
@@ -338,7 +338,7 @@ export function HeroSection({ onCtaClick, openAuth }: HeroSectionProps) {
               3단계로 끝나는 <br />
               <span className="text-emerald-600">스마트 헬스케어</span>
             </h2>
-          </motion.div>
+          </m.div>
           <TimelineSteps openAuth={openAuth} />
         </div>
         

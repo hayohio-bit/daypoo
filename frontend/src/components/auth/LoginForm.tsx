@@ -114,20 +114,20 @@ export function LoginForm({ onSwitch, onSuccess, onClose }: LoginFormProps) {
             }
           />
         </motion.div>
-        <div className="flex items-center justify-between -mt-1">
-          <div className="flex items-center gap-3">
-            <label className="flex items-center gap-1.5 cursor-pointer select-none">
+        <div className="flex items-center justify-between flex-wrap gap-y-2 -mt-1">
+          <div className="flex items-center gap-3 flex-wrap">
+            <label className="flex items-center gap-1.5 cursor-pointer select-none whitespace-nowrap">
               <input type="checkbox" checked={rememberEmail} onChange={(e) => setRememberEmail(e.target.checked)}
                 className="w-3.5 h-3.5 rounded border-gray-300 accent-[#1B4332]" />
-              <span className="text-xs" style={{ color: 'rgba(26,43,39,0.5)' }}>아이디 기억하기</span>
+              <span className="text-[11px] xs:text-xs" style={{ color: 'rgba(26,43,39,0.5)' }}>아이디 기억하기</span>
             </label>
-            <label className="flex items-center gap-1.5 cursor-pointer select-none">
+            <label className="flex items-center gap-1.5 cursor-pointer select-none whitespace-nowrap">
               <input type="checkbox" checked={stayLoggedIn} onChange={(e) => setStayLoggedIn(e.target.checked)}
                 className="w-3.5 h-3.5 rounded border-gray-300 accent-[#1B4332]" />
-              <span className="text-xs" style={{ color: 'rgba(26,43,39,0.5)' }}>로그인 유지</span>
+              <span className="text-[11px] xs:text-xs" style={{ color: 'rgba(26,43,39,0.5)' }}>로그인 유지</span>
             </label>
           </div>
-          <Link to="/forgot-password" onClick={onClose} className="text-xs transition-colors hover:text-[#1A2B27]" style={{ color: 'rgba(26,43,39,0.4)' }}>
+          <Link to="/forgot-password" onClick={onClose} className="text-[11px] xs:text-xs transition-colors hover:text-[#1A2B27] whitespace-nowrap" style={{ color: 'rgba(26,43,39,0.4)' }}>
             비밀번호를 잊으셨나요?
           </Link>
         </div>

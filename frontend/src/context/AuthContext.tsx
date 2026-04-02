@@ -90,7 +90,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     // SSE 로직은 별도 Subscriber 컴포넌트로 이동함
   }, []);
 
-  const login = async (accessToken: string, refreshToken: string, stayLoggedIn = false) => {
+  const login = useCallback(async (accessToken: string, refreshToken: string, stayLoggedIn = false) => {
     // 기존 토큰 정리
     removeTokens();
     if (stayLoggedIn) {
@@ -105,7 +105,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       sessionStorage.setItem('refreshToken', refreshToken);
     }
     await refreshUser();
-  };
+  }, [removeTokens, refreshUser]);
 
   const logout = useCallback(async () => {
     try {
@@ -117,7 +117,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       removeTokens();
       setUser(null);
     }
-  }, []);
+  }, [removeTokens]);
 
   const deleteMe = useCallback(async () => {
     try {
@@ -129,7 +129,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   }, [logout]);
 
-  const value = {
+  const value = React.useMemo(() => ({
     user,
     loading,
     login,
@@ -137,7 +137,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     deleteMe,
     refreshUser,
     isAuthenticated: !!user,
-  };
+  }), [user, loading, login, logout, deleteMe, refreshUser]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };

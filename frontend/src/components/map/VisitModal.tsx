@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { m, AnimatePresence } from 'framer-motion';
 import { X, ChevronRight, ChevronLeft, Check, AlertTriangle, Camera, Zap, RotateCcw, Loader2, Sparkles } from 'lucide-react';
 import WaveButtonComponent from '../WaveButton';
 import {
@@ -179,7 +179,7 @@ export function VisitModal({ toilet, onClose, onComplete, checkInTime }: VisitMo
   return (
     <div className="fixed inset-0 z-[2000] flex items-center justify-center p-4">
       <canvas ref={canvasRef} className="hidden" />
-      <motion.div
+      <m.div
         initial={{ opacity: 0 }} 
         animate={{ opacity: 1 }} 
         exit={{ opacity: 0 }}
@@ -187,7 +187,7 @@ export function VisitModal({ toilet, onClose, onComplete, checkInTime }: VisitMo
         className="absolute inset-0 bg-black/60 backdrop-blur-sm"
       />
 
-      <motion.div
+      <m.div
         initial={{ opacity: 0, scale: 0.9, y: 20 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.9, y: 20 }}
@@ -208,10 +208,11 @@ export function VisitModal({ toilet, onClose, onComplete, checkInTime }: VisitMo
         <div className="flex items-center px-6 py-4 gap-1.5 bg-[#fcfdfc] border-b border-[#eef5f0]">
           {STEPS.map((_, i) => (
             <div key={i} className="flex-1 h-1.5 rounded-full overflow-hidden bg-[#eef5f0]">
-              <motion.div 
+              <m.div 
                 initial={false}
-                animate={{ width: i <= step ? '100%' : '0%' }}
-                className="h-full bg-[#1B4332]"
+                animate={{ scaleX: i <= step ? 1 : 0 }}
+                style={{ transformOrigin: 'left' }}
+                className="h-full bg-[#1B4332] w-full"
               />
             </div>
           ))}
@@ -219,7 +220,7 @@ export function VisitModal({ toilet, onClose, onComplete, checkInTime }: VisitMo
 
         <div className="flex-1 overflow-y-auto px-6 py-6 custom-scrollbar" style={{ minHeight: '320px' }}>
           <AnimatePresence mode="wait">
-            <motion.div
+            <m.div
               key={step}
               initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -10 }}
               transition={{ duration: 0.2 }}
@@ -417,7 +418,7 @@ export function VisitModal({ toilet, onClose, onComplete, checkInTime }: VisitMo
                   </div>
                 </div>
               )}
-            </motion.div>
+            </m.div>
           </AnimatePresence>
         </div>
 
@@ -449,19 +450,19 @@ export function VisitModal({ toilet, onClose, onComplete, checkInTime }: VisitMo
             </WaveButtonComponent>
           </div>
         )}
-      </motion.div>
+      </m.div>
 
       {/* ★ 닫기 확인 모달 (실수로 밖을 터치했을 때) */}
       <AnimatePresence>
         {showCloseConfirm && (
-          <motion.div
+          <m.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             className="fixed inset-0 z-[2100] flex items-center justify-center p-6"
           >
             <div className="absolute inset-0 bg-black/40" onClick={() => setShowCloseConfirm(false)} />
-            <motion.div
+            <m.div
               initial={{ scale: 0.9 }}
               animate={{ scale: 1 }}
               exit={{ scale: 0.9 }}
@@ -493,8 +494,8 @@ export function VisitModal({ toilet, onClose, onComplete, checkInTime }: VisitMo
                   나가기
                 </WaveButtonComponent>
               </div>
-            </motion.div>
-          </motion.div>
+            </m.div>
+          </m.div>
         )}
       </AnimatePresence>
 

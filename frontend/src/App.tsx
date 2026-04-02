@@ -1,28 +1,34 @@
-import { useState, useCallback, useEffect } from 'react';
-import { BrowserRouter, Route, Routes } from 'react-router-dom';
-import { SplashPage } from './pages/SplashPage';
-import { MainPage } from './pages/MainPage';
-import { MapPage } from './pages/MapPage';
-import { RankingPage } from './pages/RankingPage';
-import { NotFoundPage } from './pages/NotFoundPage';
+import { useState, useCallback, useEffect, lazy, Suspense } from 'react';
+import { BrowserRouter, Route, Routes, Navigate, useLocation } from 'react-router-dom';
+import { LazyMotion, m } from 'framer-motion';
+
+// Lazy load all pages
+const SplashPage = lazy(() => import('./pages/SplashPage').then(m => ({ default: m.SplashPage })));
+const MainPage = lazy(() => import('./pages/MainPage').then(m => ({ default: m.MainPage })));
+const MapPage = lazy(() => import('./pages/MapPage').then(m => ({ default: m.MapPage })));
+const RankingPage = lazy(() => import('./pages/RankingPage').then(m => ({ default: m.RankingPage })));
+const NotFoundPage = lazy(() => import('./pages/NotFoundPage').then(m => ({ default: m.NotFoundPage })));
+const ForgotPage = lazy(() => import('./pages/ForgotPage').then(m => ({ default: m.ForgotPage })));
+const TermsPage = lazy(() => import('./pages/TermsPage').then(m => ({ default: m.TermsPage })));
+const PrivacyPage = lazy(() => import('./pages/PrivacyPage').then(m => ({ default: m.PrivacyPage })));
+const MyPage = lazy(() => import('./pages/MyPage').then(m => ({ default: m.MyPage })));
+const SupportPage = lazy(() => import('./pages/SupportPage').then(m => ({ default: m.SupportPage })));
+const PaymentSuccessPage = lazy(() => import('./pages/PaymentSuccessPage').then(m => ({ default: m.PaymentSuccessPage })));
+const AuthCallback = lazy(() => import('./pages/AuthCallback').then(m => ({ default: m.AuthCallback })));
+const AdminPage = lazy(() => import('./pages/AdminPage').then(m => ({ default: m.AdminPage })));
+const SocialSignupPage = lazy(() => import('./pages/SocialSignupPage').then(m => ({ default: m.SocialSignupPage })));
+const PremiumPage = lazy(() => import('./pages/PremiumPage').then(m => ({ default: m.PremiumPage })));
+const ServerErrorPage = lazy(() => import('./pages/ServerErrorPage').then(m => ({ default: m.ServerErrorPage })));
+
 import { TransitionProvider } from './context/TransitionContext';
 import { AuthModal } from './components/AuthModal';
-import { ForgotPage } from './pages/ForgotPage';
-import { TermsPage } from './pages/TermsPage';
-import { PrivacyPage } from './pages/PrivacyPage';
-import { MyPage } from './pages/MyPage';
-import { SupportPage } from './pages/SupportPage';
-import { PaymentSuccessPage } from './pages/PaymentSuccessPage';
-import { AuthCallback } from './pages/AuthCallback';
-import { AdminPage } from './pages/AdminPage';
-import { SocialSignupPage } from './pages/SocialSignupPage';
-import { PremiumPage } from './pages/PremiumPage';
-import { ServerErrorPage } from './pages/ServerErrorPage';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { NotificationProvider } from './context/NotificationContext';
 import { NotificationSubscriber } from './components/NotificationSubscriber';
 import { ErrorBoundary } from './components/ErrorBoundary';
-import { Navigate, useLocation } from 'react-router-dom';
+
+// 동적 로드될 Framer Motion 기능들
+const loadFeatures = () => import('./utils/framerFeatures').then(res => res.default);
 
 function LoginPage() {
   const { search } = useLocation();
@@ -101,51 +107,59 @@ function App() {
 
   return (
     <BrowserRouter>
-      <ErrorBoundary>
-        <AuthProvider>
-          <TransitionProvider>
-            <NotificationProvider>
-              <NotificationSubscriber />
-              <Routes>
-                <Route path="/" element={<SplashPage />} />
-                <Route path="/main" element={<MainPage openAuth={openAuth} />} />
-                <Route path="/login" element={<LoginPage />} />
-                <Route path="/map" element={<MapPage openAuth={openAuth} />} />
-                <Route path="/ranking" element={<RankingPage openAuth={openAuth} />} />
-                <Route path="/forgot-password" element={<ForgotPage />} />
-                <Route path="/terms" element={<TermsPage />} />
-                <Route path="/privacy" element={<PrivacyPage />} />
-                <Route path="/mypage" element={<MyPage openAuth={openAuth} />} />
-                <Route path="/support" element={<SupportPage openAuth={openAuth} />} />
-                <Route path="/auth/callback" element={<AuthCallback />} />
-                <Route path="/signup/social" element={<SocialSignupPage />} />
-                <Route path="/payment/success" element={<PaymentSuccessPage />} />
-                <Route path="/premium" element={<PremiumPage openAuth={openAuth} />} />
-                <Route path="/500" element={<ServerErrorPage />} />
-                <Route 
-                  path="/admin" 
-                  element={
-                    <AdminRoute>
-                      <AdminPage />
-                    </AdminRoute>
-                  } 
+      <LazyMotion features={loadFeatures} strict>
+        <ErrorBoundary>
+          <AuthProvider>
+            <TransitionProvider>
+              <NotificationProvider>
+                <NotificationSubscriber />
+                <Suspense fallback={
+                  <div className="h-screen flex items-center justify-center bg-[#f8faf9]">
+                    <div className="w-10 h-10 border-4 border-[#1B4332] border-t-transparent rounded-full animate-spin"></div>
+                  </div>
+                }>
+                  <Routes>
+                    <Route path="/" element={<SplashPage />} />
+                    <Route path="/main" element={<MainPage openAuth={openAuth} />} />
+                    <Route path="/login" element={<LoginPage />} />
+                    <Route path="/map" element={<MapPage openAuth={openAuth} />} />
+                    <Route path="/ranking" element={<RankingPage openAuth={openAuth} />} />
+                    <Route path="/forgot-password" element={<ForgotPage />} />
+                    <Route path="/terms" element={<TermsPage />} />
+                    <Route path="/privacy" element={<PrivacyPage />} />
+                    <Route path="/mypage" element={<MyPage openAuth={openAuth} />} />
+                    <Route path="/support" element={<SupportPage openAuth={openAuth} />} />
+                    <Route path="/auth/callback" element={<AuthCallback />} />
+                    <Route path="/signup/social" element={<SocialSignupPage />} />
+                    <Route path="/payment/success" element={<PaymentSuccessPage />} />
+                    <Route path="/premium" element={<PremiumPage openAuth={openAuth} />} />
+                    <Route path="/500" element={<ServerErrorPage />} />
+                    <Route 
+                      path="/admin" 
+                      element={
+                        <AdminRoute>
+                          <AdminPage />
+                        </AdminRoute>
+                      } 
+                    />
+                    <Route path="/404" element={<NotFoundPage />} />
+                    <Route path="*" element={<NotFoundPage />} />
+                  </Routes>
+                </Suspense>
+                <AuthModal 
+                  isOpen={authOpen} 
+                  onClose={() => setAuthOpen(false)} 
+                  defaultMode={authMode}
+                  onSuccess={() => {
+                    if (onAuthSuccess) onAuthSuccess();
+                    setOnAuthSuccess(null);
+                  }}
                 />
-                <Route path="/404" element={<NotFoundPage />} />
-                <Route path="*" element={<NotFoundPage />} />
-              </Routes>
-              <AuthModal 
-                isOpen={authOpen} 
-                onClose={() => setAuthOpen(false)} 
-                defaultMode={authMode}
-                onSuccess={() => {
-                  if (onAuthSuccess) onAuthSuccess();
-                  setOnAuthSuccess(null);
-                }}
-              />
-            </NotificationProvider>
-          </TransitionProvider>
-        </AuthProvider>
-      </ErrorBoundary>
+              </NotificationProvider>
+            </TransitionProvider>
+          </AuthProvider>
+        </ErrorBoundary>
+      </LazyMotion>
     </BrowserRouter>
   );
 }

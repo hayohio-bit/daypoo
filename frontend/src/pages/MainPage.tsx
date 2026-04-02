@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Navbar } from '../components/Navbar';
 import { HeroSection } from '../components/HeroSection';
 import { ReportCard } from '../components/ReportCard_Glass';
@@ -11,6 +12,7 @@ import { NovaGlow } from '../components/NovaGlow';
 
 export function MainPage({ openAuth }: { openAuth: (mode: 'login' | 'signup') => void }) {
   const [sheetOpen, setSheetOpen] = useState(false);
+  const navigate = useNavigate();
 
   return (
     <div style={{ background: '#F8FAF9' }} className="relative min-h-screen">
@@ -19,7 +21,7 @@ export function MainPage({ openAuth }: { openAuth: (mode: 'login' | 'signup') =>
       {/* Hero Section */}
       <div className="relative overflow-hidden">
         <HeroSection 
-          onCtaClick={() => document.getElementById('map-scroll-target')?.scrollIntoView({ behavior: 'smooth' })} 
+          onCtaClick={() => navigate('/map?openNearest=true')} 
           openAuth={openAuth}
         />
       </div>

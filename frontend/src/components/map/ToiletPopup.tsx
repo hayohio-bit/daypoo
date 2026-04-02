@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { motion, AnimatePresence } from 'framer-motion';
+import { m, AnimatePresence } from 'framer-motion';
 import { X, Navigation, Star, Clock, Users, MessageCircle, Loader2, MapPin, Target, Sparkles, CheckCircle2, Smile, Wind, ScrollText, VolumeX, Check } from 'lucide-react';
 import WaveButtonComponent from '../WaveButton';
 import { ToiletData, EMOJI_TAG_MAP } from '../../types/toilet';
@@ -133,7 +133,7 @@ export function ToiletPopup({
   return (
     <>
       <AnimatePresence>
-        <motion.div
+        <m.div
           initial={{ opacity: 0, y: 16, scale: 0.97 }}
           animate={{ opacity: 1, y: 0, scale: 1 }}
           exit={{ opacity: 0, y: 8, scale: 0.97 }}
@@ -175,7 +175,7 @@ export function ToiletPopup({
               )}
             </div>
             <div className="flex items-center gap-2 flex-shrink-0">
-              <motion.button
+              <m.button
                 onClick={() => onFavoriteToggle(toilet.id)}
                 whileHover={{ scale: 1.15, rotate: toilet.isFavorite ? -5 : 5, boxShadow: '0 4px 12px rgba(232, 168, 56, 0.25)' }}
                 whileTap={{ scale: 0.85 }}
@@ -192,8 +192,8 @@ export function ToiletPopup({
                   stroke={toilet.isFavorite ? '#E8A838' : 'currentColor'}
                   style={{ transform: 'translateY(-0.5px)' }}
                 />
-              </motion.button>
-              <motion.button 
+              </m.button>
+              <m.button 
                 onClick={onClose} 
                 whileHover={{ scale: 1.1, rotate: 90 }}
                 whileTap={{ scale: 0.9 }}
@@ -201,7 +201,7 @@ export function ToiletPopup({
                 style={{ background: '#f4faf6', color: '#7a9e8a' }}
               >
                 <X size={20} />
-              </motion.button>
+              </m.button>
             </div>
           </div>
 
@@ -230,7 +230,7 @@ export function ToiletPopup({
             <div className="flex items-center justify-between mb-3">
               <p className="text-sm font-bold" style={{ color: '#1a2b22' }}>최근 후기</p>
               {reviewSummary && reviewSummary.reviewCount > 0 && (
-                <motion.button
+                <m.button
                   onClick={() => setShowReviewListModal(true)}
                   whileHover={{ scale: 1.05, backgroundColor: '#dcfce7' }}
                   whileTap={{ scale: 0.95 }}
@@ -238,7 +238,7 @@ export function ToiletPopup({
                   style={{ background: '#e8f3ec', color: '#2D6A4F' }}
                 >
                   전체 {reviewSummary.reviewCount}개 보기
-                </motion.button>
+                </m.button>
               )}
             </div>
 
@@ -327,22 +327,22 @@ export function ToiletPopup({
 
           {/* ── 길찾기 버튼 ── */}
           <div className="px-5 py-4 flex gap-3" style={{ borderBottom: '1px solid #eef5f0' }}>
-            <motion.button 
+            <m.button 
               onClick={openKakaoMap} 
               whileHover={{ scale: 1.05, rotate: -1 }} 
               whileTap={{ scale: 0.95 }}
               className="flex-1 flex items-center justify-center gap-2 py-3.5 rounded-xl text-sm font-bold bg-[#FEE500] text-[#1a1a1a] shadow-sm"
             >
               <Navigation size={16} /> 카카오
-            </motion.button>
-            <motion.button 
+            </m.button>
+            <m.button 
               onClick={openNaverMap} 
               whileHover={{ scale: 1.05, rotate: 1 }} 
               whileTap={{ scale: 0.95 }}
               className="flex-1 flex items-center justify-center gap-2 py-3.5 rounded-xl text-sm font-bold bg-[#03C75A] text-white shadow-sm"
             >
               <Navigation size={16} /> 네이버
-            </motion.button>
+            </m.button>
           </div>
 
           {/* ── 방문 인증 ── */}
@@ -364,7 +364,7 @@ export function ToiletPopup({
               {toilet.isVisited ? '다시 방문 인증하기' : '방문 인증하기'}
             </WaveButtonComponent>
           </div>
-        </motion.div>
+        </m.div>
       </AnimatePresence>
 
       {showReviewModal && createPortal(
