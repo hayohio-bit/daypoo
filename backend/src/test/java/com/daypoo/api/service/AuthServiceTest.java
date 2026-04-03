@@ -14,7 +14,11 @@ import com.daypoo.api.entity.User;
 import com.daypoo.api.entity.enums.Role;
 import com.daypoo.api.global.exception.BusinessException;
 import com.daypoo.api.global.exception.ErrorCode;
-import com.daypoo.api.repository.*;
+import com.daypoo.api.repository.InventoryRepository;
+import com.daypoo.api.repository.ItemRepository;
+import com.daypoo.api.repository.PooRecordRepository;
+import com.daypoo.api.repository.TitleRepository;
+import com.daypoo.api.repository.UserRepository;
 import com.daypoo.api.security.JwtProvider;
 import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
@@ -70,6 +74,7 @@ class AuthServiceTest {
   @DisplayName("성공: 회원가입")
   void signUp_success() {
     // given
+    given(adminSettingsService.isSignupEnabled()).willReturn(true);
     given(userRepository.existsByEmail(anyString())).willReturn(false);
     given(userRepository.existsByNickname(anyString())).willReturn(false);
     given(passwordEncoder.encode(anyString())).willReturn("encodedPassword");
@@ -86,6 +91,7 @@ class AuthServiceTest {
   @DisplayName("실패: 중복된 이메일로 회원가입")
   void signUp_fail_duplicateEmail() {
     // given
+    given(adminSettingsService.isSignupEnabled()).willReturn(true);
     given(userRepository.existsByEmail(anyString())).willReturn(true);
 
     // when & then

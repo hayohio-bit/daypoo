@@ -9,7 +9,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
 
-@Disabled("공공데이터 동기화 테스트는 외부 DB 및 API 의존성이 있어 로컬 환경에서 제외합니다.")
+@Disabled("외부 공공데이터 API를 실제 호출하는 통합 테스트 - 로컬에서만 수동 실행")
 @SpringBootTest
 @ActiveProfiles("test")
 public class PublicDataSyncTest {
@@ -25,10 +25,10 @@ public class PublicDataSyncTest {
 
     // When
     int[] result = publicDataSyncService.syncAllToilets(startPage, endPage);
-    int savedCount = result[0];
+    int totalCount = result[0];
 
     // Then
-    System.out.println("✅ Successfully processed " + savedCount + " toilets.");
-    assertThat(savedCount).isGreaterThanOrEqualTo(0);
+    System.out.println("✅ Successfully processed " + totalCount + " toilets.");
+    assertThat(totalCount).isGreaterThanOrEqualTo(0);
   }
 }

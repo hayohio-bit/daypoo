@@ -35,6 +35,7 @@ class RankingServiceTest {
   @Mock private TitleRepository titleRepository;
   @Mock private PooRecordRepository recordRepository;
   @Mock private HealthReportSnapshotRepository snapshotRepository;
+  @Mock private com.daypoo.api.repository.InventoryRepository inventoryRepository;
   @Mock private ZSetOperations<String, String> zSetOperations;
 
   private User testUser;
@@ -88,7 +89,6 @@ class RankingServiceTest {
 
     given(zSetOperations.reverseRangeWithScores(anyString(), anyLong(), anyLong()))
         .willReturn(mockTuples);
-    given(zSetOperations.size(anyString())).willReturn(2L);
 
     User otherUser = User.builder().nickname("Other").build();
     ReflectionTestUtils.setField(otherUser, "id", 2L);
