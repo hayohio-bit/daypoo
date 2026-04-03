@@ -109,7 +109,7 @@ export function Navbar({ openAuth }: { openAuth: (mode: 'login' | 'signup') => v
           }}
           animate={hidden ? 'hidden' : 'visible'}
           transition={{ duration: 0.35, ease: 'easeInOut' }}
-          className="flex items-center bg-[#1A2B27] rounded-full px-5 py-3 shadow-[0_12px_48px_rgba(0,0,0,0.3)] gap-4 pointer-events-auto"
+          className="flex items-center bg-[#1A2B27] rounded-full px-8 py-3 shadow-[0_12px_48px_rgba(0,0,0,0.3)] gap-4 pointer-events-auto"
           style={{ scale }}
         >
           {/* 로고 */}
@@ -266,11 +266,10 @@ export function Navbar({ openAuth }: { openAuth: (mode: 'login' | 'signup') => v
                 <Link
                   to="/main"
                   onClick={() => setDrawerOpen(false)}
-                  className={`flex items-center gap-4 px-4 py-3.5 rounded-2xl transition-all ${
-                    isActivePath('/main')
+                  className={`flex items-center gap-4 px-4 py-3.5 rounded-2xl transition-all ${isActivePath('/main')
                       ? 'bg-white/10 text-white'
                       : 'text-white/60 hover:bg-white/5 hover:text-white/80'
-                  }`}
+                    }`}
                 >
                   <Home size={20} />
                   <span className="text-[15px] font-bold">홈</span>
@@ -283,11 +282,10 @@ export function Navbar({ openAuth }: { openAuth: (mode: 'login' | 'signup') => v
                       key={link.path}
                       to={link.path}
                       onClick={() => setDrawerOpen(false)}
-                      className={`flex items-center gap-4 px-4 py-3.5 rounded-2xl transition-all ${
-                        isActivePath(link.path)
+                      className={`flex items-center gap-4 px-4 py-3.5 rounded-2xl transition-all ${isActivePath(link.path)
                           ? 'bg-white/10 text-white'
                           : 'text-white/60 hover:bg-white/5 hover:text-white/80'
-                      }`}
+                        }`}
                     >
                       <Icon size={20} />
                       <span className="text-[15px] font-bold">{link.label}</span>
@@ -302,11 +300,10 @@ export function Navbar({ openAuth }: { openAuth: (mode: 'login' | 'signup') => v
                   <Link
                     to="/mypage"
                     onClick={() => setDrawerOpen(false)}
-                    className={`flex items-center gap-4 px-4 py-3.5 rounded-2xl transition-all ${
-                      isActivePath('/mypage')
+                    className={`flex items-center gap-4 px-4 py-3.5 rounded-2xl transition-all ${isActivePath('/mypage')
                         ? 'bg-white/10 text-white'
                         : 'text-white/60 hover:bg-white/5 hover:text-white/80'
-                    }`}
+                      }`}
                   >
                     <User size={20} />
                     <span className="text-[15px] font-bold">마이페이지</span>
@@ -333,11 +330,10 @@ export function Navbar({ openAuth }: { openAuth: (mode: 'login' | 'signup') => v
                 <Link
                   to="/premium"
                   onClick={() => setDrawerOpen(false)}
-                  className={`flex items-center gap-4 px-4 py-3.5 rounded-2xl transition-all ${
-                    isActivePath('/premium')
+                  className={`flex items-center gap-4 px-4 py-3.5 rounded-2xl transition-all ${isActivePath('/premium')
                       ? 'bg-white/10 text-white'
                       : 'text-white/60 hover:bg-white/5 hover:text-white/80'
-                  }`}
+                    }`}
                 >
                   <Crown size={20} />
                   <span className="text-[15px] font-bold">프리미엄</span>

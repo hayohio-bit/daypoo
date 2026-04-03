@@ -32,11 +32,15 @@ export function MainPage({ openAuth }: { openAuth: (mode: 'login' | 'signup') =>
 
   const handleHealthLogComplete = async (result: HealthLogResult) => {
     try {
+      const pos = { lat: 0, lng: 0 }; // Placeholder for location logic
       const payload: HealthRecordRequest = {
         conditionTags: result.conditionTags,
         dietTags: result.foodTags,
+        latitude: pos.lat,
+        longitude: pos.lng,
         ...(result.bristolType !== null && { bristolScale: result.bristolType }),
         ...(result.color !== null && { color: result.color }),
+        ...(result.imageBase64 && { imageBase64: result.imageBase64 }),
       };
       await api.post('/records', payload);
       setShowHealthLog(false);
@@ -54,7 +58,6 @@ export function MainPage({ openAuth }: { openAuth: (mode: 'login' | 'signup') =>
       <div className="relative overflow-hidden">
         <HeroSection
           onCtaClick={() => navigate('/map?openNearest=true')}
-          onRecordClick={handleRecordClick}
           openAuth={openAuth}
         />
       </div>

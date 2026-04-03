@@ -799,16 +799,30 @@ export function SupportPage({
           </motion.div>
 
           <motion.h1
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8 }}
-            className="text-3xl sm:text-6xl md:text-8xl font-black mb-6 sm:mb-12 leading-[1.1] sm:leading-[0.95] tracking-tighter text-[#1A2B27]"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="text-4xl sm:text-7xl md:text-8xl font-black mb-10 sm:mb-16 leading-[1.1] sm:leading-[1] tracking-tighter text-[#1A2B27]"
           >
-            우리가 무엇을
-            <br />
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#1B4332] via-[#2D6A4F] to-[#52B788]">
-              도와드릴까요?
-            </span>
+            <div className="overflow-hidden py-2">
+              <motion.span
+                initial={{ y: "100%" }}
+                animate={{ y: 0 }}
+                transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
+                className="block"
+              >
+                우리가 무엇을
+              </motion.span>
+            </div>
+            <div className="overflow-hidden py-2 -mt-2">
+              <motion.span
+                initial={{ y: "100%" }}
+                animate={{ y: 0 }}
+                transition={{ duration: 0.8, delay: 0.1, ease: [0.16, 1, 0.3, 1] }}
+                className="block text-transparent bg-clip-text bg-[length:300%_auto] bg-gradient-to-r from-[#1B4332] via-[#E8A838] to-[#52B788] animate-text-shimmer"
+              >
+                도와드릴까요?
+              </motion.span>
+            </div>
           </motion.h1>
 
           <ModernSearch value={searchQuery} onChange={setSearchQuery} />
@@ -818,10 +832,10 @@ export function SupportPage({
 
       {/* Main Content Area */}
       <main className="relative z-10 bg-white">
-        <div className="max-w-[1240px] mx-auto px-4 sm:px-6 pt-4 sm:pt-[60px] pb-[80px] sm:pb-[120px] flex flex-col lg:flex-row gap-4 sm:gap-16">
-          <aside className="w-full lg:w-[260px] shrink-0 overflow-x-hidden">
-            <div className="sticky top-[120px] space-y-6 lg:space-y-12 max-w-full">
-              <div className="flex flex-row lg:flex-col gap-2.5 overflow-x-auto pb-4 lg:pb-0 scrollbar-hide">
+        <div className="max-w-[1240px] mx-auto px-4 sm:px-6 pt-4 sm:pt-[60px] pb-[80px] sm:pb-[120px] flex flex-col lg:flex-row gap-8 sm:gap-16">
+          <aside className="w-full lg:w-[260px] shrink-0">
+            <div className="sticky top-[120px] space-y-8 lg:space-y-12 max-w-full">
+              <div className="flex flex-wrap lg:flex-col gap-3 pb-2">
                 {[
                   {
                     id: 'faq' as const,
@@ -838,7 +852,7 @@ export function SupportPage({
                   <button
                     key={tab.id}
                     onClick={() => handleTabChange(tab.id)}
-                    className={`flex items-center justify-between group px-4 sm:px-6 py-2.5 sm:py-5 rounded-full sm:rounded-[22px] transition-all duration-300 relative overflow-hidden flex-shrink-0 min-w-[140px] lg:min-w-0 ${activeTab === tab.id ? 'bg-[#1B4332] text-white shadow-lg lg:shadow-2xl scale-[1.03]' : 'bg-[#f4f9f6] hover:bg-[#eaf4ee] text-[#5C6B68]'}`}
+                    className={`flex items-center justify-between group px-5 sm:px-6 py-3.5 sm:py-5 rounded-2xl sm:rounded-[22px] transition-all duration-300 relative overflow-visible flex-grow lg:flex-grow-0 ${activeTab === tab.id ? 'bg-[#1B4332] text-white shadow-lg lg:shadow-2xl scale-[1.02]' : 'bg-[#f4f9f6] hover:bg-[#eaf4ee] text-[#5C6B68]'}`}
                   >
                     <div className="flex items-center gap-2 sm:gap-4 relative z-10">
                       <span
@@ -873,12 +887,12 @@ export function SupportPage({
                     <div className="flex items-center gap-2.5 px-3 text-[11px] font-black text-[#5C6B68]/40 uppercase tracking-[0.2em]">
                       <Filter size={13} /> CATEGORIES
                     </div>
-                    <div className="flex flex-row lg:flex-col gap-2 overflow-x-auto pb-2 scrollbar-hide px-1">
+                    <div className="flex flex-wrap lg:flex-col gap-2 pb-2 px-1">
                       {CATEGORIES.map((cat) => (
                         <button
                           key={cat}
                           onClick={() => setActiveCategory(cat)}
-                          className={`px-4 sm:px-5 py-2 sm:py-3 rounded-full lg:rounded-2xl text-[12px] sm:text-[14px] font-black text-left transition-all flex-shrink-0 ${activeCategory === cat ? 'bg-[#52B788]/15 text-[#1B4332] shadow-sm' : 'bg-transparent text-[#5C6B68]/50 hover:text-[#1A2B27] hover:bg-[#f4f9f6]'}`}
+                          className={`px-4 sm:px-5 py-2.5 sm:py-3 rounded-full lg:rounded-2xl text-[12px] sm:text-[14px] font-black text-left transition-all ${activeCategory === cat ? 'bg-[#52B788]/15 text-[#1B4332] shadow-sm' : 'bg-transparent text-[#5C6B68]/50 hover:text-[#1A2B27] hover:bg-[#f4f9f6]'}`}
                         >
                           {cat}
                         </button>
