@@ -58,13 +58,9 @@ public class ToiletIndexingService {
     try {
       log.info("[OpenSearch] === 강제 재인덱싱 시작 ===");
       WebClient client = webClientBuilder.build();
-      // 1. 기존 인덱스 삭제
       deleteIndex(client);
-      // 2. 새 인덱스 생성 (Nori + geo_point)
       createIndex(client);
-      // 3. 전체 데이터 인덱싱 (조건 체크 없이)
       indexAll();
-      // 4. 구버전 인덱스 정리
       cleanupOldIndex();
       log.info("[OpenSearch] === 강제 재인덱싱 완료 ===");
     } catch (Exception e) {
@@ -128,13 +124,11 @@ public class ToiletIndexingService {
       client.head().uri(opensearchUrl + "/" + INDEX_NAME).retrieve().toBodilessEntity().block();
       indexExists = true;
     } catch (Exception e) {
-      // 404 → 인덱스 없음 → 생성
       createIndex(client);
     }
 
-    // 인덱스가 있지만 geo_point 매핑이 없으면 삭제 후 재생성
     if (indexExists && !isIndexMappingCurrent(client)) {
-      log.info("[OpenSearch] geo_point 매핑 누락 - 인덱스 재생성");
+      log.info("[OpenSearch] 인덱스 매핑 outdated - 재생성");
       deleteIndex(client);
       indexExists = false;
     }
@@ -154,14 +148,11 @@ public class ToiletIndexingService {
               .bodyToMono(String.class)
               .block();
       JsonNode node = objectMapper.readTree(response);
-      String locationType =
-          node.path(INDEX_NAME)
-              .path("mappings")
-              .path("properties")
-              .path("location")
-              .path("type")
-              .asText("");
-      return "geo_point".equals(locationType);
+      JsonNode properties = node.path(INDEX_NAME).path("mappings").path("properties");
+      // n-gram 전환 여부: nameChosung이 text 타입이어야 함
+      String chosungType = properties.path("nameChosung").path("type").asText("");
+      String locationType = properties.path("location").path("type").asText("");
+      return "text".equals(chosungType) && "geo_point".equals(locationType);
     } catch (Exception e) {
       return false;
     }
@@ -188,24 +179,31 @@ public class ToiletIndexingService {
           "settings": {
             "index": {
               "number_of_shards": 1,
-              "number_of_replicas": 0
+              "number_of_replicas": 0,
+              "max_ngram_diff": 10
             },
             "analysis": {
               "tokenizer": {
                 "kor_tokenizer": {
                   "type": "nori_tokenizer",
                   "decompound_mode": "mixed"
+                },
+                "chosung_ngram_tokenizer": {
+                  "type": "ngram",
+                  "min_gram": 1,
+                  "max_gram": 6,
+                  "token_chars": []
                 }
               },
               "analyzer": {
                 "nori_analyzer": {
                   "type": "custom",
                   "tokenizer": "kor_tokenizer",
-                  "filter": [
-                    "lowercase",
-                    "nori_readingform",
-                    "nori_part_of_speech"
-                  ]
+                  "filter": ["lowercase", "nori_readingform", "nori_part_of_speech"]
+                },
+                "chosung_ngram_analyzer": {
+                  "type": "custom",
+                  "tokenizer": "chosung_ngram_tokenizer"
                 }
               }
             }
@@ -214,9 +212,9 @@ public class ToiletIndexingService {
             "properties": {
               "id":             {"type": "long"},
               "name":           {"type": "text", "analyzer": "nori_analyzer"},
-              "nameChosung":    {"type": "keyword"},
+              "nameChosung":    {"type": "text", "analyzer": "chosung_ngram_analyzer", "search_analyzer": "keyword"},
               "address":        {"type": "text", "analyzer": "nori_analyzer"},
-              "addressChosung": {"type": "keyword"},
+              "addressChosung": {"type": "text", "analyzer": "chosung_ngram_analyzer", "search_analyzer": "keyword"},
               "latitude":       {"type": "double"},
               "longitude":      {"type": "double"},
               "location":       {"type": "geo_point"}
@@ -233,7 +231,7 @@ public class ToiletIndexingService {
           .retrieve()
           .bodyToMono(String.class)
           .block();
-      log.info("[OpenSearch] 인덱스 '{}' 생성 완료", INDEX_NAME);
+      log.info("[OpenSearch] 인덱스 '{}' 생성 완료 (n-gram + geo_point)", INDEX_NAME);
     } catch (Exception e) {
       log.warn("[OpenSearch] 인덱스 생성 실패: {}", e.getMessage());
     }
@@ -283,9 +281,8 @@ public class ToiletIndexingService {
   private void cleanupOldIndex() {
     WebClient client = webClientBuilder.build();
     try {
-      // 구버전 인덱스(toilets) 삭제 시도
       client.delete().uri(opensearchUrl + "/toilets").retrieve().toBodilessEntity().block();
-      log.info("[OpenSearch] 구버전 인덱스 'toilets' 삭제 완료 - 클러스터 상태 녹색(Green) 전환 유도");
+      log.info("[OpenSearch] 구버전 인덱스 'toilets' 삭제 완료");
     } catch (Exception e) {
       // 이미 삭제되었거나 없으면 무시
     }
