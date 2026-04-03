@@ -192,7 +192,7 @@ public class ToiletIndexingService {
                   "type": "ngram",
                   "min_gram": 1,
                   "max_gram": 6,
-                  "token_chars": []
+                  "token_chars": ["letter"]
                 }
               },
               "analyzer": {
