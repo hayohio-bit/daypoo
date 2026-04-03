@@ -80,6 +80,9 @@ public class ToiletSearchService {
       throws Exception {
     boolean isChosung = ChosungUtils.isChosungOnly(query);
     String chosungQuery = ChosungUtils.extractChosung(query);
+    boolean hasLocation = latitude != null && longitude != null;
+    // 짧은 초성(1~2글자)은 매칭 범위가 너무 넓으므로 거리 필터로 후보를 제한
+    boolean isShortChosung = isChosung && chosungQuery.length() <= 2;
 
     List<Object> shouldClauses = new ArrayList<>();
 
@@ -101,7 +104,7 @@ public class ToiletSearchService {
           Map.of("match_phrase_prefix", Map.of("name", Map.of("query", query, "boost", 15.0))));
     }
 
-    // 2. 초성 검색 (가중치 조정)
+    // 2. 초성 검색
     shouldClauses.add(
         Map.of("term", Map.of("nameChosung", Map.of("value", chosungQuery, "boost", 100.0))));
     shouldClauses.add(
@@ -115,52 +118,55 @@ public class ToiletSearchService {
             "wildcard",
             Map.of("addressChosung", Map.of("value", "*" + chosungQuery + "*", "boost", 5.0))));
 
-    Map<String, Object> finalQuery;
+    // ── bool 쿼리 조립 ──────────────────────────────────────────
+    java.util.LinkedHashMap<String, Object> boolQuery = new java.util.LinkedHashMap<>();
+    boolQuery.put("should", shouldClauses);
+    boolQuery.put("minimum_should_match", 1);
 
-    if (latitude != null && longitude != null) {
-      // 거리와 일치도를 합산한 점수 모델 사용
-      finalQuery =
-          Map.of(
-              "function_score",
+    // 짧은 초성 + 위치 있으면: geo_distance filter로 반경 제한 (50km)
+    if (isShortChosung && hasLocation) {
+      boolQuery.put(
+          "filter",
+          List.of(
               Map.of(
-                  "query",
-                  Map.of("bool", Map.of("should", shouldClauses, "minimum_should_match", 1)),
-                  "functions",
-                  List.of(
-                      Map.of(
-                          "gauss",
-                          Map.of(
-                              "location",
-                              Map.of(
-                                  "origin", Map.of("lat", latitude, "lon", longitude),
-                                  "offset", "500m",
-                                  "scale", "3km")),
-                          "weight",
-                          2.0)),
-                  "score_mode",
-                  "multiply",
-                  "boost_mode",
-                  "multiply"));
-    } else {
-      finalQuery = Map.of("bool", Map.of("should", shouldClauses, "minimum_should_match", 1));
+                  "geo_distance",
+                  Map.of(
+                      "distance", "50km",
+                      "location", Map.of("lat", latitude, "lon", longitude)))));
     }
 
+    Map<String, Object> finalQuery = Map.of("bool", boolQuery);
+
+    // ── 결과 조립 ───────────────────────────────────────────────
     java.util.LinkedHashMap<String, Object> queryBody = new java.util.LinkedHashMap<>();
     queryBody.put("query", finalQuery);
     queryBody.put("size", size);
 
-    // 점수(일치도+거리)를 1순위로, 그래도 같으면 더 가까운 순으로
-    if (latitude != null && longitude != null) {
-      queryBody.put(
-          "sort",
-          List.of(
-              Map.of("_score", "desc"),
-              Map.of(
-                  "_geo_distance",
-                  Map.of(
-                      "location", Map.of("lat", latitude, "lon", longitude),
-                      "order", "asc",
-                      "unit", "m"))));
+    // 짧은 초성은 거리순 정렬 (모두 동일한 매칭 점수이므로)
+    // 긴 초성/텍스트는 점수순 → 거리순
+    if (hasLocation) {
+      if (isShortChosung) {
+        queryBody.put(
+            "sort",
+            List.of(
+                Map.of(
+                    "_geo_distance",
+                    Map.of(
+                        "location", Map.of("lat", latitude, "lon", longitude),
+                        "order", "asc",
+                        "unit", "m"))));
+      } else {
+        queryBody.put(
+            "sort",
+            List.of(
+                Map.of("_score", "desc"),
+                Map.of(
+                    "_geo_distance",
+                    Map.of(
+                        "location", Map.of("lat", latitude, "lon", longitude),
+                        "order", "asc",
+                        "unit", "m"))));
+      }
     }
 
     return objectMapper.writeValueAsString(queryBody);
