@@ -36,12 +36,23 @@ public class ToiletSearchService {
       String query, int size, Double latitude, Double longitude) {
     if (query == null || query.isBlank()) return List.of();
 
+    // 1차: 위치 포함 검색 (geo_distance 정렬)
     try {
       String requestBody = buildQuery(query.trim(), size, latitude, longitude);
       String response = executeSearch(requestBody);
       return parseResponse(response);
     } catch (Exception e) {
-      log.error("[OpenSearch] 검색 실패 query='{}': {}", query, e.getMessage());
+      log.warn(
+          "[OpenSearch] geo_distance 정렬 실패, 점수순으로 재시도합니다. query='{}': {}", query, e.getMessage());
+    }
+
+    // 2차: geo_distance 정렬 실패 시에만 점수순 fallback (결과 0건은 fallback 없이 빈 배열 반환)
+    try {
+      String requestBody = buildQuery(query.trim(), size, null, null);
+      String response = executeSearch(requestBody);
+      return parseResponse(response);
+    } catch (Exception e) {
+      log.error("[OpenSearch] 검색 완전 실패 query='{}': {}", query, e.getMessage());
       return List.of();
     }
   }
