@@ -1294,26 +1294,12 @@ function HomeTab({
                                   alt={item.name}
                                   className="w-full h-full object-contain transition-transform group-hover:scale-110 duration-500"
                                 />
-                                {item.imageUrl &&
-                                (isEmoji(item.imageUrl) ||
-                                  (!item.imageUrl.includes(':') &&
-                                    !item.imageUrl.startsWith('http') &&
-                                    !item.imageUrl.startsWith('/'))) ? (
-                                  <span className="text-6xl transition-transform group-hover:scale-110 duration-500 select-none leading-none">
-                                    {item.imageUrl}
-                                  </span>
-                                ) : (
-                                  <img
-                                    src={parseDicebearUrl(item.imageUrl, item.id, avatarType)}
-                                    alt={item.name}
-                                    className="w-full h-full object-contain transition-transform group-hover:scale-110 duration-500"
-                                  />
-                                )}
-                                {isOwned && (
-                                  <div className="absolute top-2 right-2 w-7 h-7 rounded-full bg-emerald-500 text-white flex items-center justify-center shadow-lg">
-                                    <Check size={14} strokeWidth={3} />
-                                  </div>
-                                )}
+                              )}
+                              {isOwned && (
+                                <div className="absolute top-2 right-2 w-7 h-7 rounded-full bg-emerald-500 text-white flex items-center justify-center shadow-lg">
+                                  <Check size={14} strokeWidth={3} />
+                                </div>
+                              )}
                               </div>
                               <div className="p-3 border-t border-gray-100">
                                 <h5 className="font-black text-sm mb-1 text-black truncate">
