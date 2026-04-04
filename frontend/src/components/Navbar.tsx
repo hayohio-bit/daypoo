@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { AnimatedUnderlink } from './AnimatedUnderlink';
+import WaveButton from './WaveButton';
 import { useAuth } from '../context/AuthContext';
 import { useNotification } from '../context/NotificationContext';
 import { NotificationPanel } from './NotificationPanel';
@@ -91,9 +92,9 @@ export function Navbar({ openAuth }: { openAuth: (mode: 'login' | 'signup') => v
         dietTags: result.foodTags,
         ...(result.bristolType !== null && { bristolScale: result.bristolType }),
         ...(result.color !== null && { color: result.color }),
+        ...(result.imageBase64 && { imageBase64: result.imageBase64 }),
       };
       await api.post('/records', payload);
-      setShowHealthLog(false);
     } catch (e: any) {
       alert(`기록 저장 실패: ${e.message || '서버 오류'}`);
     }
@@ -149,13 +150,15 @@ export function Navbar({ openAuth }: { openAuth: (mode: 'login' | 'signup') => v
             {isAuthenticated ? (
               <>
                 {/* 글로벌 기록하기 버튼 (로그인 시에만) */}
-                <button
+                <WaveButton
                   onClick={() => setShowHealthLog(true)}
-                  className="flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-bold transition-all hover:opacity-90 active:scale-95 bg-[#E8A838] text-[#1A2B27] shrink-0"
+                  variant="accent"
+                  size="sm"
+                  icon={<Plus size={14} />}
+                  className="shadow-lg shadow-amber-500/20 whitespace-nowrap"
                 >
-                  <Plus size={14} />
                   기록하기
-                </button>
+                </WaveButton>
 
                 <Link
                   to="/mypage"

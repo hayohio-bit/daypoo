@@ -1,6 +1,6 @@
 import React, { useRef, useState, useEffect, useCallback, useMemo } from "react";
 import { Link } from "react-router-dom";
-import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
+import { motion, AnimatePresence, useReducedMotion, Variants } from "framer-motion";
 import { useTransitionContext } from "../context/TransitionContext";
 
 // @ts-ignore - Math might be misidentified in this environment
@@ -156,7 +156,7 @@ export function AnimatedUnderlink({
     return `${minX} ${minY} ${w} ${h}`;
   }, [effectiveStroke, underlineHeightPx, underlineWidth]);
 
-  const pathVariants = useMemo(
+   const pathVariants: Variants = useMemo(
     () => ({
       hidden: { pathLength: 0, pathOffset: 0 },
       visible: {

@@ -303,8 +303,8 @@ export function MapPage({ openAuth }: { openAuth: (mode: 'login' | 'signup') => 
           toiletId: Number(result.toiletId),
           conditionTags: result.conditionTags,
           dietTags: result.foodTags,
-          // 위치 정보가 있으면 포함, 없으면 제외 (백엔드 처리 대응)
-          ...(pos && { latitude: pos.lat, longitude: pos.lng }),
+          latitude: pos!.lat,
+          longitude: pos!.lng,
           // Fast-Track: bristolType / color가 null이면 AI 자동 분석
           ...(result.bristolType !== null && { bristolScale: result.bristolType }),
           ...(result.color !== null && { color: result.color }),
@@ -318,8 +318,8 @@ export function MapPage({ openAuth }: { openAuth: (mode: 'login' | 'signup') => 
           ...prev,
           [String(result.toiletId)]: (prev[String(result.toiletId)] || 0) + 1,
         }));
-        setTargetForVisit(null);
-        alert('방문 인증이 완료되었습니다! 💩✨');
+        // setTargetForVisit(null); // HealthLogModal에서 성공 화면을 보여주므로 여기서 닫지 않음
+        // alert('방문 인증이 완료되었습니다! 💩✨');
       } catch (e: any) {
         const code = e.code || 'UNKNOWN';
         switch (code) {
@@ -402,7 +402,7 @@ export function MapPage({ openAuth }: { openAuth: (mode: 'login' | 'signup') => 
               initial={{ opacity: 0, y: -20 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -20 }}
-              className="absolute top-[200px] left-1/2 -translate-x-1/2 z-20 w-full px-4"
+              className="absolute top-[220px] md:top-[200px] left-1/2 -translate-x-1/2 z-20 w-full px-4"
               style={{ maxWidth: '600px' }}
             >
               <div

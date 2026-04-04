@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect, lazy, Suspense } from 'react';
-import { BrowserRouter, Route, Routes, Navigate, useLocation } from 'react-router-dom';
+import { BrowserRouter, Route, Routes, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { LazyMotion, m } from 'framer-motion';
 
 // Lazy load all pages
@@ -40,6 +40,9 @@ const PremiumPage = lazy(() =>
 );
 const ServerErrorPage = lazy(() =>
   import('./pages/ServerErrorPage').then((m) => ({ default: m.ServerErrorPage })),
+);
+const LoadingPage = lazy(() =>
+  import('./pages/LoadingPage').then((m) => ({ default: m.LoadingPage })),
 );
 
 import { TransitionProvider } from './context/TransitionContext';
@@ -177,6 +180,7 @@ function App() {
                       }
                     />
                     <Route path="/404" element={<NotFoundPage />} />
+                    <Route path="/loading" element={<LoadingPage />} />
                     <Route path="*" element={<NotFoundPage />} />
                   </Routes>
                 </Suspense>
