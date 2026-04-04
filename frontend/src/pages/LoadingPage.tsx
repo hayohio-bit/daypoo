@@ -70,7 +70,7 @@ export function LoadingPage() {
         <m.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.5 }}
+          transition={{ duration: 0.4 }}
           className="mt-12 text-center"
         >
           <div className="flex items-center justify-center gap-2 mb-2">
@@ -107,7 +107,7 @@ export function LoadingPage() {
       <m.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
-        transition={{ delay: 1 }}
+        transition={{ duration: 0.6 }}
         className="absolute bottom-12 text-center px-6"
       >
         <p className="text-[11px] text-[#7a9e8a]/60 font-medium tracking-tight">
