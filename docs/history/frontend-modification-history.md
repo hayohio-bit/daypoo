@@ -1,5 +1,15 @@
 # Frontend Modification History
 
+## [2026-04-06 11:35:00] 글로벌 기록 모달(HealthLogModal) 사진 촬영 후 자동 제출 로직 적용
+**작업 내용:**
+- **플로우 일치**: 방문 인증(VisitModal)과 동일하게, `HealthLogModal`에서도 사진을 찍으면 수동 입력 단계를 거치지 않고 바로 '기록 완료하기'가 가능하게 수정했습니다.
+- **버튼 반응성**: 사진 촬영 직후, 하단 버튼이 '다음 단계' 대신 '기록 완료하기'로 자동 변경되며 클릭 시 바로 AI 분석 요청을 포함한 기록이 제출됩니다.
+
+**수정된 파일:**
+- `frontend/src/components/map/HealthLogModal.tsx`
+
+---
+
 ## [2026-04-06 11:25:00] 글로벌 기록 모달(HealthLogModal) 카메라 기능 오작동 수정
 **작업 내용:**
 - **카메라 스트림 연동**: `HealthLogModal`에서 카메라를 실행해도 화면에 스트리밍이 되지 않던 문제(video 요소에 srcObject를 할당하는 useEffect 누락)를 해결했습니다.

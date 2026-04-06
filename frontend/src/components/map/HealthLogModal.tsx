@@ -101,7 +101,7 @@ export function HealthLogModal({
     canvas.getContext('2d')?.drawImage(video, 0, 0);
     setCapturedImage(canvas.toDataURL('image/jpeg', 0.8));
     stopCamera();
-    setTimeout(() => setStep(1), 800);
+    // 0.8초 후 자동으로 넘어가던 로직 제거 (사용자가 명시적으로 다음 버튼을 누르게 함)
   };
 
   useEffect(() => {
@@ -115,6 +115,23 @@ export function HealthLogModal({
   }, [stopCamera]);
 
   const handleNext = async () => {
+    // 사진이 이미 찍힌 경우 0단계에서 바로 완료 가능하도록 처리
+    if (step === 0 && capturedImage) {
+      try {
+        await onComplete({
+          bristolType: null,
+          color: null,
+          conditionTags: [],
+          foodTags: [],
+          imageBase64: capturedImage,
+        });
+        setIsSuccess(true);
+      } catch (e) {
+        console.error('기록 저장 실패:', e);
+      }
+      return;
+    }
+
     if (step < 3) {
       setStep(step + 1);
     } else {
@@ -361,7 +378,16 @@ export function HealthLogModal({
                       <m.div key="check" initial={{ y: 10, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: -10, opacity: 0 }} transition={{ type: 'tween', ease: 'easeOut', duration: 0.12 }} className="font-black text-white">체크 완료!</m.div>
                     ) : (
                       <m.div key="text" initial={{ y: -10, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 10, opacity: 0 }} transition={{ type: 'tween', ease: 'easeOut', duration: 0.12 }} className="flex items-center gap-2">
-                        {step === 3 ? <div className="flex items-center gap-2"><Sparkles size={18} className="text-amber-300" />기록 완료하기</div> : step === 0 ? '촬영없이 기록하기' : '다음 단계로'}
+                        {step === 3 ? (
+                          <div className="flex items-center gap-2">
+                            <Sparkles size={18} className="text-amber-300" />
+                            기록 완료하기
+                          </div>
+                        ) : step === 0 ? (
+                          capturedImage ? '기록 완료하기' : '촬영없이 기록하기'
+                        ) : (
+                          '다음 단계로'
+                        )}
                       </m.div>
                     )}
                   </AnimatePresence>
