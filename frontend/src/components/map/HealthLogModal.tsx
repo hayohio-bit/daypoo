@@ -24,6 +24,8 @@ interface HealthLogModalProps {
   toilet?: ToiletData | null;
   initialBristolType?: number | null;
   initialColor?: PoopColor | null;
+  initialImage?: string | null;
+  startStep?: number; // 추가: 시작 단계를 외부에서 지정
   onClose: () => void;
   onComplete: (result: HealthLogResult) => Promise<void>;
 }
@@ -32,7 +34,7 @@ const STEPS = ['AI 촬영', '모양 선택', '색상 선택', '추가 정보'];
 
 const BRISTOL_DETAILS = [
   { type: 1, emoji: '🪨', label: '딱딱한 알맹이', desc: '분리된 딱딱한 덩어리', fullDesc: '수분이 극도로 부족한 상태로, 심한 변비를 의미합니다. 장내 체류 시간이 길어져 돌멩이처럼 딱딱한 배변이 발생합니다.', status: '심한 변비', color: '#8d6e63' },
-  { type: 2, emoji: '🥖', label: '단단한 소시지형', desc: '덩어리가 뭉친 소시지 모양', fullDesc: '수분이 다소 부족하여 바게트처럼 단단하게 덩어리들이 뭉쳐 있습니다. 가벼운 변비가 의심되며 수분 섭취가 권장됩니다.', status: '변비 경향', color: '#a1887f' },
+  { type: 2, emoji: '🥖', label: '단단한 소시지형', desc: '덩어리가 뭉친 소시지 모양', fullDesc: '수분이 다소 부족하여 바게트처럼 단단하게 덩어리들이 뭉치 있습니다. 가벼운 변비가 의심되며 수분 섭취가 권장됩니다.', status: '변비 경향', color: '#a1887f' },
   { type: 3, emoji: '🥜', label: '갈라진 소시지형', desc: '표면에 균열이 있는 소시지', fullDesc: '정상 범주에 속하지만 땅콩 껍질처럼 다소 표면에 균열이 있고 단단할 수 있습니다. 규칙적인 생활과 섬유질 섭취가 도움이 됩니다.', status: '정상 (다소 단단)', color: '#bcaaa4' },
   { type: 4, emoji: '🍌', label: '매끄러운 바나나', desc: '부드럽고 매끄러운 바나나 모양', fullDesc: '가장 이상적인 건강 상태입니다! 뱀처럼 부드럽고 매끈하며 적절한 탄력을 가진 최고의 컨디션입니다.', status: '매우 건강함', color: '#8BC34A' },
   { type: 5, emoji: '🫘', label: '폭신한 덩어리 모양', desc: '부드러운 덩어리, 경계 뚜렷', fullDesc: '부드러운 알맹이 형태로 경계가 뚜렷합니다. 전반적으로 양호한 상태이며 원활한 소화가 이루어지고 있습니다.', status: '양호 (약간 무름)', color: '#4caf50' },
@@ -44,10 +46,13 @@ export function HealthLogModal({
   toilet,
   initialBristolType,
   initialColor,
+  initialImage,
+  startStep,
   onClose,
   onComplete,
 }: HealthLogModalProps) {
-  const [step, setStep] = useState(0);
+  // 에너테이션: 외부에서 지정한 startStep이 있으면 우선, 아니면 이미지 유무에 따라 결정
+  const [step, setStep] = useState(startStep ?? (initialImage ? 1 : 0));
   const [bristolType, setBristolType] = useState<number | null>(initialBristolType ?? null);
   const [color, setColor] = useState<PoopColor | null>(initialColor ?? null);
   const [conditions, setConditions] = useState<ConditionTag[]>([]);
@@ -62,7 +67,7 @@ export function HealthLogModal({
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const [isCameraActive, setIsCameraActive] = useState(false);
-  const [capturedImage, setCapturedImage] = useState<string | null>(null);
+  const [capturedImage, setCapturedImage] = useState<string | null>(initialImage ?? null);
 
   const startCamera = async () => {
     try {
@@ -337,7 +342,7 @@ export function HealthLogModal({
               {step > 0 && <button onClick={() => setStep(step - 1)} className="flex items-center justify-center w-14 h-14 rounded-2xl border-2 border-[#eef5f0] text-[#7a9e8a] hover:bg-[#f4faf6] transition-colors"><ChevronLeft size={24} /></button>}
               <WaveButtonComponent
                 onClick={handleNext} onMouseEnter={() => setIsNextHovered(true)} onMouseLeave={() => setIsNextHovered(false)}
-                disabled={step === 1 ? !bristolType : step === 2 ? !color : false}
+                disabled={step === 1 ? !bristolType : step === 2 ? !color : step === 3 ? (conditions.length === 0 || foods.length === 0) : false}
                 variant="primary" size="lg" className="flex-1 shadow-lg overflow-hidden group"
               >
                 <div className="relative h-6 flex items-center justify-center min-w-[120px]">

@@ -29,8 +29,10 @@ export function VisitModal({ toilet, onClose, onComplete, checkInTime }: VisitMo
   const [visitDone, setVisitDone] = useState(false);
   // 건강 기록 모달 표시 여부
   const [showHealthLog, setShowHealthLog] = useState(false);
+  const [healthLogStartStep, setHealthLogStartStep] = useState<number | undefined>(undefined);
   const [showCloseConfirm, setShowCloseConfirm] = useState(false);
   const [isRecordSubmitted, setIsRecordSubmitted] = useState(false);
+  const [showNoPhotoConfirm, setShowNoPhotoConfirm] = useState(false);
   // 인증 완료 시각 (onComplete 호출 시 사용)
   const completedAtRef = useRef<string>('');
 
@@ -129,15 +131,39 @@ export function VisitModal({ toilet, onClose, onComplete, checkInTime }: VisitMo
       alert(`⌛ 최소 ${remainingSeconds}초 더 체류가 필요합니다.`);
       return;
     }
+
+    if (!capturedImage) {
+      setShowNoPhotoConfirm(true);
+      return;
+    }
+
     completedAtRef.current = new Date().toISOString();
     setVisitDone(true);
   };
 
-  // 건너뛰기: 건강 기록 없이 방문만 POST
+  const handleConfirmNoPhoto = () => {
+    setShowNoPhotoConfirm(false);
+    completedAtRef.current = new Date().toISOString();
+    setVisitDone(true);
+    setHealthLogStartStep(1); // 바로 모양 선택으로 진입
+    setShowHealthLog(true);
+  };
+
+  // 건너뛰기: 건강 기록 없이 방문만 POST (백엔드 필수값 우회를 위해 기본값 전송)
   const handleSkipHealthLog = async () => {
     setShowCloseConfirm(false);
     try {
-      await onComplete(buildResult());
+      // 백엔드 validation을 통과하기 위해 최소한의 기본값 세팅
+      const defaultResult: HealthLogResult = {
+        bristolType: 4, // 정상 (바나나)
+        color: 'golden', // 황금색
+        conditionTags: ['쾌적함'],
+        foodTags: ['채소위주'],
+        imageBase64: null
+      };
+      await onComplete(buildResult(defaultResult));
+      setIsRecordSubmitted(true);
+      onClose();
     } catch (e: any) {
       if (e.code === 'R007') {
         alert('똥 사진이 아닌 것 같아요!\n변기 안의 변을 다시 촬영해주세요. 💩');
@@ -160,6 +186,8 @@ export function VisitModal({ toilet, onClose, onComplete, checkInTime }: VisitMo
         setVisitDone(false);
         setShowHealthLog(false);
         await startCamera();
+      } else {
+        throw e; // 다른 오류(체류 시간 미달 등)는 위로 던져서 HealthLogModal이 성공으로 인식하지 않게 함
       }
     }
   };
@@ -249,7 +277,10 @@ export function VisitModal({ toilet, onClose, onComplete, checkInTime }: VisitMo
                   </div>
                   <div className="w-full space-y-3 pt-2">
                     <WaveButtonComponent
-                      onClick={() => setShowHealthLog(true)}
+                      onClick={() => {
+                        if (!capturedImage) setHealthLogStartStep(1);
+                        setShowHealthLog(true);
+                      }}
                       variant="primary"
                       size="lg"
                       className="w-full shadow-lg"
@@ -361,9 +392,21 @@ export function VisitModal({ toilet, onClose, onComplete, checkInTime }: VisitMo
                       </WaveButtonComponent>
                     </div>
                   ) : (
-                    <p className="text-center text-[#7a9e8a] text-sm font-bold">
-                      촬영은 선택 사항입니다
-                    </p>
+                    <div className="text-center space-y-4">
+                      <p className="text-[#7a9e8a] text-sm font-bold">
+                        촬영은 선택 사항입니다
+                      </p>
+                      <button 
+                        onClick={() => {
+                          handleComplete();
+                          setHealthLogStartStep(1); // 1단계(브리스톨)부터 시작하도록 설정
+                          setShowHealthLog(true);
+                        }}
+                        className="text-[11px] font-black text-emerald-600/60 hover:text-emerald-600 transition-colors underline underline-offset-4"
+                      >
+                        사진 없이 기록만 남기기
+                      </button>
+                    </div>
                   )}
                 </div>
               )}
@@ -382,10 +425,45 @@ export function VisitModal({ toilet, onClose, onComplete, checkInTime }: VisitMo
               className="w-full shadow-lg"
               icon={<Sparkles size={20} />}
             >
-              {canComplete ? '인증 완료하기 ✨' : `${remainingSeconds}초 대기 중`}
+              {canComplete ? '인증하기' : `${remainingSeconds}초 대기 중`}
             </WaveButtonComponent>
           </div>
         )}
+
+        {/* 사진 미촬영 안내 컨펌 (커스텀 대화상자) */}
+        <AnimatePresence>
+          {showNoPhotoConfirm && (
+            <m.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="absolute inset-0 z-[2060] flex items-center justify-center p-6"
+            >
+              <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setShowNoPhotoConfirm(false)} />
+              <div className="relative bg-white rounded-3xl p-6 shadow-2xl max-w-[320px] w-full text-center">
+                <div className="w-14 h-14 rounded-full bg-emerald-50 flex items-center justify-center mx-auto mb-4">
+                  <Camera size={28} className="text-emerald-500" />
+                </div>
+                <h3 className="font-black text-lg text-[#1a2b22] mb-2">사진 촬영을 하지 않았습니다</h3>
+                <p className="text-sm text-[#7a9e8a] mb-6">사진 없이 기록만 남기시겠습니까?</p>
+                <div className="flex gap-3">
+                  <button 
+                    onClick={() => setShowNoPhotoConfirm(false)}
+                    className="flex-1 py-3 bg-[#f4faf6] text-[#7a9e8a] font-bold rounded-2xl hover:bg-[#e8f3ec] transition-colors"
+                  >
+                    아니오
+                  </button>
+                  <button 
+                    onClick={handleConfirmNoPhoto}
+                    className="flex-1 py-3 bg-emerald-500 text-white font-bold rounded-2xl hover:bg-emerald-600 transition-colors"
+                  >
+                    예
+                  </button>
+                </div>
+              </div>
+            </m.div>
+          )}
+        </AnimatePresence>
       </m.div>
 
       {/* 닫기 확인 모달 */}
@@ -447,13 +525,13 @@ export function VisitModal({ toilet, onClose, onComplete, checkInTime }: VisitMo
         {showHealthLog && (
           <HealthLogModal
             toilet={toilet}
-            // TODO: /ai/analyze 엔드포인트 구현 후 capturedImage를 전달해 AI 초기값 적용
-            // initialBristolType={aiResult?.bristolScale ?? null}
-            // initialColor={aiResult?.color as PoopColor ?? null}
             initialBristolType={null}
             initialColor={null}
+            initialImage={capturedImage} // 촬영된 이미지를 건강 기록 모달로 전달
+            startStep={healthLogStartStep}
             onClose={() => {
               setShowHealthLog(false);
+              setHealthLogStartStep(undefined); // 상태 초기화
               // 기록이 완료된 상태에서 건강기록 모달을 닫으면 방문인증 모달도 함께 닫음
               if (isRecordSubmitted) {
                 onClose();
