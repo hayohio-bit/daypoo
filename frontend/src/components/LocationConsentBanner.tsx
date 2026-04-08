@@ -7,31 +7,30 @@ export function LocationConsentBanner() {
   const [isVisible, setIsVisible] = useState(false);
 
   useEffect(() => {
-    // Check if permission was already handled in this session or granted
     const checkPermission = async () => {
       if (!('geolocation' in navigator)) return;
 
+      // 이미 사용자가 응답한 경우 배너 표시 안 함
+      const hasPrompted = localStorage.getItem('location_prompted');
+      if (hasPrompted) return;
+
       try {
         const result = await navigator.permissions.query({ name: 'geolocation' as PermissionName });
-        
-        // Show banner only if state is 'prompt'
-        if (result.state === 'prompt') {
-          // Add a small delay for premium feel
-          const timer = setTimeout(() => setIsVisible(true), 1500);
-          return () => clearTimeout(timer);
-        }
 
-        // Listen for changes
+        // 이미 권한이 결정된 경우 배너 불필요
+        if (result.state !== 'prompt') return;
+
+        const timer = setTimeout(() => setIsVisible(true), 1500);
+
+        // 권한 상태가 바뀌면 배너 닫기 (수락/거절 후)
         result.onchange = () => {
-          if (result.state === 'prompt') setIsVisible(true);
-          else setIsVisible(false);
+          if (result.state !== 'prompt') setIsVisible(false);
         };
+
+        return () => clearTimeout(timer);
       } catch (e) {
-        // Fallback for browsers that don't support permissions.query for geolocation
-        const hasPrompted = sessionStorage.getItem('location_prompted');
-        if (!hasPrompted) {
-          setTimeout(() => setIsVisible(true), 1500);
-        }
+        // iOS Safari 등 permissions.query 미지원 브라우저 폴백
+        setTimeout(() => setIsVisible(true), 1500);
       }
     };
 
@@ -40,23 +39,16 @@ export function LocationConsentBanner() {
 
   const handleAccept = () => {
     setIsVisible(false);
-    sessionStorage.setItem('location_prompted', 'true');
-    // Trigger the native browser permission dialog
+    localStorage.setItem('location_prompted', 'true');
     navigator.geolocation.getCurrentPosition(
-      () => {
-        // Success - permission granted
-        console.log('Location access granted');
-      },
-      (error) => {
-        // Error or denied
-        console.warn('Location access denied:', error);
-      }
+      () => console.log('Location access granted'),
+      (error) => console.warn('Location access denied:', error)
     );
   };
 
   const handleDecline = () => {
     setIsVisible(false);
-    sessionStorage.setItem('location_prompted', 'true');
+    localStorage.setItem('location_prompted', 'true');
   };
 
   return (
