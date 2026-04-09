@@ -1,5 +1,19 @@
 # Frontend Modification History
 
+## [2026-04-09 12:02:00] iOS 등 모바일 환경 더블 탭(Hover Sticky) 이슈 해결
+
+**작업 내용:**
+- iOS Safari 및 터치 기반 기기에서 요소(버튼, 내비바 등)를 터치할 때, `:hover` 이벤트가 우선 캐치되어 첫 번째 탭 시 동작하지 않고 두 번 눌러야 클릭으로 판정되는 **"Hover Sticky"** 고질적 버그를 해결했습니다.
+- `tailwind.config.js` 내부에 `future: { hoverOnlyWhenSupported: true }` 옵션을 추가 적용하여, 마우스(Hover) 기능이 지원되지 않는 터치 디바이스에서는 Hover CSS가 렌더링되거나 활성화되지 않도록 원천 차단했습니다.
+
+**수정(추가)된 파일:**
+- `frontend/tailwind.config.js`
+
+**결과/영향:** 
+- 스마트폰 브라우저 및 앱 내장 브라우저 환경에서 모든 버튼, 카드, 메뉴 탭 시 "한 번의 터치"만으로 부드럽게 즉각 반응하게 되어 체감 조작 속도와 사용 편의성이 극대화되었습니다.
+
+---
+
 ## [2026-04-09 10:55:00] Location Consent Banner 및 iOS 위치 권한 요청 로직 개선
 
 **작업 내용:**
