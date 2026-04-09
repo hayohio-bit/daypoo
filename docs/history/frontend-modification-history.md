@@ -1,5 +1,26 @@
 # Frontend Modification History
 
+## [2026-04-09 15:26:00] iOS Safari 위치 추적 마비 문제 해결 (커스텀 모달 동의 로직 개선)
+
+**작업 내용:**
+
+- **위치 추적 시작 로직 고도화 (3-Case 분기 구현):**
+  - **Case 1 (기동의):** `location_consented` 플래그 존재 시 즉시 실시간 추적 시작
+  - **Case 2 (모달 경험 후 미동의):** 커스텀 모달은 보았으나 동의하지 않은 경우라도, 브라우저 실제 권한을 `permissions.query`로 확인하여 이미 허용 상태라면 `localStorage` 플래그를 동기화하고 즉시 추적 시작
+  - **Case 3 (초기 방문):** 폴백 좌표(서울시청) 설정 후 커스텀 모달 대기
+- **iOS Safari 전용 예외 처리:**
+  - iOS Safari가 지원하지 않는 `navigator.permissions.query` 호출 시 `catch` 블록에서 곧바로 `initTracking()`을 호출하여 실제 권한 여부를 간접적으로 확인(이미 권한이 있으면 프롬프트 없이 작동)
+- **자동 동기화 시스템:**
+  - 위치 추적(`watchPosition`) 성공 시, `location_consented` 및 `location_prompted` 플래그를 자동으로 `'true'`로 설정하여 다음 방문 시 불필요한 절차 없이 즉시 추적되도록 개선
+- **안전장치:**
+  - 모든 권한 확인 및 추적 시작 로직에 `try-catch` 가드를 추가하여 런타임 에러 방지
+
+**수정된 파일:**
+
+- `frontend/src/hooks/useGeoTracking.ts` (비즈니스 로직 전면 개편)
+
+**결과/영향:** 커스텀 모달 도입 후 플래그 미설정 시 위치 추적이 시작되지 않던 iOS Safari 전용 먹통 현상 해결. 실제 브라우저 권한 상태와 서비스 기획상의 동의 플래그를 일치시켜 사용자 경험 개선.
+
 ## [2026-04-09 14:30:00] iOS 더블탭 근본 해결 + FAQ 크래시 방어 + SW 캐시 강제갱신
 
 **작업 내용:**
