@@ -135,7 +135,18 @@ export function MapPage({ openAuth }: { openAuth: (mode: 'login' | 'signup') => 
     setCheckInTime(startTime);
   }, []);
 
-  const { position: pos } = useGeoTracking(toilets, handleAutoCheckIn);
+  const DEFAULT_POS = { lat: 37.5172, lng: 127.0473 };
+  const { position } = useGeoTracking(toilets, handleAutoCheckIn);
+  const pos = position ?? DEFAULT_POS;
+  const hasReceivedRealPos = useRef(false);
+
+  // ── 실제 위치 수신 시 지도 자동 이동 ──────────────────────────
+  useEffect(() => {
+    if (position && !hasReceivedRealPos.current) {
+      hasReceivedRealPos.current = true;
+      mapViewRef.current?.panTo(position.lat, position.lng);
+    }
+  }, [position]);
 
   // ── 방문 횟수 데이터 가져오기 ──────────────────────────────
   useEffect(() => {
@@ -372,18 +383,6 @@ export function MapPage({ openAuth }: { openAuth: (mode: 'login' | 'signup') => 
                 ? t.isVisited
                 : true,
         );
-
-  if (!pos) {
-    return (
-      <div className="relative h-screen flex flex-col" style={{ background: '#F2F7F4' }}>
-        <Navbar openAuth={openAuth} />
-        <div className="flex-1 flex items-center justify-center text-center overflow-hidden">
-          <div className="text-4xl mb-4 animate-bounce">📍</div>
-          <p className="text-[#7a9e8a] font-bold">위치를 찾고 있습니다...</p>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="relative h-screen flex flex-col" style={{ background: '#F2F7F4' }}>

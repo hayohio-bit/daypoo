@@ -32,6 +32,7 @@ export function useGeoTracking(
 
     let watchId: number | null = null;
     let permissionStatus: PermissionStatus | null = null;
+    let fallbackTimer: ReturnType<typeof setTimeout> | null = null;
 
     const startWatching = () => {
       if (watchId !== null) return; // Already watching
@@ -75,9 +76,8 @@ export function useGeoTracking(
         (err) => {
           console.error('[GeoTracking] 위치 추적 실패:', err);
           setGranted(false);
-          if (!position) {
-              setPosition({ lat: 37.5172, lng: 127.0473 }); // Fallback
-          }
+          // functional update로 stale closure 방지
+          setPosition(prev => prev ?? { lat: 37.5172, lng: 127.0473 });
         },
         { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
       );
@@ -87,23 +87,33 @@ export function useGeoTracking(
       if ('permissions' in navigator) {
         try {
           permissionStatus = await navigator.permissions.query({ name: 'geolocation' as PermissionName });
-          
-          // Start immediately if already granted or denied (fallback logic)
+
           if (permissionStatus.state === 'granted') {
             startWatching();
+          } else if (permissionStatus.state === 'denied') {
+            // 권한 거부 상태 → fallback 좌표 즉시 설정
+            setGranted(false);
+            setPosition(prev => prev ?? { lat: 37.5172, lng: 127.0473 });
+          } else {
+            // 'prompt' 상태 → onchange 대기하되, iOS에서 onchange 미발화 대비 안전 타임아웃
+            fallbackTimer = setTimeout(() => {
+              if (watchId === null) startWatching();
+            }, 5000);
           }
 
-          // Real-time listener for the custom banner interaction
           permissionStatus.onchange = () => {
             console.log('[GeoTracking] Permission state changed:', permissionStatus?.state);
             if (permissionStatus?.state === 'granted') {
+              if (fallbackTimer) { clearTimeout(fallbackTimer); fallbackTimer = null; }
               startWatching();
             } else if (permissionStatus?.state === 'denied') {
+              if (fallbackTimer) { clearTimeout(fallbackTimer); fallbackTimer = null; }
               if (watchId !== null) {
                 navigator.geolocation.clearWatch(watchId);
                 watchId = null;
               }
               setGranted(false);
+              setPosition(prev => prev ?? { lat: 37.5172, lng: 127.0473 });
             }
           };
         } catch (e) {
@@ -121,6 +131,7 @@ export function useGeoTracking(
     return () => {
       if (watchId !== null) navigator.geolocation.clearWatch(watchId);
       if (permissionStatus) permissionStatus.onchange = null;
+      if (fallbackTimer) clearTimeout(fallbackTimer);
     };
   }, [isEnabled, toilets, refreshUser]); 
 
