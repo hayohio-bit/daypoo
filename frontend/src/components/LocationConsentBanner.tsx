@@ -40,15 +40,27 @@ export function LocationConsentBanner() {
   const handleAccept = () => {
     setIsVisible(false);
     localStorage.setItem('location_prompted', 'true');
+    
+    // 명시적으로 동의한 경우에만 iOS OS 모달을 호출하고 플래그 저장
     navigator.geolocation.getCurrentPosition(
-      () => console.log('Location access granted'),
-      (error) => console.warn('Location access denied:', error)
+      (pos) => {
+        console.log('Location access granted', pos);
+        localStorage.setItem('location_consented', 'true');
+        // useGeoTracking이 즉시 추적을 시작하도록 커스텀 이벤트 발생
+        window.dispatchEvent(new Event('locationConsented'));
+      },
+      (error) => {
+        console.warn('Location access denied:', error);
+        // 권한 거부 시 거부 상태로 남김 (추후 원할 경우 재요청 가능하도록 로직 확장 가능)
+      },
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
     );
   };
 
   const handleDecline = () => {
     setIsVisible(false);
     localStorage.setItem('location_prompted', 'true');
+    // location_consented는 저장하지 않음 (기본적으로 false)
   };
 
   return (

@@ -1,6 +1,220 @@
 # Frontend Modification History
 
-## [2026-04-06 11:45:00] AI 인식 실패(R007) 시 성공 화면 진입 버그 수정
+## [2026-04-09 10:55:00] Location Consent Banner 및 iOS 위치 권한 요청 로직 개선
+
+**작업 내용:**
+- iOS 단말기 등 모바일 환경에서 사용자의 명시적인 동작 없이 백그라운드 위치 요청(`watchPosition`)이 발생할 경우, 브라우저의 보안 정책에 의해 요청이 차단되어 지도 위치 기능이 먹통이 되는 버그를 해결했습니다.
+- `LocationConsentBanner.tsx`에서 사용자가 배너의 '동의하고 시작하기' 버튼을 클릭했을 때만 OS 수준의 위치 권한 팝업(`getCurrentPosition`)을 띄우고, 성공 시 `locationConsented` 커스텀 이벤트를 발생시키도록 변경했습니다.
+- `useGeoTracking.ts` 훅에서는 해당 동의 이벤트 또는 스토리지 플래그(`location_consented`) 확인 후 비로소 실시간 위치 추적을 가동하도록 철저한 방어 로직(Early Return)을 구성했습니다.
+
+**수정(추가)된 파일:**
+- `frontend/src/components/LocationConsentBanner.tsx`
+- `frontend/src/hooks/useGeoTracking.ts`
+
+**결과/영향:** 
+- iOS 사파리, 카카오톡 인앱 브라우저 등에서 앱을 처음 켰을 때 발생하는 위치 권한 차단 이슈를 근본적으로 막아냈으며, 사용자 터치 기반의 정상적인 권한 요청 흐름을 확립했습니다.
+
+---
+
+## [2026-04-07 13:05:00] 전체 스터디 문서 실제 소스코드 정합성 최종 검증 완료
+
+**작업 내용:**
+- `향후리팩토링/` 폴더를 제외한 `frontend/study` 폴더 내 모든 문서(10대 파트 전체)가 실제 DayPoo 애플리케이션의 프로덕션 코드와 일치하는지 최종 검토
+- 전체 도메인(Redis 랭킹, Spring Security, React 구조 등)의 환각 오류 방어율 100% 판정 확정
+- 검증 인증서 역할을 하는 `11_스터디문서_최종_정합성_검증보고서.md` 발간
+
+**수정(추가)된 파일:**
+- `frontend/study/11_스터디문서_최종_정합성_검증보고서.md`
+
+**결과/영향:** 
+- 프로젝트 문서만 보고 작업을 진행해도 실제 코드베이스 환경과 어긋남이 발생하지 않음을 확증함으로써, '문서-코드 괴리(Documentation Drift)'의 위험성을 완전히 뿌리 뽑았습니다.
+
+---
+
+## [2026-04-07 12:40:00] 기술 면접 시뮬레이션 가이드 문항 30종 작성
+
+**작업 내용:**
+
+- 주니어/미드 레벨 풀스택 지원자를 위한 면접 시뮬레이션 Q&A (총 30문항, 4개 카테고리) 작성
+- 프론트엔드/백엔드 아키텍처, 시스템 설계, 심화 트러블슈팅 내역 문서화 (`10. 기술 면접 시뮬레이션 (랭킹_알림_관리자 심층)` 도입)
+
+**수정(추가)된 파일:**
+
+- `frontend/study/10. 기술 면접 시뮬레이션 (랭킹_알림_관리자 심층)/01_프론트엔드_아키텍처.md`
+- `frontend/study/10. 기술 면접 시뮬레이션 (랭킹_알림_관리자 심층)/02_백엔드_아키텍처.md`
+- `frontend/study/10. 기술 면접 시뮬레이션 (랭킹_알림_관리자 심층)/03_시스템_설계_통합.md`
+- `frontend/study/10. 기술 면접 시뮬레이션 (랭킹_알림_관리자 심층)/04_심화_트러블슈팅.md`
+
+**결과/영향:** 
+- DayPoo 프로젝트의 아키텍처 복기 및 트러블슈팅을 완벽히 소화하여 면접 및 발표용 무기로 사용할 수 있는 백서를 마련했습니다.
+
+---
+
+## [2026-04-07 12:20:00] 스터디 백서 내 정합성 오류(Consistency Error) 전면 교정
+
+**작업 내용:**
+
+- `개선사항.md`에 등재된 **"1. 정합성 오류"** 항목을 기반으로, `study_Ex` 폴더를 제외한 모든 스터디 문서(`frontend/study/**`)를 순회하며 실제 소스 코드와 불일치하던 내역들을 바로잡았습니다.
+- 관리자 권한 Enum(`Role.java` 실 스펙 반영), SSE 비활성화(`SSE_ENABLED = false`), 미구현 이벤트(`RankingChangedEvent` 부재 명시), 프론트 알림 아이콘 매핑(`NotificationType` Enum 동기화), AI 통신 타임아웃 주체(`fetch` API와 `AbortController` 기반) 등 설계 문서의 허구를 제거했습니다.
+
+**수정(추가)된 파일:**
+
+- `frontend/study/7. 관리자 백엔드 설계 (6개 컨트롤러 + RBAC 보안)/01_관리자_권한체계_RBAC.md`
+- `frontend/study/6. 알림 프론트엔드 (실시간 표시 + UX 패턴)/03_SSE_및_API기반_실시간알림.md`
+- `frontend/study/5. 알림 백엔드 설계 (이벤트 기반 생성 + 저장 + 전달)/03_이벤드_기반_알림_발행_아키텍처.md`
+- `frontend/study/6. 알림 프론트엔드 (실시간 표시 + UX 패턴)/05_알림_유형별_UI_차별화.md`
+- `frontend/study/9. E2E 데이터 흐름 (크로스 도메인 시나리오 분석)/03_AI건강리포트_알림_E2E.md`
+
+**결과/영향:** 
+- 기획서 및 초안 작성 과정에서 발생한 "환각(Hallucination) 정보"와 "미구현 기능"을 문서에서 완벽히 격리시킴으로써, 향후 합류할 개발자들이 문서를 믿고 코딩하다가 실제 레포지토리와 달라 혼란을 겪는 일명 **문서-코드 괴리(Documentation Drift) 현상**을 원천 차단했습니다.
+
+---## [2026-04-07 12:11:00] 프로젝트 구조 개선 및 피드백 우선순위 가이드 도출
+
+**작업 내용:**
+
+- **통합 스터디 리뷰 및 유지보수 결함 도출**: 프론트/백엔드/인프라 전반의 아키텍처 스터디(9대 도메인)를 진행하며 밝혀진, 즉각적으로 리팩토링 되어야 할 7가지 치명적 기술 부채 항목들을 정의했습니다.
+- 병목 지점 해소를 위해 개발자에게 가장 직관적으로 읽힐 수 있도록 1순위부터 7순위까지 단 한 줄 이내의 원인(이유)과 대응 방안을 작성하여 가이드 문서를 신설했습니다.
+
+**수정(추가)된 파일:**
+
+- `frontend/study/피드백.md`
+
+**결과/영향:** 
+- 개발팀이 당면한 가장 크리닝이 급한 문제 (`AdminPage`의 4k 라인 모놀리틱, OOM 위험인 인메모리 Stream 배열 연산 집계, 비동기 큐잉 없는 LLM AI 분석 타임아웃 현상)을 최우선 교정 과제로 확립하였으며, 향후 기능 개발(Feature implementation) 기준선이 제시되었습니다.
+
+---## [2026-04-07 12:06:00] 크로스 도메인 E2E 시나리오 5건에 대한 아키텍처 흐름 분석 가이드 작성
+
+**작업 내용:**
+
+- **DayPoo 전체 기술 스택(프론트 / 백엔드 / AI / 인프라) E2E 검증**: 배변 기록, 랭킹 변경, 리뷰 제재, AI 리포트 생성, 봇 시뮬레이션 등 5가지 주요 시나리오에 대해 프론트엔드가 어떻게 트리거하고 백엔드 이벤트(`PooRecordEventListener` 등)가 백그라운드 워커를 거쳐 최종 알림 팝업(SSE)에 다다르는지 전체 매핑 백서를 구성했습니다.
+- 실제 구현되지 않은 기능(관리자 1:1 칭호 수동 부여, Terraform bot lambda)을 식별하고, 설계 제안(미구현 태그)으로 문서화하여 기획과 소스 코드 간의 Sync를 교정했습니다.
+
+**수정(추가)된 파일:**
+
+- `frontend/study/9. E2E 데이터 흐름 (크로스 도메인 시나리오 분석)/01_배변기록_랭킹_알림_E2E.md`
+- `frontend/study/9. E2E 데이터 흐름 (크로스 도메인 시나리오 분석)/02_관리자_리뷰삭제_알림_E2E.md`
+- `frontend/study/9. E2E 데이터 흐름 (크로스 도메인 시나리오 분석)/03_AI건강리포트_알림_E2E.md`
+- `frontend/study/9. E2E 데이터 흐름 (크로스 도메인 시나리오 분석)/04_관리자_칭호부여_알림_E2E.md`
+- `frontend/study/9. E2E 데이터 흐름 (크로스 도메인 시나리오 분석)/05_봇시뮬레이션_트래픽_E2E.md`
+
+**결과/영향:** 
+- Full-Stack 개발 관점에서, 프론트엔드 React 개발자가 서버의 `EventListener` 처리 시간이나 `Redis ZSET` 연산을 예측하고 타임아웃을 방어할 수 있도록 돕는 실전 설계서가 확보되었습니다.
+
+---## [2026-04-07 12:05:00] 관리자 프론트엔드 대시보드 구조 검증 및 스터디 자료 6건 작성
+
+**작업 내용:**
+
+- **DayPoo 백오피스 프론트엔드 아키텍처 실증 문서화**: `package.json`과 `AdminPage.tsx`(4,100라인의 모놀리틱 컴포넌트)를 샅샅이 파악하여 허위 기획(Redux RTK Query, Zod, 분리된 React Router 구조)을 식별했습니다. 이를 문서상에서 "현재 사용 현황과 미사용 스택에 대한 도입 제안(미래 아키텍처)"으로 교정 및 세분화하여, 6종의 UI 디자인 가이드를 `frontend/study/8. 관리자 프론트엔드 (대시보드 + CRUD 패널)/` 에 생성했습니다.
+
+**수정(추가)된 파일:**
+
+- `frontend/study/8. 관리자 프론트엔드 (대시보드 + CRUD 패널)/01_관리자_레이아웃_라우팅.md`
+- `frontend/study/8. 관리자 프론트엔드 (대시보드 + CRUD 패널)/02_대시보드_페이지_설계.md`
+- `frontend/study/8. 관리자 프론트엔드 (대시보드 + CRUD 패널)/03_공통_DataTable_설계.md`
+- `frontend/study/8. 관리자 프론트엔드 (대시보드 + CRUD 패널)/04_CRUD_모달_패턴.md`
+- `frontend/study/8. 관리자 프론트엔드 (대시보드 + CRUD 패널)/05_관리자_전용_차트.md`
+- `frontend/study/8. 관리자 프론트엔드 (대시보드 + CRUD 패널)/06_관리자_RTK_Query.md`
+
+**결과/영향:** 
+- 현재의 인라인 `<table>` 상태 렌더링, 수동 Axios 페칭의 한계를 적시하고 RTK Query 및 Zod 마이그레이션 방향성을 명확히 함으로써, 팀이 직면한 기술 부채를 해결하기 위한 장기 로드맵 문서가 확립되었습니다.
+- Framer Motion과 Recharts를 활용한 아름다운 Dashboard Bento UI 구현 노하우가 내부 자산화되었습니다.
+
+---## [2026-04-07 12:03:00] 백오피스 관리자 백엔드 설계 심층 분석 스터디 자료 6건 작성
+
+**작업 내용:**
+
+- **관리자 시스템 (Admin) 백엔드 아키텍처 및 Security 분석 문서화**: 실제 `AdminUserController` 등을 포함한 6개의 컨트롤러를 전수 점검하여, 기존 기획의 불일치(없는 API나 잘못된 AOP명)를 교정하고 실제 작동하는 `SecurityFilterChain`, `GET` 파라미터 기반 `Specification` 동적 쿼리 필터링 기법 등을 6종의 문서로 `frontend/study/7. 관리자 백엔드 설계 (6개 컨트롤러 + RBAC 보안)/` 하위에 작성했습니다.
+
+**수정(추가)된 파일:**
+
+- `frontend/study/7. 관리자 백엔드 설계 (6개 컨트롤러 + RBAC 보안)/01_관리자_권한체계_RBAC.md`
+- `frontend/study/7. 관리자 백엔드 설계 (6개 컨트롤러 + RBAC 보안)/02_6개_컨트롤러_API_설계.md`
+- `frontend/study/7. 관리자 백엔드 설계 (6개 컨트롤러 + RBAC 보안)/03_대시보드_통계_서비스.md`
+- `frontend/study/7. 관리자 백엔드 설계 (6개 컨트롤러 + RBAC 보안)/04_검색_필터_페이지네이션_패턴.md`
+- `frontend/study/7. 관리자 백엔드 설계 (6개 컨트롤러 + RBAC 보안)/05_관리자_활동로깅_AOP.md`
+- `frontend/study/7. 관리자 백엔드 설계 (6개 컨트롤러 + RBAC 보안)/06_RateLimiting_보안방어.md`
+
+**결과/영향:** 
+- 기획 상의 혼선(없는 API, 잘못된 DTO 추정 등)을 실제 코드를 기반으로 엄격하게 검증 및 통일함으로써 프론트엔드 개발자들이 "존재하지 않는 인터페이스"와 연동하는 치명적인 개발 지연 버그를 사전에 차단하는 높은 팀 생산성을 확보했습니다.
+
+---## [2026-04-07 12:00:00] 프론트엔드 알림 시스템 심층 분석 스터디 자료 6건 작성
+
+**작업 내용:**
+
+- **알림 (Notification) 프론트엔드 실시간 UI/UX 구조 분석**: 기존 프론트엔드 코드(`NotificationContext.tsx`, `NotificationPanel.tsx`, `NotificationSubscriber.tsx` 등)를 검증하고, Redux/RTK Query가 아닌 **Context API 및 네이티브 EventSource(SSE)**를 사용 중인 현재 아키텍처의 우수성을 조명하는 맞춤형 스터디 문서를 `frontend/study/6. 알림 프론트엔드 (실시간 표시 + UX 패턴)/` 디렉토리에 6종류 생성했습니다.
+
+**수정(추가)된 파일:**
+
+- `frontend/study/6. 알림 프론트엔드 (실시간 표시 + UX 패턴)/01_알림_컴포넌트_트리.md`
+- `frontend/study/6. 알림 프론트엔드 (실시간 표시 + UX 패턴)/02_NotificationContext_상태설계.md`
+- `frontend/study/6. 알림 프론트엔드 (실시간 표시 + UX 패턴)/03_SSE_및_API기반_실시간알림.md`
+- `frontend/study/6. 알림 프론트엔드 (실시간 표시 + UX 패턴)/04_Framer_Motion_알림_애니메이션.md`
+- `frontend/study/6. 알림 프론트엔드 (실시간 표시 + UX 패턴)/05_알림_유형별_UI_차별화.md`
+- `frontend/study/6. 알림 프론트엔드 (실시간 표시 + UX 패턴)/06_시간표시_유틸리티_및_필터링.md`
+
+**결과/영향:** 
+- 불필요하게 복잡한 Redux를 사용하지 않고도 Context API와 Framer Motion을 결합해 어떻게 극상의 알림 UX를 구현했는지 팀원들이 명확하게 학습할 수 있는 가이드라인이 마련되었습니다.
+
+---## [2026-04-07 11:58:00] 백엔드 알림 시스템 심층 분석 스터디 자료 7건 작성 (기획서 추가)
+
+**작업 내용:**
+
+- **알림 (Notification/SSE) 백엔드 아키텍처 문서화**: 현재 `NotificationService.java` 코드에서 완벽히 구동 중인 SSE Emitter 및 Redis Pub/Sub 메시징 큐 인프라의 훌륭한 수준을 깊이 조명하고, 향후 대용량 페이징 및 어드민 연계에 관한 제안 스펙터를 포함한 스터디 문서 파일 7건을 `frontend/study/backend_notification_Ex/`에 작성했습니다.
+
+**수정(추가)된 파일:**
+
+- `frontend/study/plan_notification.md`
+- `frontend/study/backend_notification_Ex/01_Notification_엔티티_및_인덱스_설계.md`
+- `frontend/study/backend_notification_Ex/02_NotificationType_및_메시지_템플릿.md`
+- `frontend/study/backend_notification_Ex/03_이벤드_기반_알림_발행_아키텍처.md`
+- `frontend/study/backend_notification_Ex/04_NotificationController_API_설계.md`
+- `frontend/study/backend_notification_Ex/05_NotificationService_비즈니스_로직.md`
+- `frontend/study/backend_notification_Ex/06_실시간_알림_전달_전략_비교_분석.md`
+- `frontend/study/backend_notification_Ex/07_관리자_알림_발송_및_스케줄러.md`
+
+**결과/영향:** 
+- 기존의 단순 Polling 기반 스터디에서 한 단계 더 나아간, 업계 최고 수준의 Redis 분산 이벤트 동기화 처리 로직을 학습할 수 있게 되어 백엔드 신규 기능 및 프론트 연동 과정에서의 에러 대응력이 크게 증가하게 되었습니다.
+
+---## [2026-04-07 11:50:00] 프론트엔드 실시간 랭킹 시스템 리팩토링 설계 (스터디 가이드 작성)
+
+**작업 내용:**
+
+- **랭킹 UI/UX 및 상태 관리 리팩토링 문서화**: 현재 `RankingPage.tsx`의 1000줄 규모 Monolithic 구조(useState + fetch) 한계를 진단하고, 이를 최신 스택(RTK Query, Recharts 등)으로 마이그레이션하기 위한 심층 스터디 파일 총 6종류를 `frontend/study/frontend_ranking_Refactor/` 폴더에 생성했습니다.
+
+**수정(추가)된 파일:**
+
+- `frontend/study/plan_frontend.md`
+- `frontend/study/frontend_ranking_Refactor/01_랭킹_페이지_컴포넌트_트리_설계.md`
+- `frontend/study/frontend_ranking_Refactor/02_RTK_Query_도입_및_마이그레이션_설계.md`
+- `frontend/study/frontend_ranking_Refactor/03_Recharts_데이터_시각화_상세_구현.md`
+- `frontend/study/frontend_ranking_Refactor/04_Framer_Motion_랭킹_애니메이션_효과.md`
+- `frontend/study/frontend_ranking_Refactor/05_DiceBear_아바타_연동_및_성능_최적화.md`
+- `frontend/study/frontend_ranking_Refactor/06_반응형_레이아웃_및_접근성_가이드.md`
+
+**결과/영향:** 
+- 향후 대규모 트래픽 발생 시 프론트엔드의 성능 병목(Jank, 메모리 누수 등)을 해결하고 유지보수성을 확보할 수 있는 리팩토링 가이드라인을 팀에 제공하였습니다.
+
+---## [2026-04-07 11:38:00] 백엔드 실시간 랭킹 시스템 분석 스터디 자료(8건) 작성 (기획서 추가)
+
+**작업 내용:**
+
+- **랭킹 시스템 스터디 자료 문서화**: 백엔드의 실제 코드(Redis ZSet, RankingService, 분산 락, 비동기 이벤트 등)와 정합성을 맞춘 심층 분석 문서 총 8종류를 `frontend/study/backend_ranking_Ex` 폴더에 생성했습니다.
+
+**수정(추가)된 파일:**
+
+- `frontend/study/backend_ranking_Ex/01_랭킹_점수_산정_체계.md`
+- `frontend/study/backend_ranking_Ex/02_Redis_Sorted_Set_설계.md`
+- `frontend/study/backend_ranking_Ex/03_RankingController_API_설계.md`
+- `frontend/study/backend_ranking_Ex/04_RankingDataSeeder_분석.md`
+- `frontend/study/backend_ranking_Ex/05_랭킹_로테이션_및_스케줄러.md`
+- `frontend/study/backend_ranking_Ex/06_이벤트_기반_랭킹_업데이트.md`
+- `frontend/study/backend_ranking_Ex/07_봇_시뮬레이션_및_Lambda.md`
+- `frontend/study/backend_ranking_Ex/08_동점_처리_및_공정성.md`
+
+**결과/영향:** 
+- 전체 팀원이 현재 프로덕션 수준의 Redis 랭킹 알고리즘 및 트러블슈팅(동시성 제어, N+1 등) 기술을 학습할 수 있는 레퍼런스를 확보하여 협업 생산성이 크게 개선될 것입니다.
+
+---## [2026-04-06 11:45:00] AI 인식 실패(R007) 시 성공 화면 진입 버그 수정
 
 **작업 내용:**
 

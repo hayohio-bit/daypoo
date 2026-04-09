@@ -28,6 +28,7 @@ export function useGeoTracking(
   }, [toilets]);
 
   useEffect(() => {
+    // isEnabled가 false면 위치 추적 안함
     if (!isEnabled || !navigator.geolocation) return;
 
     let watchId: number | null = null;
@@ -126,9 +127,26 @@ export function useGeoTracking(
       }
     };
 
-    initTracking();
+    // 1. 이미 동의한 상태인지 체크
+    const hasConsented = localStorage.getItem('location_consented') === 'true';
+
+    // 이미 동의한 사용자만 곧바로 Tracking 시작
+    if (hasConsented) {
+      initTracking();
+    } else {
+      // 2. 동의하지 않은 사용자는 fallback 위치 설정만 해둠. 실제 권한 요청 안함.
+      setPosition(prev => prev ?? { lat: 37.5172, lng: 127.0473 });
+    }
+
+    // 3. LocationConsentBanner에서 동의 이벤트를 발생시키면 Tracking 시작
+    const onLocationConsented = () => {
+      initTracking();
+    };
+
+    window.addEventListener('locationConsented', onLocationConsented);
 
     return () => {
+      window.removeEventListener('locationConsented', onLocationConsented);
       if (watchId !== null) navigator.geolocation.clearWatch(watchId);
       if (permissionStatus) permissionStatus.onchange = null;
       if (fallbackTimer) clearTimeout(fallbackTimer);
