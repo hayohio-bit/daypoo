@@ -465,7 +465,12 @@ export function MapPage({ openAuth }: { openAuth: (mode: 'login' | 'signup') => 
           style={{ bottom: 'max(2rem, calc(env(safe-area-inset-bottom) + 1rem))' }}
         >
           <button
-            onClick={() => mapViewRef.current?.panTo(pos.lat, pos.lng)}
+            onClick={() => {
+              if (localStorage.getItem('location_consented') !== 'true') {
+                window.dispatchEvent(new Event('forceLocationConsent'));
+              }
+              mapViewRef.current?.panTo(pos.lat, pos.lng);
+            }}
             className="w-12 h-12 rounded-full flex items-center justify-center bg-white shadow-lg active:scale-95 transition-transform"
           >
             <LocateFixed size={20} style={{ color: '#1B4332' }} />

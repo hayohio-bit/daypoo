@@ -2,6 +2,7 @@ import React, { useRef, useState, useEffect, useCallback, useMemo } from "react"
 import { Link } from "react-router-dom";
 import { motion, AnimatePresence, useReducedMotion, Variants } from "framer-motion";
 import { useTransitionContext } from "../context/TransitionContext";
+import { isTouchDevice } from "../hooks/useIsTouchDevice";
 
 // @ts-ignore - Math might be misidentified in this environment
 const safeMath = Math;
@@ -189,16 +190,8 @@ export function AnimatedUnderlink({
         ...style,
       }}
       className={className}
-    onMouseEnter={() => {
-      if (window.matchMedia("(hover: hover)").matches) {
-        handleHoverStart();
-      }
-    }}
-    onMouseLeave={() => {
-      if (window.matchMedia("(hover: hover)").matches) {
-        handleHoverEnd();
-      }
-    }}
+    onMouseEnter={!isTouchDevice() ? handleHoverStart : undefined}
+    onMouseLeave={!isTouchDevice() ? handleHoverEnd : undefined}
     >
       <span
         ref={textRef}

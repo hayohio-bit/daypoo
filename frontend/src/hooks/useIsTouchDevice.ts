@@ -1,32 +1,13 @@
-import { useState, useEffect } from 'react';
+export function isTouchDevice() {
+  if (typeof window === 'undefined') return false;
+  return (
+    'ontouchstart' in window ||
+    navigator.maxTouchPoints > 0 ||
+    (window.matchMedia && window.matchMedia('(any-pointer: coarse)').matches)
+  );
+}
 
 export function useIsTouchDevice() {
-  const [isTouch, setIsTouch] = useState(false);
-
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const mediaQuery = window.matchMedia("(hover: none)");
-      setIsTouch(mediaQuery.matches);
-
-      const handler = (e: MediaQueryListEvent | MediaQueryList) => {
-        if ('matches' in e) setIsTouch(e.matches);
-      };
-
-      if (mediaQuery.addEventListener) {
-        mediaQuery.addEventListener('change', handler as EventListener);
-      } else {
-        mediaQuery.addListener(handler);
-      }
-
-      return () => {
-        if (mediaQuery.removeEventListener) {
-          mediaQuery.removeEventListener('change', handler as EventListener);
-        } else {
-          mediaQuery.removeListener(handler);
-        }
-      };
-    }
-  }, []);
-
-  return isTouch;
+  // 클라이언트 사이드 앱이므로 동기적으로 평가해도 무방합니다.
+  return isTouchDevice();
 }

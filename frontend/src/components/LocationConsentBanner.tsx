@@ -35,6 +35,15 @@ export function LocationConsentBanner() {
     };
 
     checkPermission();
+
+    const handleForceConsent = () => {
+      setIsVisible(true);
+    };
+
+    window.addEventListener('forceLocationConsent', handleForceConsent);
+    return () => {
+      window.removeEventListener('forceLocationConsent', handleForceConsent);
+    };
   }, []);
 
   const handleAccept = () => {
