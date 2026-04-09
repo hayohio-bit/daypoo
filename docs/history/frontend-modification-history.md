@@ -1,5 +1,45 @@
 # Frontend Modification History
 
+## [2026-04-09 12:53:00] iOS PWA 모바일 기기 크래시(FAQ 에러), 내비바 더블 탭 및 위치 권한 마비 버그 긴급 해결
+
+**작업 내용:**
+- **장치 환경 평가 동기화 및 런타임 에러 해소:** 기존 `window.matchMedia` 기반 이벤트 리스너 방식에서 발생하는 브라우저 호환성 에러(지원되지 않는 iOS 브라우저 등에서 앱 전체가 크래시되는 현상)를 방지하기 위해, 클라이언트 사이드 변수로 `navigator.maxTouchPoints` 및 `ontouchstart` 존재 여부를 동기적으로만 검사하도록 `useIsTouchDevice.tsx`를 완전 재작성했습니다. 이로써 렌더링 시점에 발생하는 "앗! 문제가 발생했어요" 현상을 원천 차단했습니다.
+- **내비바 지도 링크 터치 더블 탭 현상 수정:** iOS 환경에서 터치 이벤트를 강제로 가로채는 `onMouseEnter` 및 `whileHover` 속성을 `undefined`로 동적 제거하여, 브라우저가 터치를 마우스 오버 이벤트로 오인하여 클릭을 지연시키는 문제를 해결했습니다. 이제 터치 기기에서는 첫 번째 탭으로 바로 페이지 이동이 가능합니다.
+- **모달 종료로 인한 지도 기능 먹통 현상(권한 억제 마비) 복구 프로세스 구현:** 기존엔 위치 동의 모달을 한 번 닫아버리면 `localStorage` 플래그로 인해 다시는 열리지 않아서 영원히 트래킹이 불가능해지는 치명적인 결함이 있었습니다.
+    - 이를 해결하고자 MapPage 우측 하단의 "내 위치 (LocateFixed)" 버튼에 권한 점검 로직을 추가했습니다.
+    - 권한 동의 이력이 없는 유저가 이 버튼을 클릭하면, 커스텀 이벤트(`forceLocationConsent`)를 전역으로 발송하여 위치 권한 모달창(`LocationConsentBanner.tsx`)이 강제로 다시 나타나도록 구조화해 지도 기능을 누구나 스스로 복구할 수 있게 했습니다.
+
+**결과/영향:** 앱 진입 도중 떨어지던 크래시가 더이상 발생하지 않으며, 안 되던 버튼 터치가 모두 1회 탭으로 동작합니다. 또한 거절 이력이 있는 사용자도 언제든지 지도 화면 위 위치 탐색 버튼을 다시 터치하여 동의할 수 있습니다.
+
+**수정(추가)된 파일:**
+- `frontend/src/hooks/useIsTouchDevice.ts`
+- `frontend/src/components/AnimatedUnderlink.tsx`
+- `frontend/src/components/Navbar.tsx`
+- `frontend/src/pages/MapPage.tsx`
+- `frontend/src/components/LocationConsentBanner.tsx`
+
+## [2026-04-09 12:15:00] iOS PWA 더블 탭 이슈 및 전역 성능 병목 해결
+
+**작업 내용:**
+- **더블 탭 현상 완벽 해결:** iOS 사파리 및 PWA 엔진에서 Framer Motion의 `whileHover`, `onMouseEnter`가 터치 장치의 첫 번째 탭을 '호버'로 가로채는 문제를 해결하기 위해, 미디어 쿼리(`hover: hover`)를 사용하여 터치 기반 기기에서는 호버 관련 애니메이션과 상태 변화가 발생하지 않도록 차단했습니다.
+- **전역 성능 병목 해결 (`useGeoTracking.ts`):** 위치 트래킹 훅의 의존성 배열에서 주기적으로 변경되는 `toilets` 데이터 객체를 제거했습니다. 기존에는 화장실 데이터가 갱신될 때마다 브라우저의 위치 추적(`watchPosition`)이 끊겼다 재시도되면서 전체 앱의 버벅임을 유발했으나, 이제 `Ref`를 활용해 끊김 없는 부드러운 트래킹을 지원합니다.
+- **페이지 전환 및 렌더링 최적화:** 
+    - `RankingPage`, `SupportPage` 등 애니메이션이 많은 페이지에서 모바일 기기 접속 시 무거운 무한 루프 블러 이펙트와 아우라 효과를 간소화 또는 비활성화하여 GPU 전력 소모와 끊김을 줄였습니다.
+    - `PaintCurtain.tsx`에 `will-change: transform` 하드웨어 가속을 추가하여 페이지 전환 커튼 효과가 프레이 드랍 없이 실행되도록 최적화했습니다.
+
+**수정(추가)된 파일:**
+- `frontend/src/hooks/useGeoTracking.ts`
+- `frontend/src/components/AnimatedUnderlink.tsx`
+- `frontend/src/components/Navbar.tsx`
+- `frontend/src/components/PaintCurtain.tsx`
+- `frontend/src/pages/RankingPage.tsx`
+- `frontend/src/pages/SupportPage.tsx`
+
+**결과/영향:** 
+- iOS PWA 환경에서 네비게이션 버튼을 한 번만 눌러도 즉시 동작하며, 랭킹 및 FAQ 페이지 로딩 및 전환 과정이 기존 대비 눈에 띄게 부드러워졌습니다.
+
+---
+
 ## [2026-04-09 12:02:00] iOS 등 모바일 환경 더블 탭(Hover Sticky) 이슈 해결
 
 **작업 내용:**

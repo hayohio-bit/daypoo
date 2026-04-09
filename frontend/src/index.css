@@ -51,9 +51,10 @@ body {
 /* iOS 300ms 탭 딜레이 제거 */
 button, a, input, select, textarea, [role="button"] {
   touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
 }
 
-/* 네비 링크 hover 언더라인 */
+/* 네비 링크 hover 언더라인 — 포인터 장치에서만 활성화 */
 .nav-link::after {
   content: '';
   position: absolute;
@@ -65,8 +66,10 @@ button, a, input, select, textarea, [role="button"] {
   transition: width 0.2s ease;
 }
 
-.nav-link:hover::after { 
-  width: 100%; 
+@media (hover: hover) and (pointer: fine) {
+  .nav-link:hover::after { 
+    width: 100%; 
+  }
 }
 
 /* Custom Scrollbar */

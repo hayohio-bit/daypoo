@@ -6,7 +6,6 @@ import { Navbar } from '../components/Navbar';
 import { Footer } from '../components/Footer';
 import { WaveDivider } from '../components/WaveDivider';
 import { api } from '../services/apiClient';
-import { useIsTouchDevice } from '../hooks/useIsTouchDevice';
 import {
   Search,
   ChevronDown,
@@ -173,7 +172,6 @@ function TrendyFaqItem({
   isOpen: boolean;
   onToggle: () => void;
 }) {
-  const isTouch = useIsTouchDevice();
   return (
     <motion.div
       variants={listItemVariants}

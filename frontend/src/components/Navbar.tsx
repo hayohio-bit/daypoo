@@ -23,7 +23,7 @@ import { HealthLogModal, HealthLogResult } from './map/HealthLogModal';
 import { api } from '../services/apiClient';
 import { HealthRecordRequest } from '../types/api';
 import { useTransitionContext } from '../context/TransitionContext';
-import { useIsTouchDevice } from '../hooks/useIsTouchDevice';
+import { isTouchDevice } from '../hooks/useIsTouchDevice';
 
 const NAV_LINKS = [
   { label: '지도', path: '/map', icon: Map, variant: 0 },
@@ -43,7 +43,6 @@ export function Navbar({ openAuth }: { openAuth: (mode: 'login' | 'signup') => v
   const [showHealthLog, setShowHealthLog] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
-  const isTouch = useIsTouchDevice();
 
   useMotionValueEvent(scrollY, 'change', (latest) => {
     const previous = scrollY.getPrevious() ?? 0;
@@ -212,8 +211,8 @@ export function Navbar({ openAuth }: { openAuth: (mode: 'login' | 'signup') => v
           {/* 알림 벨 (로그인 상태에서만 표시) */}
           {isAuthenticated && (
             <m.button
-              whileHover={!isTouch ? { scale: 1.1 } : undefined}
-              whileTap={!isTouch ? { scale: 0.9 } : undefined}
+              whileHover={!isTouchDevice() ? { scale: 1.1 } : undefined}
+              whileTap={!isTouchDevice() ? { scale: 0.9 } : undefined}
               onClick={() => setNotifOpen(!notifOpen)}
               className="relative p-2 rounded-full transition-colors hover:bg-white/10 hidden md:flex items-center justify-center text-white/60"
               aria-label={unreadCount > 0 ? `알림 (읽지 않은 알림 ${unreadCount}개)` : '알림'}
@@ -285,9 +284,9 @@ export function Navbar({ openAuth }: { openAuth: (mode: 'login' | 'signup') => v
                     setDrawerOpen(false);
                     navigate('/main');
                   }}
-                  className={`flex items-center gap-4 px-4 py-3.5 rounded-2xl transition-all w-full text-left ${isActivePath('/main')
+                  className={`flex items-center gap-4 px-4 py-3.5 rounded-2xl w-full text-left ${isActivePath('/main')
                       ? 'bg-white/10 text-white'
-                      : 'text-white/60 hover:bg-white/5 hover:text-white/80'
+                      : 'text-white/60 active:bg-white/5 active:text-white/80'
                     }`}
                 >
                   <Home size={20} />
@@ -307,9 +306,9 @@ export function Navbar({ openAuth }: { openAuth: (mode: 'login' | 'signup') => v
                           navigate(link.path);
                         }
                       }}
-                      className={`flex items-center gap-4 px-4 py-3.5 rounded-2xl transition-all w-full text-left ${isActivePath(link.path)
+                      className={`flex items-center gap-4 px-4 py-3.5 rounded-2xl w-full text-left ${isActivePath(link.path)
                           ? 'bg-white/10 text-white'
-                          : 'text-white/60 hover:bg-white/5 hover:text-white/80'
+                          : 'text-white/60 active:bg-white/5 active:text-white/80'
                         }`}
                     >
                       <Icon size={20} />
@@ -327,9 +326,9 @@ export function Navbar({ openAuth }: { openAuth: (mode: 'login' | 'signup') => v
                       setDrawerOpen(false);
                       navigate('/mypage');
                     }}
-                    className={`flex items-center gap-4 px-4 py-3.5 rounded-2xl transition-all w-full text-left ${isActivePath('/mypage')
+                    className={`flex items-center gap-4 px-4 py-3.5 rounded-2xl w-full text-left ${isActivePath('/mypage')
                         ? 'bg-white/10 text-white'
-                        : 'text-white/60 hover:bg-white/5 hover:text-white/80'
+                        : 'text-white/60 active:bg-white/5 active:text-white/80'
                       }`}
                   >
                     <User size={20} />
@@ -359,9 +358,9 @@ export function Navbar({ openAuth }: { openAuth: (mode: 'login' | 'signup') => v
                     setDrawerOpen(false);
                     navigate('/premium');
                   }}
-                  className={`flex items-center gap-4 px-4 py-3.5 rounded-2xl transition-all w-full text-left ${isActivePath('/premium')
+                  className={`flex items-center gap-4 px-4 py-3.5 rounded-2xl w-full text-left ${isActivePath('/premium')
                       ? 'bg-white/10 text-white'
-                      : 'text-white/60 hover:bg-white/5 hover:text-white/80'
+                      : 'text-white/60 active:bg-white/5 active:text-white/80'
                     }`}
                 >
                   <Crown size={20} />
